@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BiMoney, BiHistory } from 'react-icons/bi';
+import { BiMoney, BiHistory, BiUser, BiSupport } from 'react-icons/bi';
 import { FaGamepad, FaStore, FaDice, FaHome, FaEllipsisH } from 'react-icons/fa';
 import { GiTakeMyMoney } from 'react-icons/gi';
 import { IoTicketOutline } from 'react-icons/io5';
@@ -18,10 +18,22 @@ const navItems = [
 ];
 
 const moreMenuItems = [
-  { label: 'Marketplace', icon: FaStore, href: '/dashboard/marketplace' },
-  { label: 'Roulette', icon: FaDice, href: '/dashboard/roulette' },
-  { label: 'Draw', icon: IoTicketOutline, href: '/dashboard/draws' },
-  { label: 'History', icon: BiHistory, href: '/dashboard/history' },
+  {
+    title: 'Gaming',
+    items: [
+      { label: 'Marketplace', icon: FaStore, href: '/dashboard/marketplace' },
+      { label: 'Roulette', icon: FaDice, href: '/dashboard/roulette' },
+      { label: 'Draw', icon: IoTicketOutline, href: '/dashboard/draws' },
+    ]
+  },
+  {
+    title: 'Account',
+    items: [
+      { label: 'History', icon: BiHistory, href: '/dashboard/history' },
+      { label: 'Profile', icon: BiUser, href: '/dashboard/profile' },
+      { label: 'Support', icon: BiSupport, href: '/dashboard/support' },
+    ]
+  }
 ];
 
 const MobileNavbar = () => {
@@ -127,31 +139,41 @@ const MobileNavbar = () => {
                 <div className="flex justify-center mb-6">
                   <div className="w-12 h-1 bg-gray-700 rounded-full" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {moreMenuItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = pathname === item.href;
+                
+                {moreMenuItems.map((section, sectionIndex) => (
+                  <div key={section.title} className={sectionIndex > 0 ? 'mt-6' : ''}>
+                    <h3 className="text-gray-400 text-sm font-medium mb-3 px-1">
+                      {section.title}
+                    </h3>
+                    <div className="grid grid-cols-3 gap-3">
+                      {section.items.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = pathname === item.href;
 
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 ${
-                          isActive 
-                            ? 'bg-[#00ffff]/10 text-[#00ffff] shadow-lg shadow-[#00ffff]/5' 
-                            : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800/80 hover:scale-[1.02]'
-                        }`}
-                      >
-                        <div className={`p-2.5 rounded-xl ${
-                          isActive ? 'bg-[#00ffff]/20' : 'bg-gray-700/50'
-                        }`}>
-                          <Icon className="w-5 h-5" />
-                        </div>
-                        <span className="font-medium">{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-all duration-200 ${
+                              isActive 
+                                ? 'bg-[#00ffff]/10 text-[#00ffff] shadow-lg shadow-[#00ffff]/5' 
+                                : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800/80 hover:scale-[1.02]'
+                            }`}
+                          >
+                            <div className={`p-3 rounded-xl ${
+                              isActive ? 'bg-[#00ffff]/20' : 'bg-gray-700/50'
+                            }`}>
+                              <Icon className="w-5 h-5" />
+                            </div>
+                            <span className="text-xs font-medium text-center">
+                              {item.label}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             </motion.div>
           </>
