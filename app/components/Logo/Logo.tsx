@@ -6,7 +6,7 @@ import { FaDollarSign } from 'react-icons/fa';
 const Logo = () => {
   return (
     <Link href="/" className="group">
-      <div className="flex items-center gap-2 sm:gap-3 bg-black/20 p-1.5 sm:p-2 rounded-lg backdrop-blur-sm border border-primary/30">
+      <div className="flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2">
         <div className="relative">
           <GiCardKingDiamonds className="text-2xl sm:text-4xl text-primary transition-all duration-300 group-hover:text-primary-light group-hover:animate-spin-slow" />
           <GiCoins className="absolute -bottom-1.5 -right-1.5 sm:-bottom-2 sm:-right-2 text-lg sm:text-xl text-primary-dark transition-all duration-300 group-hover:text-primary animate-bounce" />

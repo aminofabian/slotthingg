@@ -5,7 +5,7 @@ import Link from "next/link";
 
 const imgs = [
   "/11.jpeg",
-  "/18.jpg",
+  "/1.jpg",
   "/11.jpeg",
   "/14.jpg",
   "/188.jpg",
