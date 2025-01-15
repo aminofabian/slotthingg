@@ -1,35 +1,22 @@
-import type { Metadata } from "next";
-import { Montserrat, Righteous, Playfair_Display, Poppins } from "next/font/google";
-import "./globals.css";
+import './globals.css';
+import { Montserrat, Playfair_Display } from 'next/font/google';
+import { Metadata } from 'next';
 
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  variable: "--font-montserrat",
-});
-
-const righteous = Righteous({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-righteous",
+const montserrat = Montserrat({ 
+  subsets: ['latin'],
+  variable: '--font-montserrat',
+  display: 'swap',
 });
 
 const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-playfair-display",
-  display: "swap"
-});
-
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["600", "700", "800", "900"],
-  variable: "--font-poppins",
-  display: "swap"
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: "Slotthing - Play Now",
-  description: "Experience the thrill of slots gaming",
+  title: 'Slot Game Platform',
+  description: 'Experience the thrill of gaming with our premium slot games',
 };
 
 export default function RootLayout({
@@ -38,8 +25,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${montserrat.variable} ${righteous.variable} ${playfair.variable} ${poppins.variable}`}>
-      <body className="font-montserrat">{children}</body>
+    <html lang="en" className={`${montserrat.variable} ${playfair.variable}`}>
+      <body className={`${montserrat.className} antialiased`}>{children}</body>
     </html>
   );
 }

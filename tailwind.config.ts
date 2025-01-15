@@ -17,6 +17,10 @@ export default {
           dark: "#00cccc",
         }
       },
+      fontFamily: {
+        montserrat: ['var(--font-montserrat)'],
+        playfair: ['var(--font-playfair)'],
+      },
       animation: {
         'spin-slow': 'spin 3s linear infinite',
       }

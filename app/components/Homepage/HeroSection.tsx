@@ -90,7 +90,7 @@ const HeroSection = () => {
               transition={{ duration: 0.8 }}
               className="text-center max-w-4xl mx-auto"
             >
-              <h1 className="font-poppins text-3xl md:text-4xl text-white/80 mb-6 font-semibold tracking-wide">
+              <h1 className="font-playfair text-3xl md:text-4xl text-white/80 mb-6 font-bold tracking-wide">
                 Ready to Play?
               </h1>
               <Link 
