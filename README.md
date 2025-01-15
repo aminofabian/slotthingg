@@ -1,6 +1,6 @@
 # SlotThing - Modern Slot Game Platform
 
-![SlotThing Banner](public/banner.png)
+![SlotThing Banner](/11.jpeg)
 
 A modern, responsive slot game platform built with Next.js 14, featuring real-time gameplay, user dashboard, and seamless mobile experience.
 
@@ -151,4 +151,4 @@ For support, email support@slotthing.com or join our Discord community.
 
 ---
 
-Made with ❤️ by [Your Name]
+Made with ❤️ by Fabian Amino
