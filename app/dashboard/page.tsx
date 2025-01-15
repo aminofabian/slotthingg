@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Navbar from '../components/Dashboard/Navbar';
 import TopNav from '../components/Dashboard/TopNav';
+import MobileTopNav from '../components/Dashboard/MobileTopNav';
 import DashboardContent from '../components/Dashboard/DashboardContent';
 import MobileNavbar from '../components/Dashboard/MobileNavbar';
 import { BiMoney } from 'react-icons/bi';
@@ -26,12 +27,17 @@ export default function DashboardPage() {
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col w-full">
-          {/* Top Navigation - Hidden on mobile */}
-          <div className="sticky top-0 z-40 bg-gray-900 border-b border-gray-800 hidden lg:block">
-            <TopNav onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+          {/* Top Navigation */}
+          <div className="sticky top-0 z-40">
+            {/* Desktop Top Nav */}
+            <div className="hidden lg:block bg-gray-900 border-b border-gray-800">
+              <TopNav onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+            </div>
+            {/* Mobile Top Nav */}
+            <MobileTopNav />
           </div>
 
-          {/* Content Area with Scrolling */}
+          {/* Main Content */}
           <main className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-900 to-[#0f172a] pb-16 lg:pb-0">
             {/* Slider Section */}
             <div className="relative w-full overflow-hidden">
