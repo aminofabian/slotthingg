@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Navbar from '../components/Dashboard/Navbar';
 import TopNav from '../components/Dashboard/TopNav';
 import DashboardContent from '../components/Dashboard/DashboardContent';
+import MobileNavbar from '../components/Dashboard/MobileNavbar';
 import { BiMoney } from 'react-icons/bi';
 import { GiDiamonds } from 'react-icons/gi';
 
@@ -31,7 +32,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Content Area with Scrolling */}
-          <main className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-900 to-[#0f172a]">
+          <main className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-900 to-[#0f172a] pb-16 lg:pb-0">
             {/* Slider Section */}
             <div className="relative w-full overflow-hidden">
               <DashboardContent />
@@ -57,12 +58,12 @@ export default function DashboardPage() {
                     <span className="text-lg font-bold text-primary-light">0</span>
                   </div>
                 </div>
-
-                  
-                  
               </div>
             </div>
           </main>
+
+          {/* Mobile Navigation - Visible only on mobile */}
+          <MobileNavbar />
         </div>
       </div>
 
