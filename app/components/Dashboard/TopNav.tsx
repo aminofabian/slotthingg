@@ -10,7 +10,7 @@ const TopNav = () => {
   const [notifications] = useState(3);
 
   return (
-    <div className="h-20 bg-black/40 backdrop-blur-lg border-b border-primary/20 fixed top-0 right-0 left-0 z-50">
+    <nav className="fixed top-0 right-0 left-0 bg-black/20 backdrop-blur-lg border-b border-white/5 z-40">
       <div className="flex items-center justify-between h-full px-6 md:px-8">
         <Logo />
 
@@ -51,7 +51,7 @@ const TopNav = () => {
           </Link>
         </div>
       </div>
-    </div>
+    </nav>
   );
 };
 

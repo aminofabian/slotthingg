@@ -1,5 +1,5 @@
 import './globals.css';
-import { Montserrat, Playfair_Display } from 'next/font/google';
+import { Inter, Playfair_Display, Montserrat } from 'next/font/google';
 import { Metadata } from 'next';
 
 const montserrat = Montserrat({ 
