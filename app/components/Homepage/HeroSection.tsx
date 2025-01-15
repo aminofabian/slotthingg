@@ -4,11 +4,11 @@ import { motion, useMotionValue } from "framer-motion";
 import Link from "next/link";
 
 const imgs = [
-  "/11.png",
-  "/imgs/slots/slot2.jpg",
-  "/imgs/slots/slot3.jpg",
-  "/imgs/slots/slot4.jpg",
-  "/imgs/slots/slot5.jpg",
+  "/11.jpeg",
+  "/18.jpg",
+  "/11.jpeg",
+  "/14.jpg",
+  "/188.jpg",
 ];
 
 const ONE_SECOND = 1000;
@@ -81,22 +81,24 @@ const HeroSection = () => {
       </div>
 
       {/* Bottom Content Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-[#004d4d] to-transparent pt-32 pb-12">
+      <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-[#004d4d] to-transparent pt-40 pb-16">
         <div className="container mx-auto px-6">
           <div className="flex flex-col items-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="text-center"
+              className="text-center max-w-4xl mx-auto"
             >
-              <h1 className="font-righteous text-4xl md:text-5xl text-white mb-6">
+              <h1 className="font-poppins text-3xl md:text-4xl text-white/80 mb-6 font-semibold tracking-wide">
                 Ready to Play?
               </h1>
               <Link 
                 href="/play"
-                className="inline-block bg-[#00ffff] text-[#004d4d] px-8 py-3 rounded-md
-                         text-lg font-medium hover:bg-white transition-colors duration-200"
+                className="inline-block bg-[#00ffff] text-[#004d4d] px-20 py-6 rounded-2xl
+                         text-3xl md:text-4xl uppercase tracking-widest hover:scale-105 
+                         transition-all duration-300 font-black shadow-lg shadow-[#00ffff]/20
+                         hover:shadow-xl hover:shadow-[#00ffff]/30"
               >
                 Start Now
               </Link>
