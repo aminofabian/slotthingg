@@ -9,6 +9,7 @@ import GamesSection from "./components/Games/GamesSection";
 import LicenseSection from "./components/License/LicenseSection";
 import Footer from "./components/Footer/Footer";
 import LoadingScreen from "./components/Loading/LoadingScreen";
+import ChatWidget from "./components/Chat/ChatWidget";
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
@@ -34,6 +35,7 @@ export default function Home() {
             <GamesSection />
             <LicenseSection />
             <Footer />
+            <ChatWidget />
           </>
         )}
       </AnimatePresence>

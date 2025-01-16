@@ -8,6 +8,7 @@ import DashboardContent from '../components/Dashboard/DashboardContent';
 import MobileNavbar from '../components/Dashboard/MobileNavbar';
 import { BiMoney } from 'react-icons/bi';
 import { GiDiamonds } from 'react-icons/gi';
+import ChatWidget from '../components/Chat/ChatWidget';
 
 export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -66,6 +67,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+            <ChatWidget />
           </main>
 
           {/* Mobile Navigation - Visible only on mobile */}
