@@ -8,12 +8,13 @@ import { FaGamepad, FaStore, FaDice, FaHome, FaEllipsisH } from 'react-icons/fa'
 import { GiTakeMyMoney } from 'react-icons/gi';
 import { IoTicketOutline } from 'react-icons/io5';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SiMarketo } from 'react-icons/si';
 
 const navItems = [
   { label: 'Purchase', icon: BiMoney, href: '/dashboard/purchase' },
   { label: 'Cashout', icon: GiTakeMyMoney, href: '/dashboard/cashout' },
   { label: 'Home', icon: FaHome, href: '/dashboard' },
-  { label: 'Games', icon: FaGamepad, href: '/dashboard/games' },
+  { label: 'Marketplace', icon: SiMarketo, href: '/dashboard/marketplace' },
   { label: 'More', icon: FaEllipsisH, href: '#' },
 ];
 
