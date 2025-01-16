@@ -1,12 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaWhatsapp, FaTelegram, FaComments } from 'react-icons/fa';
 import { IoMdClose } from 'react-icons/io';
 
 const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [rotation, setRotation] = useState(0);
+
+  // Create a pulsing effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRotation(prev => (prev + 120) % 360);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   const chatOptions = [
     {
@@ -72,7 +81,7 @@ const ChatWidget = () => {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="absolute bottom-16 right-0 bg-gray-900/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4 w-72 border border-gray-800"
+            className="absolute bottom-20 right-0 bg-gray-900/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4 w-72 border border-gray-800"
           >
             <div className="flex justify-between items-center mb-4 px-2">
               <h3 className="text-lg font-semibold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
@@ -126,23 +135,63 @@ const ChatWidget = () => {
           </motion.div>
         )}
       </AnimatePresence>
-      
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative group"
-      >
-        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary to-primary blur-lg opacity-75 group-hover:opacity-100 transition-opacity duration-300" />
-        <div className="relative bg-gradient-to-r from-primary to-indigo-600 text-white rounded-full p-4 shadow-lg">
-          <motion.div
-            animate={{ rotate: isOpen ? 180 : 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <FaComments className="w-7 h-7" />
-          </motion.div>
-        </div>
-      </motion.button>
+
+      {/* Chat Button */}
+      <div className="relative">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="relative group w-16 h-16"
+        >
+          {/* Orbital rings */}
+          <div 
+            className="absolute inset-0 rounded-full border-4 border-primary/30 animate-spin"
+            style={{ animationDuration: '15s' }}
+          />
+          <div 
+            className="absolute inset-0 rounded-full border-4 border-primary/20 animate-spin"
+            style={{ animationDuration: '10s', animationDirection: 'reverse' }}
+          />
+          
+          {/* Glowing background effects */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary to-indigo-600 blur-xl opacity-40 group-hover:opacity-60 transition-all duration-500" />
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/50 to-indigo-600/50 blur-md animate-pulse" />
+          
+          {/* Main button background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary to-indigo-600 rounded-full shadow-lg transform transition-transform duration-500 group-hover:scale-110">
+            {/* Sparkles */}
+            <div className="absolute inset-0 overflow-hidden rounded-full">
+              {[...Array(3)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-2 h-2 bg-white rounded-full animate-ping"
+                  style={{
+                    left: `${30 + i * 20}%`,
+                    top: `${20 + i * 25}%`,
+                    animationDelay: `${i * 0.5}s`,
+                    animationDuration: '2s'
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+          
+          {/* Icon container */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative transform transition-transform duration-500 group-hover:scale-110">
+              {/* Rotating outer icon */}
+              <FaComments 
+                className="w-8 h-8 text-white/30 absolute"
+                style={{
+                  transform: `rotate(${rotation}deg)`,
+                  transition: 'transform 1s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+              />
+              {/* Static center icon */}
+              <FaComments className="w-8 h-8 text-white transform group-hover:rotate-12 transition-transform duration-300" />
+            </div>
+          </div>
+        </button>
+      </div>
     </div>
   );
 };
