@@ -107,229 +107,316 @@ const SignUp = () => {
                 </p>
               </div>
 
-              <form className="mt-10 space-y-7" onSubmit={handleSubmit}>
-                <div className="space-y-5">
-                  {/* Basic Information Section */}
-                  <div className="space-y-5">
-                    <h3 className="text-[#00ffff]/90 text-lg font-light tracking-wider uppercase">
-                      Basic Information
-                    </h3>
-                    
-                    {/* Username field */}
-                    <InputField
-                      label="Username"
-                      name="username"
-                      type="text"
-                      value={formData.username}
-                      onChange={handleChange}
-                      required
-                    />
-
-                    {/* Name fields */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <form className="mt-10" onSubmit={handleSubmit}>
+                {/* Grid layout for form sections */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Left Column - Essential Information */}
+                  <div className="space-y-6">
+                    <div className="space-y-5">
+                      <h3 className="text-[#00ffff]/90 text-lg font-light tracking-wider uppercase border-b border-[#00ffff]/10 pb-2">
+                        Account Details
+                      </h3>
+                      
                       <InputField
-                        label="First Name"
-                        name="firstName"
+                        label="Username"
+                        name="username"
                         type="text"
-                        value={formData.firstName}
+                        value={formData.username}
                         onChange={handleChange}
                         required
                       />
+
                       <InputField
-                        label="Last Name"
-                        name="lastName"
-                        type="text"
-                        value={formData.lastName}
+                        label="Email"
+                        name="email"
+                        type="email"
+                        value={formData.email}
                         onChange={handleChange}
                         required
                       />
-                    </div>
 
-                    {/* Email field */}
-                    <InputField
-                      label="Email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                    />
+                      <InputField
+                        label="Password"
+                        name="password"
+                        type="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        required
+                      />
+                      
+                      <InputField
+                        label="Confirm Password"
+                        name="confirmPassword"
+                        type="password"
+                        value={formData.confirmPassword}
+                        onChange={handleChange}
+                        required
+                      />
+                      
+                      <p className="text-white/40 text-sm tracking-wide bg-[#00ffff]/5 p-3 rounded-lg">
+                        At least 5 characters, but 10 or more is better. Use a combination of upper and lower case letters, numbers and symbols.
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Security Section */}
-                  <div className="space-y-5 pt-4">
-                    <h3 className="text-[#00ffff]/90 text-lg font-light tracking-wider uppercase">
-                      Security
-                    </h3>
-
-                    {/* Password fields */}
-                    <InputField
-                      label="Password"
-                      name="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      required
-                    />
-                    <InputField
-                      label="Confirm Password"
-                      name="confirmPassword"
-                      type="password"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      required
-                    />
-                    <p className="text-white/40 text-sm tracking-wide">
-                      At least 5 characters, but 10 or more is better. Use a combination of upper and lower case letters, numbers and symbols.
-                    </p>
-                  </div>
-
-                  {/* Personal Information Section */}
-                  <div className="space-y-5 pt-4">
-                    <h3 className="text-[#00ffff]/90 text-lg font-light tracking-wider uppercase">
-                      Personal Information
-                    </h3>
-
-                    {/* Date of Birth */}
-                    <div className="space-y-2">
-                      <label className="block text-sm text-[#00ffff]/80 tracking-wider uppercase">
-                        Date of Birth
-                      </label>
-                      <div className="grid grid-cols-3 gap-4">
-                        <select
-                          name="dob.day"
-                          value={formData.dateOfBirth.day}
-                          onChange={handleChange}
-                          className="form-select bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
-                            text-white px-4 py-3 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                            hover:border-[#00ffff]/30 transition-all duration-300"
-                          required
-                        >
-                          <option value="">Day</option>
-                          {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                            <option key={day} value={day}>{day}</option>
-                          ))}
-                        </select>
-                        <select
-                          name="dob.month"
-                          value={formData.dateOfBirth.month}
-                          onChange={handleChange}
-                          className="form-select bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
-                            text-white px-4 py-3 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                            hover:border-[#00ffff]/30 transition-all duration-300"
-                          required
-                        >
-                          <option value="">Month</option>
-                          {['January', 'February', 'March', 'April', 'May', 'June', 'July', 
-                            'August', 'September', 'October', 'November', 'December'].map((month, index) => (
-                            <option key={month} value={index + 1}>{month}</option>
-                          ))}
-                        </select>
-                        <select
-                          name="dob.year"
-                          value={formData.dateOfBirth.year}
-                          onChange={handleChange}
-                          className="form-select bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
-                            text-white px-4 py-3 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                            hover:border-[#00ffff]/30 transition-all duration-300"
-                          required
-                        >
-                          <option value="">Year</option>
-                          {years.map(year => (
-                            <option key={year} value={year}>{year}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Phone Number */}
-                    <InputField
-                      label="Phone Number"
-                      name="phone"
-                      type="tel"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      placeholder="+1 234 567 8900"
-                      required
-                    />
-
-                    {/* Optional Information */}
-                    <div className="space-y-5 pt-4">
-                      <h3 className="text-[#00ffff]/90 text-lg font-light tracking-wider uppercase">
-                        Additional Information
+                  {/* Right Column - Personal Information */}
+                  <div className="space-y-6">
+                    <div className="space-y-5">
+                      <h3 className="text-[#00ffff]/90 text-lg font-light tracking-wider uppercase border-b border-[#00ffff]/10 pb-2">
+                        Personal Information
                       </h3>
 
-                      <InputField
-                        label="Address (Optional)"
-                        name="address"
-                        type="text"
-                        value={formData.address}
-                        onChange={handleChange}
-                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <InputField
+                          label="First Name"
+                          name="firstName"
+                          type="text"
+                          value={formData.firstName}
+                          onChange={handleChange}
+                          required
+                        />
+                        <InputField
+                          label="Last Name"
+                          name="lastName"
+                          type="text"
+                          value={formData.lastName}
+                          onChange={handleChange}
+                          required
+                        />
+                      </div>
 
-                      <InputField
-                        label="Referral Email (Optional)"
-                        name="referralEmail"
-                        type="email"
-                        value={formData.referralEmail}
-                        onChange={handleChange}
-                        placeholder="example@example.com"
-                      />
-
-                      {/* Games Selection */}
+                      {/* Date of Birth with enhanced styling */}
                       <div className="space-y-2">
                         <label className="block text-sm text-[#00ffff]/80 tracking-wider uppercase">
-                          Games (Optional)
+                          Date of Birth
                         </label>
-                        <select
-                          name="games"
-                          multiple
-                          className="w-full bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
-                            text-white px-4 py-3 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                            hover:border-[#00ffff]/30 transition-all duration-300"
-                        >
-                          <option value="game1">Game 1</option>
-                          <option value="game2">Game 2</option>
-                          <option value="game3">Game 3</option>
-                        </select>
-                        <p className="text-white/40 text-sm tracking-wide">
-                          If you already have a game account just select any of them
+                        <div className="grid grid-cols-3 gap-3">
+                          {/* Month Selection */}
+                          <div className="relative group">
+                            <select
+                              name="dob.month"
+                              value={formData.dateOfBirth.month}
+                              onChange={handleChange}
+                              className="appearance-none w-full bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
+                                text-white px-4 py-3.5 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                                hover:border-[#00ffff]/30 transition-all duration-300
+                                cursor-pointer pr-10"
+                              required
+                            >
+                              <option value="" className="bg-[#002222]">Month</option>
+                              {['January', 'February', 'March', 'April', 'May', 'June', 'July', 
+                                'August', 'September', 'October', 'November', 'December'].map((month, index) => (
+                                <option key={month} value={index + 1} className="bg-[#002222]">
+                                  {month}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                              <svg className="h-5 w-5 text-[#00ffff]/50" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div className="absolute inset-0 rounded-xl transition-opacity duration-300 opacity-0 
+                              group-hover:opacity-100 pointer-events-none border border-[#00ffff]/20" />
+                          </div>
+
+                          {/* Day Selection */}
+                          <div className="relative group">
+                            <select
+                              name="dob.day"
+                              value={formData.dateOfBirth.day}
+                              onChange={handleChange}
+                              className="appearance-none w-full bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
+                                text-white px-4 py-3.5 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                                hover:border-[#00ffff]/30 transition-all duration-300
+                                cursor-pointer pr-10"
+                              required
+                            >
+                              <option value="" className="bg-[#002222]">Day</option>
+                              {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                                <option key={day} value={day} className="bg-[#002222]">
+                                  {day.toString().padStart(2, '0')}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                              <svg className="h-5 w-5 text-[#00ffff]/50" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div className="absolute inset-0 rounded-xl transition-opacity duration-300 opacity-0 
+                              group-hover:opacity-100 pointer-events-none border border-[#00ffff]/20" />
+                          </div>
+
+                          {/* Year Selection */}
+                          <div className="relative group">
+                            <select
+                              name="dob.year"
+                              value={formData.dateOfBirth.year}
+                              onChange={handleChange}
+                              className="appearance-none w-full bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
+                                text-white px-4 py-3.5 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                                hover:border-[#00ffff]/30 transition-all duration-300
+                                cursor-pointer pr-10"
+                              required
+                            >
+                              <option value="" className="bg-[#002222]">Year</option>
+                              {years.map(year => (
+                                <option key={year} value={year} className="bg-[#002222]">
+                                  {year}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                              <svg className="h-5 w-5 text-[#00ffff]/50" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div className="absolute inset-0 rounded-xl transition-opacity duration-300 opacity-0 
+                              group-hover:opacity-100 pointer-events-none border border-[#00ffff]/20" />
+                          </div>
+                        </div>
+                        <p className="text-white/40 text-sm tracking-wide flex items-center gap-2 mt-1">
+                          <div className="h-1 w-1 rounded-full bg-[#00ffff]/40" />
+                          You must be at least 16 years old
                         </p>
                       </div>
+
+                      <InputField
+                        label="Phone Number"
+                        name="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="+1 234 567 8900"
+                        required
+                      />
                     </div>
                   </div>
                 </div>
 
-                {/* Terms and conditions */}
-                <div className="flex items-start pt-4">
-                  <div className="flex items-center h-5">
-                    <input
-                      id="terms"
-                      name="terms"
-                      type="checkbox"
-                      required
-                      className="h-4 w-4 rounded-md border-[#00ffff]/20 bg-white/[0.02] text-[#00ffff]
-                      focus:ring-1 focus:ring-[#00ffff]/50 transition-colors duration-200"
+                {/* Optional Information - Full Width */}
+                <div className="mt-8 space-y-6">
+                  <h3 className="text-[#00ffff]/90 text-lg font-light tracking-wider uppercase border-b border-[#00ffff]/10 pb-2">
+                    Additional Information
+                  </h3>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <InputField
+                      label="Address (Optional)"
+                      name="address"
+                      type="text"
+                      value={formData.address}
+                      onChange={handleChange}
+                    />
+
+                    <InputField
+                      label="Referral Email (Optional)"
+                      name="referralEmail"
+                      type="email"
+                      value={formData.referralEmail}
+                      onChange={handleChange}
+                      placeholder="example@example.com"
                     />
                   </div>
-                  <label htmlFor="terms" className="ml-3 block text-sm text-white/50 tracking-wide">
-                    By checking this box you agree to our{' '}
-                    <a href="/rules" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
-                      rules
-                    </a>
-                    ,{' '}
-                    <a href="/policies" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
-                      policies and disclaimer
-                    </a>
-                    , and{' '}
-                    <a href="/terms" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
-                      terms and conditions
-                    </a>
-                  </label>
+
+                  {/* Games Selection */}
+                  <div className="space-y-2">
+                    <label className="block text-sm text-[#00ffff]/80 tracking-wider uppercase">
+                      Games (Optional)
+                    </label>
+                    <div className="relative">
+                      <select
+                        name="games"
+                        multiple
+                        size={5}
+                        className="w-full bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
+                          text-white px-4 py-3 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                          hover:border-[#00ffff]/30 transition-all duration-300
+                          [&>option]:p-3 [&>option]:cursor-pointer [&>option]:mb-1
+                          [&>option]:rounded-lg [&>option]:transition-colors [&>option]:duration-200
+                          [&>option:hover]:bg-[#00ffff]/10 [&>option:checked]:bg-[#00ffff]/20
+                          [&>option]:flex [&>option]:items-center [&>option]:gap-2
+                          scrollbar-thin scrollbar-track-white/5 scrollbar-thumb-[#00ffff]/20
+                          hover:scrollbar-thumb-[#00ffff]/30"
+                      >
+                        <option value="panda-master" className="game-option">
+                          🐼 Panda Master
+                        </option>
+                        <option value="juwa" className="game-option">
+                          🎮 Juwa
+                        </option>
+                        <option value="orion-star" className="game-option">
+                          ⭐ Orion Star
+                        </option>
+                        <option value="fire-kirin" className="game-option">
+                          🔥 Fire Kirin
+                        </option>
+                        <option value="golden-treasure" className="game-option">
+                          💎 Golden Treasure
+                        </option>
+                        <option value="egame" className="game-option">
+                          🎲 Egame
+                        </option>
+                        <option value="milky-way" className="game-option">
+                          🌌 Milky Way
+                        </option>
+                        <option value="golden-dragon" className="game-option">
+                          🐉 Golden Dragon
+                        </option>
+                        <option value="vblink" className="game-option">
+                          🔗 Vblink
+                        </option>
+                      </select>
+                      <div className="absolute inset-0 pointer-events-none rounded-xl 
+                        transition-opacity duration-300 opacity-0 
+                        group-hover:opacity-100 border border-[#00ffff]/20" 
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="h-1 w-1 rounded-full bg-[#00ffff]/40" />
+                      <p className="text-white/40 text-sm tracking-wide">
+                        Hold Ctrl (Windows) or Command (Mac) to select multiple games
+                      </p>
+                    </div>
+                    <p className="text-white/40 text-sm tracking-wide flex items-center gap-2">
+                      <div className="h-1 w-1 rounded-full bg-[#00ffff]/40" />
+                      If you already have a game account just select any of them
+                    </p>
+                  </div>
                 </div>
 
-                {/* Submit button */}
-                <div>
+                {/* Terms and Submit Section */}
+                <div className="mt-8 space-y-6">
+                  {/* Terms and conditions */}
+                  <div className="flex items-start p-4 bg-white/[0.02] rounded-xl border border-[#00ffff]/10">
+                    <div className="flex items-center h-5">
+                      <input
+                        id="terms"
+                        name="terms"
+                        type="checkbox"
+                        required
+                        className="h-4 w-4 rounded-md border-[#00ffff]/20 bg-white/[0.02] text-[#00ffff]
+                        focus:ring-1 focus:ring-[#00ffff]/50 transition-colors duration-200"
+                      />
+                    </div>
+                    <label htmlFor="terms" className="ml-3 block text-sm text-white/50 tracking-wide">
+                      By checking this box you agree to our{' '}
+                      <a href="/rules" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
+                        rules
+                      </a>
+                      ,{' '}
+                      <a href="/policies" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
+                        policies and disclaimer
+                      </a>
+                      , and{' '}
+                      <a href="/terms" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
+                        terms and conditions
+                      </a>
+                    </label>
+                  </div>
+
+                  {/* Submit button */}
                   <button
                     type="submit"
                     disabled={isLoading}
@@ -359,18 +446,18 @@ const SignUp = () => {
                       {isLoading ? 'Creating Account...' : 'Create Account'}
                     </span>
                   </button>
+
+                  {/* Sign in link */}
+                  <div className="text-center">
+                    <span className="text-white/50 tracking-wider">Already have an account? </span>
+                    <a href="/login" 
+                      className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200 
+                      tracking-wider">
+                      Sign in
+                    </a>
+                  </div>
                 </div>
               </form>
-
-              {/* Sign in link */}
-              <div className="mt-8 text-center">
-                <span className="text-white/50 tracking-wider">Already have an account? </span>
-                <a href="/login" 
-                  className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200 
-                  tracking-wider">
-                  Sign in
-                </a>
-              </div>
             </div>
           </motion.div>
         </motion.div>

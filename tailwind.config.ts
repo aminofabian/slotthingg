@@ -42,7 +42,10 @@ export default {
           '50%': { transform: 'translateY(-20px)' },
         },
       },
+      scrollbar: ['rounded'],
     },
   },
-  plugins: [],
+  plugins: [
+    require('tailwind-scrollbar'),
+  ],
 } satisfies Config;
