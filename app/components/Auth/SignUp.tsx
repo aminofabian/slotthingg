@@ -3,9 +3,13 @@ import React, { useState } from 'react';
 import Logo from '../Logo/Logo';
 import { motion } from 'framer-motion';
 
-const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+const SignUp = () => {
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -13,8 +17,14 @@ const Login = () => {
     setIsLoading(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
     setIsLoading(false);
-    console.log('Email:', email);
-    console.log('Password:', password);
+    console.log('Form Data:', formData);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
   };
 
   return (
@@ -66,16 +76,38 @@ const Login = () => {
             <div className="px-12 pb-12 pt-2">
               <div className="text-center">
                 <h2 className="text-[#00ffff] text-2xl md:text-3xl font-light tracking-[0.3em] uppercase mb-4">
-                  Welcome Back
+                  Join Us
                 </h2>
                 <p className="text-white/50 text-sm md:text-base tracking-wider">
-                  Sign in to continue your gaming journey
+                  Create your gaming account
                 </p>
               </div>
 
               <form className="mt-10 space-y-7" onSubmit={handleSubmit}>
                 <div className="space-y-5">
-                  {/* Input fields */}
+                  {/* Username field */}
+                  <div className="group relative">
+                    <label htmlFor="username" className="block text-sm text-[#00ffff]/80 mb-2 ml-1 
+                      tracking-wider uppercase">
+                      Username
+                    </label>
+                    <input
+                      id="username"
+                      name="username"
+                      type="text"
+                      required
+                      value={formData.username}
+                      onChange={handleChange}
+                      className="block w-full rounded-xl border border-[#00ffff]/20 
+                      bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                      focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                      backdrop-blur-sm transition-all duration-300
+                      hover:border-[#00ffff]/30 hover:bg-white/[0.04]"
+                      placeholder="Choose a username"
+                    />
+                  </div>
+
+                  {/* Email field */}
                   <div className="group relative">
                     <label htmlFor="email" className="block text-sm text-[#00ffff]/80 mb-2 ml-1 
                       tracking-wider uppercase">
@@ -86,8 +118,8 @@ const Login = () => {
                       name="email"
                       type="email"
                       required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={formData.email}
+                      onChange={handleChange}
                       className="block w-full rounded-xl border border-[#00ffff]/20 
                       bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
                       focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
@@ -97,6 +129,7 @@ const Login = () => {
                     />
                   </div>
                   
+                  {/* Password field */}
                   <div className="group relative">
                     <label htmlFor="password" className="block text-sm text-[#00ffff]/80 mb-2 ml-1 
                       tracking-wider uppercase">
@@ -107,38 +140,62 @@ const Login = () => {
                       name="password"
                       type="password"
                       required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      value={formData.password}
+                      onChange={handleChange}
                       className="block w-full rounded-xl border border-[#00ffff]/20 
                       bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
                       focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
                       backdrop-blur-sm transition-all duration-300
                       hover:border-[#00ffff]/30 hover:bg-white/[0.04]"
-                      placeholder="Enter your password"
+                      placeholder="Create a password"
+                    />
+                  </div>
+
+                  {/* Confirm Password field */}
+                  <div className="group relative">
+                    <label htmlFor="confirmPassword" className="block text-sm text-[#00ffff]/80 mb-2 ml-1 
+                      tracking-wider uppercase">
+                      Confirm Password
+                    </label>
+                    <input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type="password"
+                      required
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className="block w-full rounded-xl border border-[#00ffff]/20 
+                      bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                      focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                      backdrop-blur-sm transition-all duration-300
+                      hover:border-[#00ffff]/30 hover:bg-white/[0.04]"
+                      placeholder="Confirm your password"
                     />
                   </div>
                 </div>
 
-                {/* Checkbox and forgot password */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
+                {/* Terms and conditions */}
+                <div className="flex items-start">
+                  <div className="flex items-center h-5">
                     <input
-                      id="remember-me"
-                      name="remember-me"
+                      id="terms"
+                      name="terms"
                       type="checkbox"
+                      required
                       className="h-4 w-4 rounded-md border-[#00ffff]/20 bg-white/[0.02] text-[#00ffff]
                       focus:ring-1 focus:ring-[#00ffff]/50 transition-colors duration-200"
                     />
-                    <label htmlFor="remember-me" className="ml-3 block text-sm text-white/50 tracking-wide">
-                      Remember me
-                    </label>
                   </div>
-
-                  <a href="/forgot-password" 
-                    className="text-sm text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200
-                    tracking-wider">
-                    Forgot password?
-                  </a>
+                  <label htmlFor="terms" className="ml-3 block text-sm text-white/50 tracking-wide">
+                    I agree to the{' '}
+                    <a href="/terms" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
+                      Terms of Service
+                    </a>
+                    {' '}and{' '}
+                    <a href="/privacy" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
+                      Privacy Policy
+                    </a>
+                  </label>
                 </div>
 
                 {/* Submit button */}
@@ -170,19 +227,19 @@ const Login = () => {
                       </motion.div>
                     )}
                     <span className="relative flex items-center justify-center">
-                      {isLoading ? 'Signing in...' : 'Sign in'}
+                      {isLoading ? 'Creating Account...' : 'Create Account'}
                     </span>
                   </button>
                 </div>
               </form>
 
-              {/* Sign up section */}
+              {/* Sign in link */}
               <div className="mt-8 text-center">
-                <span className="text-white/50 tracking-wider">Don't have an account? </span>
-                <a href="/register" 
+                <span className="text-white/50 tracking-wider">Already have an account? </span>
+                <a href="/login" 
                   className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200 
                   tracking-wider">
-                  Sign up now
+                  Sign in
                 </a>
               </div>
             </div>
@@ -193,4 +250,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default SignUp; 
