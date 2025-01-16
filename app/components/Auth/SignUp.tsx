@@ -6,9 +6,20 @@ import { motion } from 'framer-motion';
 const SignUp = () => {
   const [formData, setFormData] = useState({
     username: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    dateOfBirth: {
+      day: '',
+      month: '',
+      year: ''
+    },
+    phone: '',
+    address: '',
+    referralEmail: '',
+    games: [] as string[]
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -20,12 +31,28 @@ const SignUp = () => {
     console.log('Form Data:', formData);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    if (name.startsWith('dob.')) {
+      const dobField = name.split('.')[1];
+      setFormData(prev => ({
+        ...prev,
+        dateOfBirth: {
+          ...prev.dateOfBirth,
+          [dobField]: value
+        }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
+
+  // Generate years for date of birth
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#002222]">
@@ -36,7 +63,7 @@ const SignUp = () => {
 
       <div className="relative flex min-h-screen items-center justify-center p-4 sm:p-6 lg:p-8">
         <motion.div 
-          className="w-full max-w-lg relative"
+          className="w-full max-w-2xl relative my-20"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -52,7 +79,6 @@ const SignUp = () => {
               >
                 <Logo />
               </motion.div>
-              {/* Glowing effect behind logo */}
               <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-[#00ffff]/5 rounded-full blur-[100px]" />
             </div>
           </div>
@@ -66,14 +92,12 @@ const SignUp = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.5 }}
           >
-            {/* Top decoration */}
             <div className="relative h-28 overflow-hidden rounded-t-2xl">
               <div className="absolute inset-0 bg-[#00ffff]/5" />
               <div className="absolute inset-0 backdrop-blur-sm" />
             </div>
             
-            {/* Form content */}
-            <div className="px-12 pb-12 pt-2">
+            <div className="px-8 sm:px-12 pb-12 pt-2">
               <div className="text-center">
                 <h2 className="text-[#00ffff] text-2xl md:text-3xl font-light tracking-[0.3em] uppercase mb-4">
                   Join Us
@@ -85,97 +109,199 @@ const SignUp = () => {
 
               <form className="mt-10 space-y-7" onSubmit={handleSubmit}>
                 <div className="space-y-5">
-                  {/* Username field */}
-                  <div className="group relative">
-                    <label htmlFor="username" className="block text-sm text-[#00ffff]/80 mb-2 ml-1 
-                      tracking-wider uppercase">
-                      Username
-                    </label>
-                    <input
-                      id="username"
+                  {/* Basic Information Section */}
+                  <div className="space-y-5">
+                    <h3 className="text-[#00ffff]/90 text-lg font-light tracking-wider uppercase">
+                      Basic Information
+                    </h3>
+                    
+                    {/* Username field */}
+                    <InputField
+                      label="Username"
                       name="username"
                       type="text"
-                      required
                       value={formData.username}
                       onChange={handleChange}
-                      className="block w-full rounded-xl border border-[#00ffff]/20 
-                      bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-                      focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                      backdrop-blur-sm transition-all duration-300
-                      hover:border-[#00ffff]/30 hover:bg-white/[0.04]"
-                      placeholder="Choose a username"
+                      required
                     />
-                  </div>
 
-                  {/* Email field */}
-                  <div className="group relative">
-                    <label htmlFor="email" className="block text-sm text-[#00ffff]/80 mb-2 ml-1 
-                      tracking-wider uppercase">
-                      Email address
-                    </label>
-                    <input
-                      id="email"
+                    {/* Name fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <InputField
+                        label="First Name"
+                        name="firstName"
+                        type="text"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        required
+                      />
+                      <InputField
+                        label="Last Name"
+                        name="lastName"
+                        type="text"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+
+                    {/* Email field */}
+                    <InputField
+                      label="Email"
                       name="email"
                       type="email"
-                      required
                       value={formData.email}
                       onChange={handleChange}
-                      className="block w-full rounded-xl border border-[#00ffff]/20 
-                      bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-                      focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                      backdrop-blur-sm transition-all duration-300
-                      hover:border-[#00ffff]/30 hover:bg-white/[0.04]"
-                      placeholder="name@example.com"
-                    />
-                  </div>
-                  
-                  {/* Password field */}
-                  <div className="group relative">
-                    <label htmlFor="password" className="block text-sm text-[#00ffff]/80 mb-2 ml-1 
-                      tracking-wider uppercase">
-                      Password
-                    </label>
-                    <input
-                      id="password"
-                      name="password"
-                      type="password"
                       required
-                      value={formData.password}
-                      onChange={handleChange}
-                      className="block w-full rounded-xl border border-[#00ffff]/20 
-                      bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-                      focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                      backdrop-blur-sm transition-all duration-300
-                      hover:border-[#00ffff]/30 hover:bg-white/[0.04]"
-                      placeholder="Create a password"
                     />
                   </div>
 
-                  {/* Confirm Password field */}
-                  <div className="group relative">
-                    <label htmlFor="confirmPassword" className="block text-sm text-[#00ffff]/80 mb-2 ml-1 
-                      tracking-wider uppercase">
-                      Confirm Password
-                    </label>
-                    <input
-                      id="confirmPassword"
+                  {/* Security Section */}
+                  <div className="space-y-5 pt-4">
+                    <h3 className="text-[#00ffff]/90 text-lg font-light tracking-wider uppercase">
+                      Security
+                    </h3>
+
+                    {/* Password fields */}
+                    <InputField
+                      label="Password"
+                      name="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                    />
+                    <InputField
+                      label="Confirm Password"
                       name="confirmPassword"
                       type="password"
-                      required
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      className="block w-full rounded-xl border border-[#00ffff]/20 
-                      bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-                      focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                      backdrop-blur-sm transition-all duration-300
-                      hover:border-[#00ffff]/30 hover:bg-white/[0.04]"
-                      placeholder="Confirm your password"
+                      required
                     />
+                    <p className="text-white/40 text-sm tracking-wide">
+                      At least 5 characters, but 10 or more is better. Use a combination of upper and lower case letters, numbers and symbols.
+                    </p>
+                  </div>
+
+                  {/* Personal Information Section */}
+                  <div className="space-y-5 pt-4">
+                    <h3 className="text-[#00ffff]/90 text-lg font-light tracking-wider uppercase">
+                      Personal Information
+                    </h3>
+
+                    {/* Date of Birth */}
+                    <div className="space-y-2">
+                      <label className="block text-sm text-[#00ffff]/80 tracking-wider uppercase">
+                        Date of Birth
+                      </label>
+                      <div className="grid grid-cols-3 gap-4">
+                        <select
+                          name="dob.day"
+                          value={formData.dateOfBirth.day}
+                          onChange={handleChange}
+                          className="form-select bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
+                            text-white px-4 py-3 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                            hover:border-[#00ffff]/30 transition-all duration-300"
+                          required
+                        >
+                          <option value="">Day</option>
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                            <option key={day} value={day}>{day}</option>
+                          ))}
+                        </select>
+                        <select
+                          name="dob.month"
+                          value={formData.dateOfBirth.month}
+                          onChange={handleChange}
+                          className="form-select bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
+                            text-white px-4 py-3 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                            hover:border-[#00ffff]/30 transition-all duration-300"
+                          required
+                        >
+                          <option value="">Month</option>
+                          {['January', 'February', 'March', 'April', 'May', 'June', 'July', 
+                            'August', 'September', 'October', 'November', 'December'].map((month, index) => (
+                            <option key={month} value={index + 1}>{month}</option>
+                          ))}
+                        </select>
+                        <select
+                          name="dob.year"
+                          value={formData.dateOfBirth.year}
+                          onChange={handleChange}
+                          className="form-select bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
+                            text-white px-4 py-3 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                            hover:border-[#00ffff]/30 transition-all duration-300"
+                          required
+                        >
+                          <option value="">Year</option>
+                          {years.map(year => (
+                            <option key={year} value={year}>{year}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Phone Number */}
+                    <InputField
+                      label="Phone Number"
+                      name="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="+1 234 567 8900"
+                      required
+                    />
+
+                    {/* Optional Information */}
+                    <div className="space-y-5 pt-4">
+                      <h3 className="text-[#00ffff]/90 text-lg font-light tracking-wider uppercase">
+                        Additional Information
+                      </h3>
+
+                      <InputField
+                        label="Address (Optional)"
+                        name="address"
+                        type="text"
+                        value={formData.address}
+                        onChange={handleChange}
+                      />
+
+                      <InputField
+                        label="Referral Email (Optional)"
+                        name="referralEmail"
+                        type="email"
+                        value={formData.referralEmail}
+                        onChange={handleChange}
+                        placeholder="example@example.com"
+                      />
+
+                      {/* Games Selection */}
+                      <div className="space-y-2">
+                        <label className="block text-sm text-[#00ffff]/80 tracking-wider uppercase">
+                          Games (Optional)
+                        </label>
+                        <select
+                          name="games"
+                          multiple
+                          className="w-full bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
+                            text-white px-4 py-3 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                            hover:border-[#00ffff]/30 transition-all duration-300"
+                        >
+                          <option value="game1">Game 1</option>
+                          <option value="game2">Game 2</option>
+                          <option value="game3">Game 3</option>
+                        </select>
+                        <p className="text-white/40 text-sm tracking-wide">
+                          If you already have a game account just select any of them
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 {/* Terms and conditions */}
-                <div className="flex items-start">
+                <div className="flex items-start pt-4">
                   <div className="flex items-center h-5">
                     <input
                       id="terms"
@@ -187,13 +313,17 @@ const SignUp = () => {
                     />
                   </div>
                   <label htmlFor="terms" className="ml-3 block text-sm text-white/50 tracking-wide">
-                    I agree to the{' '}
-                    <a href="/terms" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
-                      Terms of Service
+                    By checking this box you agree to our{' '}
+                    <a href="/rules" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
+                      rules
                     </a>
-                    {' '}and{' '}
-                    <a href="/privacy" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
-                      Privacy Policy
+                    ,{' '}
+                    <a href="/policies" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
+                      policies and disclaimer
+                    </a>
+                    , and{' '}
+                    <a href="/terms" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
+                      terms and conditions
                     </a>
                   </label>
                 </div>
@@ -210,7 +340,6 @@ const SignUp = () => {
                     disabled:opacity-70 disabled:cursor-not-allowed
                     group overflow-hidden"
                   >
-                    {/* Loading bar animation */}
                     {isLoading && (
                       <motion.div
                         className="absolute bottom-0 left-0 h-[2px] bg-[#00ffff]/30"
@@ -249,5 +378,45 @@ const SignUp = () => {
     </div>
   );
 };
+
+// Reusable Input Field Component
+const InputField = ({ 
+  label, 
+  name, 
+  type, 
+  value, 
+  onChange, 
+  required = false,
+  placeholder = ''
+}: {
+  label: string;
+  name: string;
+  type: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  required?: boolean;
+  placeholder?: string;
+}) => (
+  <div className="group relative">
+    <label htmlFor={name} className="block text-sm text-[#00ffff]/80 mb-2 ml-1 
+      tracking-wider uppercase">
+      {label}
+    </label>
+    <input
+      id={name}
+      name={name}
+      type={type}
+      required={required}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className="block w-full rounded-xl border border-[#00ffff]/20 
+      bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+      focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+      backdrop-blur-sm transition-all duration-300
+      hover:border-[#00ffff]/30 hover:bg-white/[0.04]"
+    />
+  </div>
+);
 
 export default SignUp; 
