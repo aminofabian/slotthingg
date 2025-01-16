@@ -38,7 +38,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Main Content */}
-          <main className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-900 to-[#0f172a] pb-16 lg:pb-0">
+          <main className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-900 to-[#0f172a] pb-16 lg:pb-0 lg:ml-6">
             {/* Slider Section */}
             <div className="relative w-full overflow-hidden">
               <DashboardContent />
