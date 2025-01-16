@@ -75,7 +75,7 @@ const ChatWidget = () => {
             className="absolute bottom-16 right-0 bg-gray-900/95 backdrop-blur-sm rounded-2xl shadow-2xl p-4 w-72 border border-gray-800"
           >
             <div className="flex justify-between items-center mb-4 px-2">
-              <h3 className="text-lg font-semibold bg-gradient-to-r from-purple-500 to-indigo-500 bg-clip-text text-transparent">
+              <h3 className="text-lg font-semibold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
                 Contact Us
               </h3>
               <motion.button
@@ -133,8 +133,8 @@ const ChatWidget = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="relative group"
       >
-        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 blur-lg opacity-75 group-hover:opacity-100 transition-opacity duration-300" />
-        <div className="relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full p-4 shadow-lg">
+        <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary to-primary blur-lg opacity-75 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="relative bg-gradient-to-r from-primary to-indigo-600 text-white rounded-full p-4 shadow-lg">
           <motion.div
             animate={{ rotate: isOpen ? 180 : 0 }}
             transition={{ duration: 0.3 }}
