@@ -71,20 +71,24 @@ const packages = [
 export default function RealMoneySection() {
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="space-y-2">
+      {/* Header with adjusted spacing */}
+      <div className="space-y-3 mb-12">
         <div className="flex items-center gap-3">
-          <BiMoney className="w-8 h-8 text-[#00ffff]" />
-          <h1 className="text-2xl font-bold text-white">Exchange for Real Money Credits</h1>
+          <div className="p-3 rounded-xl bg-[#00ffff]/10 border border-[#00ffff]/20">
+            <BiMoney className="w-8 h-8 text-[#00ffff]" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-1">Exchange for Real Money Credits</h1>
+            <p className="text-white/60">Play and obtain awesome rewards</p>
+          </div>
         </div>
-        <p className="text-white/60">Play and obtain awesome rewards</p>
       </div>
 
       {/* Packages Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-8">
         {packages.map((pkg, index) => (
           <div key={index} className="relative group">
-            {/* Card Container with Glow Effect */}
+            {/* Card Container with Enhanced Glow Effect */}
             <div className="relative bg-gradient-to-b from-black/40 to-black/20 
               rounded-3xl overflow-hidden backdrop-blur-sm
               before:absolute before:inset-0 
@@ -93,49 +97,46 @@ export default function RealMoneySection() {
               hover:shadow-[0_0_30px_rgba(0,255,255,0.2)] transition-all duration-500
               border border-white/5 group-hover:border-[#00ffff]/20">
 
-              {/* Shine Effect */}
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 
-                transition-opacity duration-500 pointer-events-none">
-                <div className="absolute inset-[-100%] bg-gradient-to-r from-transparent 
-                  via-white/5 to-transparent group-hover:translate-x-full duration-1500 
-                  transform -skew-x-12 transition-transform" />
-              </div>
+              {/* Rainbow Border Effect */}
+              <div className="absolute inset-[-1px] bg-gradient-to-r from-[#00ffff]/30 via-purple-500/30 to-[#00ffff]/30 
+                opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[24px] -z-10" />
 
-              {/* Popular Tag with Enhanced Style */}
+              {/* Popular Tag - Adjusted Position */}
               {pkg.popular && (
-                <div className="absolute -top-3 left-6 px-4 py-1.5 
-                  bg-gradient-to-r from-[#00ffff]/30 to-[#00ffff]/10
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-6 py-1.5 
+                  bg-gradient-to-r from-[#00ffff] via-[#00ffff]/80 to-[#00ffff]
                   rounded-full shadow-lg shadow-[#00ffff]/10 z-10
                   border border-[#00ffff]/20">
-                  <span className="text-xs font-bold text-[#00ffff] tracking-wider">
+                  <span className="text-xs font-bold text-black tracking-wider">
                     POPULAR
                   </span>
                 </div>
               )}
               
-              {/* Enhanced Discount Tag */}
+              {/* Discount Tag - Moved to top right corner */}
               {pkg.discount && (
-                <div className="absolute -top-3 right-6 z-10">
-                  <div className="relative bg-red-500 text-white px-4 py-1.5
+                <div className="absolute top-4 right-4 z-10">
+                  <div className="relative bg-gradient-to-r from-red-500 to-red-600 
+                    text-white px-4 py-1.5 rounded-lg
                     font-bold text-sm flex items-center gap-1 
-                    shadow-lg transform -rotate-3 group-hover:rotate-0 
-                    transition-transform duration-300">
+                    shadow-lg transform hover:scale-105 
+                    transition-all duration-300">
                     {pkg.discount}% OFF
-                    <div className="absolute -bottom-1.5 right-0 border-t-[6px] 
-                      border-r-[6px] border-t-red-700 border-r-transparent" />
                   </div>
                 </div>
               )}
 
               {/* Content */}
               <div className="p-8 space-y-8">
-                {/* Amount with Enhanced Style */}
+                {/* Amount with Rainbow Glow */}
                 <div className="text-center relative">
                   <div className="absolute inset-0 flex items-center justify-center 
-                    opacity-10 text-7xl font-bold text-[#00ffff] blur-sm">
+                    opacity-10 text-7xl font-bold bg-gradient-to-r from-[#00ffff] via-purple-500 to-[#00ffff] 
+                    bg-clip-text text-transparent blur-sm">
                     ${pkg.amount}
                   </div>
-                  <h2 className="text-5xl font-bold text-white mb-3 relative">
+                  <h2 className="text-5xl font-bold bg-gradient-to-r from-white via-[#00ffff] to-white
+                    bg-clip-text text-transparent mb-3 relative">
                     ${pkg.amount}
                   </h2>
                   <div className="space-y-1">
@@ -162,11 +163,11 @@ export default function RealMoneySection() {
                   </div>
                 </div>
 
-                {/* Diamonds with Enhanced Style */}
+                {/* Diamonds with Rainbow Effect */}
                 <div className="relative">
-                  <div className="flex items-center justify-center gap-3 text-3xl 
-                    font-bold text-white">
-                    <span className="relative">
+                  <div className="flex items-center justify-center gap-3 text-3xl font-bold">
+                    <span className="relative bg-gradient-to-r from-white via-[#00ffff] to-white 
+                      bg-clip-text text-transparent">
                       {pkg.diamonds}
                       {pkg.originalDiamonds && (
                         <span className="absolute -top-4 left-1/2 -translate-x-1/2 
@@ -180,16 +181,17 @@ export default function RealMoneySection() {
                   </div>
                 </div>
 
-                {/* Enhanced Buy Button */}
-                <button className="w-full py-4 rounded-xl relative overflow-hidden
+                {/* Enhanced Buy Button with Rainbow Hover */}
+                <button className="w-full py-4 rounded-xl relative overflow-hidden group/btn
                   bg-gradient-to-r from-[#00ffff]/20 to-[#00ffff]/10
                   hover:from-[#00ffff]/30 hover:to-[#00ffff]/20 
                   border border-[#00ffff]/30 group-hover:border-[#00ffff]/50
                   transition-all duration-300">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent 
-                    via-white/5 to-transparent translate-x-[-200%] group-hover:translate-x-full 
-                    transition-transform duration-1000" />
-                  <span className="relative text-lg font-bold tracking-wider text-[#00ffff]">
+                  <div className="absolute inset-0 opacity-0 group-hover/btn:opacity-100
+                    bg-gradient-to-r from-[#00ffff]/10 via-purple-500/10 to-[#00ffff]/10
+                    transition-opacity duration-500" />
+                  <span className="relative text-lg font-bold tracking-wider text-[#00ffff]
+                    group-hover/btn:text-white transition-colors duration-300">
                     BUY NOW
                   </span>
                 </button>
