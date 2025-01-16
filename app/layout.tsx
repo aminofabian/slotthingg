@@ -1,22 +1,16 @@
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
-import { Inter, Playfair_Display, Montserrat } from 'next/font/google';
-import { Metadata } from 'next';
+import { generateFaviconTags } from './utils/favicon';
 
-const montserrat = Montserrat({ 
-  subsets: ['latin'],
-  variable: '--font-montserrat',
-  display: 'swap',
-});
-
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  variable: '--font-playfair',
-  display: 'swap',
-});
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Slot Game Platform',
-  description: 'Experience the thrill of gaming with our premium slot games',
+  title: 'Slot Games',
+  description: 'Play your favorite slot games online',
+  icons: generateFaviconTags(),
+  manifest: '/site.webmanifest',
+  themeColor: '#0f172a',
 };
 
 export default function RootLayout({
@@ -25,8 +19,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${montserrat.variable} ${playfair.variable}`}>
-      <body className={`${montserrat.className} antialiased`}>{children}</body>
+    <html lang="en">
+      <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/site.webmanifest" />
+      </head>
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }
