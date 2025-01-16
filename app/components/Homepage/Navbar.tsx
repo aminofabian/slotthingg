@@ -18,7 +18,7 @@ const Navbar = () => {
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-8">
           <Link 
-            href="/play"
+            href="/dashboard"
             className="border-2 border-[#00ffff] text-[#00ffff] px-8 py-3 rounded-md
                      text-xl uppercase font-bold hover:bg-[#00ffff] hover:text-[#004d4d] 
                      transition-colors duration-300 tracking-wider"
