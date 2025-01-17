@@ -5,6 +5,8 @@ import DashboardSlider from './DashboardSlider';
 import { SiNintendogamecube } from 'react-icons/si';
 import { FaTwitter, FaDiscord, FaTelegram, FaInstagram } from 'react-icons/fa';
 import Logo from '../Logo/Logo';
+import GameSelectionModal from './GameSelectionModal';
+import { useState } from 'react';
 
 const games = [
   {
@@ -82,8 +84,24 @@ const games = [
 ];
 
 export default function DashboardContent() {
+  const [isGameSelectionOpen, setIsGameSelectionOpen] = useState(false);
+
+  const handleGameSelect = (game: any) => {
+    // Handle game selection here
+    console.log('Selected game:', game);
+    // Add your logic to handle the selected game
+  };
+
   return (
     <div className="min-h-screen w-full mx-auto pb-20 md:pb-6">
+      {/* Game Selection Modal */}
+      <GameSelectionModal 
+        isOpen={isGameSelectionOpen}
+        onClose={() => setIsGameSelectionOpen(false)}
+        games={games}
+        onSelectGame={handleGameSelect}
+      />
+
       {/* Slider Section */}
       <DashboardSlider />
       {/* Slider Section End */}
@@ -93,7 +111,10 @@ export default function DashboardContent() {
         <div className="max-w-[1440px] mx-auto">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-white">Games</h2>
-            <button className="bg-[#00ffff] hover:bg-[#7ffdfd] text-[#003333] font-bold py-2 px-4 rounded-lg transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-[#00ffff]/20 text-sm">
+            <button 
+              onClick={() => setIsGameSelectionOpen(true)}
+              className="bg-[#00ffff] hover:bg-[#7ffdfd] text-[#003333] font-bold py-2 px-4 rounded-lg transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-[#00ffff]/20 text-sm"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
               </svg>
