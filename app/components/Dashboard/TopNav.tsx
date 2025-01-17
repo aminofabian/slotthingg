@@ -6,6 +6,7 @@ import { BiUser } from 'react-icons/bi';
 import { GiTakeMyMoney } from 'react-icons/gi';
 import Logo from '../Logo/Logo';
 import PurchaseModal from './PurchaseModal';
+import CashoutModal from './CashoutModal';
 
 interface TopNavProps {
   onMenuClick: () => void;
@@ -14,12 +15,18 @@ interface TopNavProps {
 export default function TopNav({ onMenuClick }: TopNavProps) {
   const [notifications] = useState(3);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+  const [isCashoutModalOpen, setIsCashoutModalOpen] = useState(false);
 
   return (
     <>
       <PurchaseModal 
         isOpen={isPurchaseModalOpen} 
         onClose={() => setIsPurchaseModalOpen(false)} 
+      />
+      <CashoutModal 
+        isOpen={isCashoutModalOpen}
+        onClose={() => setIsCashoutModalOpen(false)}
+        currentBalance={0}
       />
 
       <nav className="container fixed top-0 right-0 left-0 bg-black/40 backdrop-blur-lg border-b border-[#00ffff]/10 z-40">
@@ -55,8 +62,8 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
                 <span className="font-semibold text-lg">Purchase</span>
               </button>
               
-              <Link 
-                href="/dashboard/cashout" 
+              <button 
+                onClick={() => setIsCashoutModalOpen(true)}
                 className="hidden md:flex items-center gap-3 px-6 py-2.5 
                   bg-[#00ffff]/10 hover:bg-[#00ffff]/20 text-[#00ffff] 
                   rounded-lg border border-[#00ffff]/20 
@@ -64,7 +71,7 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
               >
                 <GiTakeMyMoney className="text-2xl group-hover:scale-110 transition-transform" />
                 <span className="font-semibold text-lg">Cashout</span>
-              </Link>
+              </button>
 
               {/* Notifications */}
               <div className="relative">

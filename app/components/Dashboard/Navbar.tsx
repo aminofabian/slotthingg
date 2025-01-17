@@ -1,12 +1,10 @@
 'use client';
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BiMoney, BiHistory, BiUser } from 'react-icons/bi';
 import { FaGamepad, FaStore, FaDice } from 'react-icons/fa';
 import { GiDiamonds, GiStarsStack, GiTakeMyMoney } from 'react-icons/gi';
 import { IoTicketOutline } from 'react-icons/io5';
-import Image from 'next/image';
 import Logo from '../Logo/Logo';
 
 type StatMenuItem = {
