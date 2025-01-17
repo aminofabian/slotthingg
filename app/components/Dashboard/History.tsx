@@ -24,6 +24,7 @@ interface GameActivity {
   amount: number;
   date: Date;
   gameId: string;
+  image: string;
 }
 
 const tabs = [
@@ -71,7 +72,8 @@ export default function History() {
       result: 'win',
       amount: 50,
       date: new Date('2024-01-16'),
-      gameId: 'GD-123'
+      gameId: 'GD-123',
+      image: '/gameimages/1f246c12-890f-40f9-b7c6-9b1a4e077169-GOLDEN TREASURE.png'
     },
     {
       id: '2',
@@ -79,7 +81,8 @@ export default function History() {
       result: 'loss',
       amount: 25,
       date: new Date('2024-01-15'),
-      gameId: 'UP-456'
+      gameId: 'UP-456',
+      image: '/gameimages/ba5c4494-869d-4d69-acda-758cf1169c78-ULTRA PANDA.png'
     },
     {
       id: '3',
@@ -87,7 +90,8 @@ export default function History() {
       result: 'win',
       amount: 75,
       date: new Date('2024-01-14'),
-      gameId: 'MW-789'
+      gameId: 'MW-789',
+      image: '/gameimages/21ccf352-34a8-44a3-a94d-67b8cccc0959-MILKY WAY.png'
     },
   ];
 
@@ -276,7 +280,7 @@ export default function History() {
                         <div className="w-12 h-12 rounded-lg overflow-hidden relative">
                           <div className="absolute inset-0 bg-gradient-to-br from-[#00ffff]/20 to-transparent" />
                           <Image
-                            src={`/gameimages/${activity.gameName.toLowerCase().replace(/\s+/g, '-')}.png`}
+                            src={activity.image}
                             alt={activity.gameName}
                             width={48}
                             height={48}
