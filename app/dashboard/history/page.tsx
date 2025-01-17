@@ -1,4 +1,4 @@
-import History from '../components/Dashboard/History';
+import History from "@/app/components/Dashboard/History";
 
 export default function HistoryPage() {
   return <History />;
