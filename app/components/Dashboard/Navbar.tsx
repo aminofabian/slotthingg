@@ -62,7 +62,7 @@ const Navbar = () => {
   // Mobile navigation items
   const mobileNavItems = [
     { label: 'Games', icon: FaGamepad, href: '/dashboard/games' },
-    { label: 'History', icon: BiHistory, href: '/dashboard/history' },
+    { label: 'History', icon: BiHistory, href: '/history' },
     { label: 'Marketplace', icon: FaStore, href: '/dashboard/marketplace' },
     { label: 'Profile', icon: BiUser, href: '/dashboard/profile' },
   ];

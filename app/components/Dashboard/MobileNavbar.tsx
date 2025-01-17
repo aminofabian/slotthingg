@@ -30,7 +30,7 @@ const moreMenuItems = [
   {
     title: 'Account',
     items: [
-      { label: 'History', icon: BiHistory, href: '/dashboard/history' },
+      { label: 'History', icon: BiHistory, href: '/history' },
       { label: 'Profile', icon: BiUser, href: '/dashboard/profile' },
       { label: 'Support', icon: BiSupport, href: '/dashboard/support' },
     ]
