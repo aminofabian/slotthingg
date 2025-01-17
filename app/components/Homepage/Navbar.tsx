@@ -30,7 +30,7 @@ const Navbar = () => {
         {/* Mobile Navigation */}
         <div className="flex md:hidden items-center gap-1.5">
           <Link 
-            href="/play"
+            href="/dashboard"
             className="border-2 border-[#00ffff] text-[#00ffff] px-3 py-1.5 rounded-md
                      text-sm uppercase font-bold hover:bg-[#00ffff] hover:text-[#004d4d] 
                      transition-colors duration-300 tracking-wider whitespace-nowrap"
