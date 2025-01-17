@@ -23,7 +23,7 @@ const moreMenuItems = [
     title: 'Gaming',
     items: [
       { label: 'Marketplace', icon: FaStore, href: '/dashboard/marketplace' },
-      { label: 'Roulette', icon: FaDice, href: '/dashboard/roulette' },
+      { label: 'Roulette', icon: FaDice, href: '/roulette' },
       { label: 'Draw', icon: IoTicketOutline, href: '/dashboard/draws' },
     ]
   },

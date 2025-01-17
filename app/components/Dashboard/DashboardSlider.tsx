@@ -51,7 +51,7 @@ const slides = [
 
 export default function DashboardSlider() {
   return (
-    <div className="relative w-full overflow-hidden mb-8">
+    <div className="container relative w-full overflow-hidden mb-8">
       <Swiper
         spaceBetween={0}
         centeredSlides={true}

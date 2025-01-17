@@ -1,8 +1,8 @@
 // components/Layout/Navigation/NavigationContainer.tsx
 import { FC } from 'react';
-import { NavigationContainerProps } from '../../../types/navigation';
-import { DesktopNav } from './DesktopNav';
 import MobileTopNav from '../../Dashboard/MobileTopNav';
+import { DesktopNav } from './DesktopNav';
+import { NavigationContainerProps } from '@/app/types/navigation';
 
 export const NavigationContainer: FC<NavigationContainerProps> = ({
   children,

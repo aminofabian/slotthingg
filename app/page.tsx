@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import Image from "next/image";
 import Navbar from "./components/Homepage/Navbar";
 import HeroSection from "./components/Homepage/HeroSection";
 import GamesSection from "./components/Games/GamesSection";

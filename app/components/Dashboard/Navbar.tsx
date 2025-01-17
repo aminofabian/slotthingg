@@ -46,8 +46,8 @@ const Navbar = () => {
     {
       title: 'Gaming',
       items: [
-        { label: 'Games', icon: FaGamepad, type: 'link', href: '/dashboard/games' },
-        { label: 'Roulette', icon: FaDice, type: 'link', href: '/dashboard/roulette' },
+        { label: 'Games', icon: FaGamepad, type: 'link', href: '/dashboard' },
+        { label: 'Roulette', icon: FaDice, type: 'link', href: '/roulette' },
         { label: 'Draws', icon: IoTicketOutline, type: 'link', href: '/dashboard/draws' },
       ]
     },

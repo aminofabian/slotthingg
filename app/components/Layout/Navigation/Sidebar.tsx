@@ -1,7 +1,7 @@
 // components/Layout/Navigation/Sidebar.tsx
 import { FC } from 'react';
-import { SidebarProps } from '../../../types/navigation';
 import Navbar from '../../Dashboard/Navbar';
+import { SidebarProps } from '@/app/types/navigation';
 
 export const Sidebar: FC<SidebarProps> = ({ isOpen }) => (
   <div
