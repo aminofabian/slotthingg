@@ -27,7 +27,7 @@ export default function MobileNavbar() {
         onClose={() => setIsMoreOpen(false)}
       />
       
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40">
         {/* Background with blur effect */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-gray-900/95 to-gray-900/90 
           backdrop-blur-lg border-t border-[#00ffff]/10" />
