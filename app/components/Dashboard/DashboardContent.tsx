@@ -93,7 +93,7 @@ export default function DashboardContent() {
   };
 
   return (
-    <div className="min-h-screen w-full mx-auto pb-20 md:pb-6">
+    <div className="min-h-screen w-full mx-auto pb-24 md:pb-6">
       {/* Game Selection Modal */}
       <GameSelectionModal 
         isOpen={isGameSelectionOpen}
