@@ -7,12 +7,16 @@ import { IoWallet } from 'react-icons/io5';
 import { useState } from 'react';
 import MoreDrawer from './MoreDrawer';
 import { SiMarketo } from 'react-icons/si';
+import { BiMoney, BiMoneyWithdraw, BiPurchaseTag } from 'react-icons/bi';
+import { FaMoneyBill } from 'react-icons/fa6';
+import { BsCash } from 'react-icons/bs';
+import { GiCash } from 'react-icons/gi';
 
 const navItems = [
-  { href: '/dashboard/marketplace', label: 'Marketplace', icon: SiMarketo },
-  { href: '/dashboard/wallet', label: 'Wallet', icon: IoWallet },
+  { href: '/dashboard/purchase', label: 'Purchase', icon: BiMoney },
+  { href: '/dashboard/cashout', label: 'Cashout', icon: GiCash },
   { href: '/dashboard', label: 'Home', icon: FaHome, isHome: true },
-  { href: '/dashboard/history', label: 'History', icon: FaHistory },
+  { href: '/dashboard/marketplace', label: 'Marketplace', icon: SiMarketo },
   { href: '/dashboard/more', label: 'More', icon: FaEllipsisH },
 ];
 

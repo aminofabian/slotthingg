@@ -6,90 +6,101 @@ import Link from 'next/link';
 import { 
   FaUser, 
   FaCog, 
-  FaHeadset, 
+  FaHeadset,
   FaSignOutAlt, 
   FaShieldAlt,
   FaBell,
-  FaInfoCircle,
-  FaTimes,
+  FaHistory,
   FaWallet,
+  FaTimes,
   FaGamepad,
-  FaChartLine
+  FaChartLine,
+  FaQuestionCircle
 } from 'react-icons/fa';
 
-const menuItems = [
-  { 
-    href: '/dashboard/profile', 
-    label: 'Profile', 
-    icon: FaUser,
-    color: 'from-blue-500/20 via-blue-400/10 to-blue-600/5',
-    iconColor: 'text-blue-400',
-    borderColor: 'border-blue-500/20'
+// Group menu items by category
+const menuGroups = [
+  {
+    title: 'Account',
+    items: [
+      { 
+        href: '/dashboard/profile', 
+        label: 'Profile', 
+        icon: FaUser,
+        color: 'from-blue-500/20 via-blue-400/10 to-blue-600/5',
+        iconColor: 'text-blue-400',
+      },
+      { 
+        href: '/dashboard/wallet', 
+        label: 'Wallet', 
+        icon: FaWallet,
+        color: 'from-green-500/20 via-green-400/10 to-green-600/5',
+        iconColor: 'text-green-400',
+      },
+      { 
+        href: '/dashboard/history', 
+        label: 'History', 
+        icon: FaHistory,
+        color: 'from-purple-500/20 via-purple-400/10 to-purple-600/5',
+        iconColor: 'text-purple-400',
+      },
+    ]
   },
-  { 
-    href: '/dashboard/wallet', 
-    label: 'Wallet', 
-    icon: FaWallet,
-    color: 'from-green-500/20 via-green-400/10 to-green-600/5',
-    iconColor: 'text-green-400',
-    borderColor: 'border-green-500/20'
+  {
+    title: 'Gaming',
+    items: [
+      { 
+        href: '/dashboard/games', 
+        label: 'Games', 
+        icon: FaGamepad,
+        color: 'from-yellow-500/20 via-yellow-400/10 to-yellow-600/5',
+        iconColor: 'text-yellow-400',
+      },
+      { 
+        href: '/dashboard/stats', 
+        label: 'Statistics', 
+        icon: FaChartLine,
+        color: 'from-orange-500/20 via-orange-400/10 to-orange-600/5',
+        iconColor: 'text-orange-400',
+      },
+    ]
   },
-  { 
-    href: '/dashboard/games', 
-    label: 'Games', 
-    icon: FaGamepad,
-    color: 'from-purple-500/20 via-purple-400/10 to-purple-600/5',
-    iconColor: 'text-purple-400',
-    borderColor: 'border-purple-500/20'
-  },
-  { 
-    href: '/dashboard/stats', 
-    label: 'Statistics', 
-    icon: FaChartLine,
-    color: 'from-yellow-500/20 via-yellow-400/10 to-yellow-600/5',
-    iconColor: 'text-yellow-400',
-    borderColor: 'border-yellow-500/20'
-  },
-  { 
-    href: '/dashboard/notifications', 
-    label: 'Alerts', 
-    icon: FaBell,
-    color: 'from-red-500/20 via-red-400/10 to-red-600/5',
-    iconColor: 'text-red-400',
-    borderColor: 'border-red-500/20'
-  },
-  { 
-    href: '/dashboard/settings', 
-    label: 'Settings', 
-    icon: FaCog,
-    color: 'from-sky-500/20 via-sky-400/10 to-sky-600/5',
-    iconColor: 'text-sky-400',
-    borderColor: 'border-sky-500/20'
-  },
-  { 
-    href: '/dashboard/support', 
-    label: 'Support', 
-    icon: FaHeadset,
-    color: 'from-cyan-500/20 via-cyan-400/10 to-cyan-600/5',
-    iconColor: 'text-cyan-400',
-    borderColor: 'border-cyan-500/20'
-  },
-  { 
-    href: '/dashboard/security', 
-    label: 'Security', 
-    icon: FaShieldAlt,
-    color: 'from-emerald-500/20 via-emerald-400/10 to-emerald-600/5',
-    iconColor: 'text-emerald-400',
-    borderColor: 'border-emerald-500/20'
-  },
+  {
+    title: 'Support & Settings',
+    items: [
+      { 
+        href: '/dashboard/notifications', 
+        label: 'Notifications', 
+        icon: FaBell,
+        color: 'from-red-500/20 via-red-400/10 to-red-600/5',
+        iconColor: 'text-red-400',
+      },
+      { 
+        href: '/dashboard/support', 
+        label: 'Support', 
+        icon: FaHeadset,
+        color: 'from-cyan-500/20 via-cyan-400/10 to-cyan-600/5',
+        iconColor: 'text-cyan-400',
+      },
+      { 
+        href: '/dashboard/security', 
+        label: 'Security', 
+        icon: FaShieldAlt,
+        color: 'from-emerald-500/20 via-emerald-400/10 to-emerald-600/5',
+        iconColor: 'text-emerald-400',
+      },
+      { 
+        href: '/dashboard/settings', 
+        label: 'Settings', 
+        icon: FaCog,
+        color: 'from-sky-500/20 via-sky-400/10 to-sky-600/5',
+        iconColor: 'text-sky-400',
+      },
+    ]
+  }
 ];
 
-interface MoreDrawerProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export default function MoreDrawer({ isOpen, onClose }: MoreDrawerProps) {
+export default function MoreDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   return (
     <Transition.Root show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -118,71 +129,95 @@ export default function MoreDrawer({ isOpen, onClose }: MoreDrawerProps) {
                 leaveTo="translate-y-full"
               >
                 <Dialog.Panel className="pointer-events-auto w-full max-w-md">
-                  <div className="flex h-full flex-col overflow-hidden bg-gradient-to-b from-gray-900/95 via-black to-black rounded-t-3xl
-                    backdrop-blur-xl border-t border-white/10">
+                  <div className="flex h-full flex-col overflow-hidden bg-gradient-to-b from-gray-900/95 via-black to-black rounded-t-3xl">
                     {/* Drawer Handle */}
                     <div className="flex justify-center pt-4 pb-2">
                       <div className="h-1 w-12 rounded-full bg-white/20" />
                     </div>
 
-                    {/* Header */}
-                    <div className="px-6 py-4 flex justify-between items-center">
-                      <Dialog.Title className="text-xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-400 
+                    {/* Header with Close Button */}
+                    <div className="px-4 py-3 flex justify-between items-center border-b border-white/5">
+                      <h2 className="text-lg font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 
                         text-transparent bg-clip-text">
-                        More Options
-                      </Dialog.Title>
-                      <button 
+                        Quick Menu
+                      </h2>
+                      <button
                         onClick={onClose}
-                        className="p-2 rounded-full hover:bg-white/10 text-gray-400 
-                          hover:text-white transition-all duration-200"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-full
+                          bg-white/5 hover:bg-white/10 border border-white/10
+                          hover:border-white/20 transition-all duration-200 group"
                       >
-                        <FaTimes className="w-5 h-5" />
+                        <span className="text-sm font-medium text-white/70 
+                          group-hover:text-white">
+                          Close
+                        </span>
+                        <FaTimes className="w-4 h-4 text-white/60 
+                          group-hover:text-white group-hover:rotate-90
+                          transition-all duration-300" />
                       </button>
                     </div>
 
-                    {/* Grid Menu */}
-                    <div className="px-6 py-4 grid grid-cols-2 gap-4 overflow-y-auto">
-                      {menuItems.map((item) => (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={onClose}
-                          className={`group flex flex-col items-center p-4 rounded-2xl
-                            bg-gradient-to-br ${item.color} border ${item.borderColor}
-                            hover:scale-105 hover:shadow-lg hover:shadow-black/50
-                            transition-all duration-300 backdrop-blur-sm
-                            hover:border-opacity-50`}
+                    {/* Content */}
+                    <div className="overflow-y-auto px-4 py-2">
+                      {menuGroups.map((group, index) => (
+                        <div 
+                          key={group.title}
+                          className={`py-4 ${
+                            index !== 0 ? 'border-t border-white/5' : ''
+                          }`}
                         >
-                          <div className={`p-4 rounded-2xl bg-black/30 
-                            group-hover:bg-black/40 backdrop-blur-sm
-                            transition-all duration-300 mb-3
-                            ring-1 ring-white/10 group-hover:ring-white/20
-                            shadow-lg`}
-                          >
-                            <item.icon className={`w-6 h-6 ${item.iconColor}
-                              group-hover:scale-110 transition-transform duration-300`} />
+                          <h3 className="text-sm font-medium text-white/60 px-2 mb-3">
+                            {group.title}
+                          </h3>
+                          <div className="grid grid-cols-2 gap-3">
+                            {group.items.map((item) => (
+                              <Link
+                                key={item.href}
+                                href={item.href}
+                                onClick={onClose}
+                                className={`flex flex-col items-center p-3 rounded-xl
+                                  bg-gradient-to-br ${item.color}
+                                  hover:scale-105 transition-all duration-200
+                                  border border-white/5 hover:border-white/20
+                                  group relative overflow-hidden`}
+                              >
+                                <div className={`p-3 rounded-xl bg-black/30 
+                                  backdrop-blur-sm mb-2 relative z-10
+                                  group-hover:bg-black/40 transition-colors`}
+                                >
+                                  <item.icon className={`w-5 h-5 ${item.iconColor}
+                                    group-hover:scale-110 transition-transform duration-200`} 
+                                  />
+                                </div>
+                                <span className="text-sm font-medium text-white/90 
+                                  group-hover:text-white relative z-10">
+                                  {item.label}
+                                </span>
+                                {/* Hover gradient overlay */}
+                                <div className="absolute inset-0 opacity-0 
+                                  group-hover:opacity-100 transition-opacity duration-200
+                                  bg-gradient-to-t from-white/5 to-transparent" 
+                                />
+                              </Link>
+                            ))}
                           </div>
-                          <span className="text-sm font-medium text-white/90 group-hover:text-white
-                            transition-colors duration-300">
-                            {item.label}
-                          </span>
-                        </Link>
+                        </div>
                       ))}
                     </div>
 
                     {/* Logout Button */}
-                    <div className="px-6 py-4 mt-auto border-t border-white/5 bg-black/20">
+                    <div className="mt-auto p-4 border-t border-white/5">
                       <button
                         onClick={onClose}
-                        className="w-full flex items-center justify-center gap-3 p-4 rounded-xl
-                          bg-gradient-to-r from-red-500/10 via-red-500/5 to-red-600/5
-                          hover:from-red-500/20 hover:via-red-500/10 hover:to-red-600/10
+                        className="w-full flex items-center justify-center gap-3 p-4 
+                          rounded-xl bg-gradient-to-r from-red-500/10 to-red-600/5
+                          hover:from-red-500/20 hover:to-red-600/10
                           border border-red-500/20 hover:border-red-500/30
-                          transition-all duration-300 group
-                          hover:shadow-lg hover:shadow-red-500/5"
+                          transition-all duration-200 group"
                       >
                         <FaSignOutAlt className="w-5 h-5 text-red-500 
-                          group-hover:scale-110 transition-transform duration-300" />
+                          group-hover:scale-110 transition-transform duration-200" 
+                        />
                         <span className="font-medium text-red-500">
                           Logout
                         </span>
