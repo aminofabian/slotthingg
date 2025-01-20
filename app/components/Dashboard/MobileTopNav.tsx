@@ -60,7 +60,10 @@ const MobileTopNav = () => {
         <div className="mx-4 pt-4">
           <nav className="bg-gradient-to-b from-gray-900 to-black border border-[#7ffdfd]/10 rounded-2xl shadow-lg shadow-black/20">
             <div className="p-2">
-              <div className="grid grid-cols-4 gap-1.5">
+              <motion.div 
+                className="flex items-center justify-between gap-1.5"
+                layout
+              >
                 {stats.map((stat, index) => {
                   const Icon = stat.icon;
                   const isExpanded = expandedStat === index;
@@ -69,18 +72,32 @@ const MobileTopNav = () => {
                   return (
                     <motion.button
                       key={stat.label}
-                      onClick={() => setExpandedStat(isExpanded ? null : index)}
-                      className={`relative group ${isExpanded ? 'col-span-2' : ''}`}
+                      onClick={() => {
+                        if (isExpanded) {
+                          setExpandedStat(null);
+                        } else {
+                          setExpandedStat(index);
+                          // Auto-collapse after 2 seconds
+                          setTimeout(() => setExpandedStat(null), 2000);
+                        }
+                      }}
+                      className={`
+                        flex-1 min-w-0 transition-all duration-300
+                        ${isExpanded ? 'flex-grow-[2]' : 'flex-grow-1'}
+                      `}
                       layout
                     >
-                      <div className={`
-                        flex items-center justify-between gap-1.5 p-2 rounded-xl
-                        border transition-all duration-200
-                        ${isExpanded ? colorClasses : 'bg-gray-800/50 border-gray-700/50 hover:bg-gray-800'}
-                      `}>
+                      <motion.div 
+                        className={`
+                          flex items-center justify-between gap-1.5 p-2 rounded-xl
+                          border transition-all duration-200
+                          ${isExpanded ? colorClasses : 'bg-gray-800/50 border-gray-700/50 hover:bg-gray-800'}
+                        `}
+                        layout
+                      >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <div className={`
-                            flex items-center justify-center w-6 h-6 rounded-lg
+                            flex items-center justify-center w-6 h-6 rounded-lg shrink-0
                             ${isExpanded ? `${colorClasses} bg-opacity-20` : 'bg-gray-700/50'}
                           `}>
                             {isExpanded ? (
@@ -105,16 +122,16 @@ const MobileTopNav = () => {
                           <motion.span
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="text-[10px] opacity-70"
+                            className="text-[10px] opacity-70 truncate"
                           >
                             {stat.label}
                           </motion.span>
                         )}
-                      </div>
+                      </motion.div>
                     </motion.button>
                   );
                 })}
-              </div>
+              </motion.div>
             </div>
           </nav>
         </div>
