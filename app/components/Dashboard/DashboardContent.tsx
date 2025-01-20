@@ -251,12 +251,44 @@ export default function DashboardContent() {
             <h2 className="text-2xl font-bold text-white">Games</h2>
             <button 
               onClick={() => setIsGameSelectionOpen(true)}
-              className="bg-[#00ffff] hover:bg-[#7ffdfd] text-[#003333] font-bold py-2 px-4 rounded-lg transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-[#00ffff]/20 text-sm"
+              className="relative group overflow-hidden
+                bg-gradient-to-r from-[#00ffff]/80 to-[#00ffff] 
+                hover:from-[#00ffff] hover:to-[#7ffdfd]
+                text-[#003333] font-bold py-3 px-5 rounded-xl
+                transition-all duration-300 flex items-center gap-3
+                shadow-lg shadow-[#00ffff]/20 hover:shadow-[#00ffff]/40
+                border border-[#00ffff]/20 hover:border-[#00ffff]/40
+                transform hover:scale-105"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-              </svg>
-              Add Game
+              {/* Animated background effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent
+                translate-x-[-100%] group-hover:translate-x-[100%] 
+                transition-transform duration-1000" 
+              />
+              
+              {/* Game controller icon */}
+              <div className="relative w-8 h-8 flex items-center justify-center
+                bg-[#003333]/10 rounded-lg border border-[#003333]/10"
+              >
+                <SiNintendogamecube className="w-5 h-5" />
+              </div>
+
+              {/* Button text */}
+              <span className="relative text-base">Add Game</span>
+
+              {/* Small decorative plus icon */}
+              <div className="relative w-5 h-5 flex items-center justify-center
+                bg-[#003333]/10 rounded-md border border-[#003333]/10"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" 
+                  className="w-4 h-4 group-hover:rotate-180 transition-transform duration-300"
+                >
+                  <path fillRule="evenodd" 
+                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" 
+                    clipRule="evenodd" 
+                  />
+                </svg>
+              </div>
             </button>
           </div>
 
