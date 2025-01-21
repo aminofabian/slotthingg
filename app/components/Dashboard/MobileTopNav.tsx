@@ -8,14 +8,14 @@ import { motion } from 'framer-motion';
 const stats = [
   { 
     label: 'Balance', 
-    value: '$0', 
+    value: '$20', 
     icon: BiMoney,
     symbol: '$',
     color: 'emerald'
   },
   { 
     label: 'In Games', 
-    value: '$0', 
+    value: '$10', 
     icon: BiWallet,
     symbol: '$',
     color: 'purple'
