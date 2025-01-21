@@ -2,23 +2,71 @@
 import React, { useState } from 'react';
 import Logo from '../Logo/Logo';
 import { motion } from 'framer-motion';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useDispatch, useSelector } from 'react-redux';
+import { useMutation } from '@tanstack/react-query';
+import { loginSchema, type LoginFormData } from '@/lib/query';
+import { setFormData, setErrors } from '@/app/store/formSlice';
+import { RootState } from '@/app/store/store';
+import toast from 'react-hot-toast';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useDispatch();
+  const { errors: reduxErrors } = useSelector((state: RootState) => state.form);
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    console.log('Email:', email);
-    console.log('Password:', password);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+    reset
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    mode: 'onChange' // This enables real-time validation
+  });
+
+  const loginMutation = useMutation({
+    mutationFn: async (data: LoginFormData) => {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Invalid credentials');
+      }
+      
+      return response.json();
+    },
+    onSuccess: async (response: Response) => {
+      const data = await response.json();
+      dispatch(setFormData(data));
+      dispatch(setErrors(null));
+      reset();
+      toast.success('Login successful!');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Login failed');
+      dispatch(setErrors({ submit: 'Invalid credentials' }));
+    },
+  });
+
+  const onSubmit = (data: LoginFormData) => {
+    toast.promise(
+      loginMutation.mutateAsync(data),
+      {
+        loading: 'Logging in...',
+        success: 'Welcome back!',
+        error: (err: Error) => err.message || 'Failed to login'
+      }
+    );
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#002222]">
+    <div className="min-h-screen relative overflow-hidden bg-[#002222] w-full">
       {/* Background pattern */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-[linear-gradient(45deg,#00ffff05_1px,transparent_1px),linear-gradient(135deg,#00ffff05_1px,transparent_1px)] bg-[size:2rem_2rem]" />
@@ -73,7 +121,7 @@ const Login = () => {
                 </p>
               </div>
 
-              <form className="mt-10 space-y-7" onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit(onSubmit)} className="mt-10 space-y-7">
                 <div className="space-y-5">
                   {/* Input fields */}
                   <div className="group relative">
@@ -82,19 +130,23 @@ const Login = () => {
                       Email address
                     </label>
                     <input
+                      {...register('email')}
                       id="email"
                       name="email"
                       type="email"
                       required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="block w-full rounded-xl border border-[#00ffff]/20 
+                      className={`block w-full rounded-xl border border-[#00ffff]/20 
                       bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
                       focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
                       backdrop-blur-sm transition-all duration-300
-                      hover:border-[#00ffff]/30 hover:bg-white/[0.04]"
+                      hover:border-[#00ffff]/30 hover:bg-white/[0.04] ${
+                        errors.email ? 'border-red-500' : ''
+                      }`}
                       placeholder="name@example.com"
                     />
+                    {errors.email && (
+                      <p className="text-red-500 text-sm">{errors.email.message}</p>
+                    )}
                   </div>
                   
                   <div className="group relative">
@@ -103,19 +155,23 @@ const Login = () => {
                       Password
                     </label>
                     <input
+                      {...register('password')}
                       id="password"
                       name="password"
                       type="password"
                       required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="block w-full rounded-xl border border-[#00ffff]/20 
+                      className={`block w-full rounded-xl border border-[#00ffff]/20 
                       bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
                       focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
                       backdrop-blur-sm transition-all duration-300
-                      hover:border-[#00ffff]/30 hover:bg-white/[0.04]"
+                      hover:border-[#00ffff]/30 hover:bg-white/[0.04] ${
+                        errors.password ? 'border-red-500' : ''
+                      }`}
                       placeholder="Enter your password"
                     />
+                    {errors.password && (
+                      <p className="text-red-500 text-sm">{errors.password.message}</p>
+                    )}
                   </div>
                 </div>
 
@@ -143,18 +199,28 @@ const Login = () => {
 
                 {/* Submit button */}
                 <div>
+                  {reduxErrors?.submit && (
+                    <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded mb-4">
+                      {reduxErrors.submit}
+                    </div>
+                  )}
+
                   <button
                     type="submit"
-                    disabled={isLoading}
-                    className="relative w-full rounded-xl border border-[#00ffff]/20
+                    disabled={!isValid || loginMutation.isPending}
+                    className={`relative w-full rounded-xl border border-[#00ffff]/20
                     bg-[#00ffff]/10 px-6 py-4 text-[#00ffff] tracking-[0.2em] uppercase
                     hover:bg-[#00ffff]/20 focus:outline-none focus:ring-2 
                     focus:ring-[#00ffff]/50 transition-all duration-300
                     disabled:opacity-70 disabled:cursor-not-allowed
-                    group overflow-hidden"
+                    group overflow-hidden ${
+                      !isValid || loginMutation.isPending
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : ''
+                    }`}
                   >
                     {/* Loading bar animation */}
-                    {isLoading && (
+                    {loginMutation.isPending && (
                       <motion.div
                         className="absolute bottom-0 left-0 h-[2px] bg-[#00ffff]/30"
                         initial={{ width: 0 }}
@@ -170,7 +236,7 @@ const Login = () => {
                       </motion.div>
                     )}
                     <span className="relative flex items-center justify-center">
-                      {isLoading ? 'Signing in...' : 'Sign in'}
+                      {loginMutation.isPending ? 'Logging in...' : 'Login'}
                     </span>
                   </button>
                 </div>

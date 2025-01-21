@@ -1,509 +1,594 @@
 'use client';
-import React, { useState } from 'react';
-import Logo from '../Logo/Logo';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useDispatch, useSelector } from 'react-redux';
+import { useMutation } from '@tanstack/react-query';
+import { signupSchema, type SignupFormData } from '@/lib/query';
+import { setFormData, setErrors } from '@/app/store/formSlice';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
+import Logo from '../Logo/Logo';
+import { RootState } from '@/app/store/store';
 
-const SignUp = () => {
-  const [formData, setFormData] = useState({
-    username: '',
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    dateOfBirth: {
-      day: '',
-      month: '',
-      year: ''
-    },
-    phone: '',
-    address: '',
-    referralEmail: '',
-    games: [] as string[]
+const GAMES = [
+  { id: 'panda', name: '🐼 Panda Master' },
+  { id: 'juwa', name: '🎮 Juwa' },
+  { id: 'orion', name: '⭐ Orion Star' },
+  { id: 'fire', name: '🔥 Fire Kirin' },
+  { id: 'golden', name: '💎 Golden Treasure' },
+  { id: 'egame', name: '🎲 Egame' },
+  { id: 'milky', name: '🌌 Milky Way' },
+  { id: 'dragon', name: '🐉 Golden Dragon' },
+  { id: 'vblink', name: '🔗 Vblink' },
+];
+
+const MONTHS = Array.from({ length: 12 }, (_, i) => ({
+  value: String(i + 1),
+  label: new Date(2000, i).toLocaleString('default', { month: 'long' })
+}));
+
+const DAYS = Array.from({ length: 31 }, (_, i) => String(i + 1));
+const YEARS = Array.from({ length: 100 }, (_, i) => String(new Date().getFullYear() - i));
+
+const Signup = () => {
+  const dispatch = useDispatch();
+  const { errors: reduxErrors } = useSelector((state: RootState) => state.form);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid, touchedFields },
+    reset,
+    watch
+  } = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    mode: 'onChange',
+    defaultValues: {
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      firstName: '',
+      lastName: '',
+      dateOfBirth: {
+        month: '',
+        day: '',
+        year: ''
+      },
+      phoneNumber: '',
+      address: '',
+      referralEmail: '',
+      games: [],
+      termsAccepted: false
+    }
   });
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    console.log('Form Data:', formData);
+  const password = watch('password');
+  const passwordRequirements = {
+    length: password?.length >= 8,
+    uppercase: /[A-Z]/.test(password || ''),
+    number: /[0-9]/.test(password || ''),
+    special: /[^A-Za-z0-9]/.test(password || '')
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    if (name.startsWith('dob.')) {
-      const dobField = name.split('.')[1];
-      setFormData(prev => ({
-        ...prev,
-        dateOfBirth: {
-          ...prev.dateOfBirth,
-          [dobField]: value
+  const signupMutation = useMutation({
+    mutationFn: async (data: SignupFormData) => {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Signup failed');
+      }
+      
+      return response.json();
+    },
+    onSuccess: async (response: Response) => {
+      const data = await response.json();
+      dispatch(setFormData(data));
+      dispatch(setErrors(null));
+      reset();
+      toast.success('Account created successfully!');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to create account');
+    },
+  });
+
+  const onSubmit = (data: SignupFormData) => {
+    toast.promise(
+      signupMutation.mutateAsync(data),
+      {
+        loading: 'Creating account...',
+        success: 'Account created successfully!',
+        error: (err: Error) => err.message || 'Failed to create account'
+      }
+    );
+  };
+
+  const onError = (errors: any) => {
+    // Show toast for each field error
+    const errorMessages = [];
+
+    // Account Details errors
+    if (errors.username) errorMessages.push(`Username: ${errors.username.message}`);
+    if (errors.email) errorMessages.push(`Email: ${errors.email.message}`);
+    if (errors.password) errorMessages.push(`Password: ${errors.password.message}`);
+    if (errors.confirmPassword) errorMessages.push(`Confirm Password: ${errors.confirmPassword.message}`);
+
+    // Personal Information errors
+    if (errors.firstName) errorMessages.push(`First Name: ${errors.firstName.message}`);
+    if (errors.lastName) errorMessages.push(`Last Name: ${errors.lastName.message}`);
+    
+    // Date of Birth errors
+    if (errors.dateOfBirth?.month) errorMessages.push('Date of Birth: Month is required');
+    if (errors.dateOfBirth?.day) errorMessages.push('Date of Birth: Day is required');
+    if (errors.dateOfBirth?.year) errorMessages.push('Date of Birth: Year is required');
+    if (errors.dateOfBirth?.message) errorMessages.push(`Date of Birth: ${errors.dateOfBirth.message}`);
+
+    // Phone Number error
+    if (errors.phoneNumber) errorMessages.push(`Phone Number: ${errors.phoneNumber.message}`);
+
+    // Games error
+    if (errors.games) errorMessages.push(`Games: ${errors.games.message}`);
+
+    // Terms error
+    if (errors.termsAccepted) errorMessages.push(errors.termsAccepted.message);
+
+    // Show all errors in a single toast
+    if (errorMessages.length > 0) {
+      toast.error(
+        <div className="space-y-1">
+          <p className="font-medium">Please fix the following errors:</p>
+          {errorMessages.map((message, index) => (
+            <p key={index} className="text-sm">• {message}</p>
+          ))}
+        </div>,
+        {
+          duration: 5000, // Show for 5 seconds
+          style: {
+            maxWidth: '500px',
+            background: '#002222',
+            color: '#fff',
+            border: '1px solid rgba(0, 255, 255, 0.1)',
+          },
         }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+      );
     }
   };
 
-  // Generate years for date of birth
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
-
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#002222]">
-      {/* Background pattern */}
+    <div className="min-h-screen relative overflow-hidden bg-[#002222] w-full">
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-[linear-gradient(45deg,#00ffff05_1px,transparent_1px),linear-gradient(135deg,#00ffff05_1px,transparent_1px)] bg-[size:2rem_2rem]" />
       </div>
 
-      <div className="relative flex min-h-screen items-center justify-center p-4 sm:p-6 lg:p-8">
-        <motion.div 
-          className="w-full max-w-2xl relative my-20"
+      <div className="relative flex min-h-screen items-center justify-center p-4">
+        <motion.div
+          className="w-full max-w-4xl relative my-10"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
+          transition={{ duration: 0.5 }}
         >
-          {/* Logo section with glow */}
           <div className="absolute left-1/2 -translate-x-1/2 -top-24 z-10">
             <div className="relative">
-              <motion.div 
-                className="relative z-10 scale-150"
-                initial={{ scale: 0.8 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 2, ease: 'easeOut' }}
-              >
+              <motion.div className="relative z-10 scale-150">
                 <Logo />
               </motion.div>
               <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-[#00ffff]/5 rounded-full blur-[100px]" />
             </div>
           </div>
 
-          {/* Main card */}
-          <motion.div 
-            className="backdrop-blur-xl bg-white/[0.02] rounded-2xl 
-              border border-[#00ffff]/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]
-              overflow-hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            <div className="relative h-28 overflow-hidden rounded-t-2xl">
-              <div className="absolute inset-0 bg-[#00ffff]/5" />
-              <div className="absolute inset-0 backdrop-blur-sm" />
-            </div>
-            
-            <div className="px-8 sm:px-12 pb-12 pt-2">
-              <div className="text-center">
-                <h2 className="text-[#00ffff] text-2xl md:text-3xl font-light tracking-[0.3em] uppercase mb-4">
-                  Join Us
-                </h2>
-                <p className="text-white/50 text-sm md:text-base tracking-wider">
-                  Create your gaming account
-                </p>
-              </div>
+          <div className="backdrop-blur-xl bg-white/[0.02] rounded-2xl border border-[#00ffff]/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
+            <div className="px-6 md:px-8 pb-8 pt-6">
+              <h2 className="text-[#00ffff] text-2xl font-light tracking-[0.3em] uppercase text-center mb-8">
+                Create Account
+              </h2>
 
-              <form className="mt-10" onSubmit={handleSubmit}>
-                {/* Grid layout for form sections */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Left Column - Essential Information */}
-                  <div className="space-y-6">
-                    <div className="space-y-5">
-                      <h3 className="text-[#00ffff]/90 text-lg font-light tracking-wider uppercase border-b border-[#00ffff]/10 pb-2">
-                        Account Details
-                      </h3>
-                      
-                      <InputField
-                        label="Username"
-                        name="username"
-                        type="text"
-                        value={formData.username}
-                        onChange={handleChange}
-                        required
+              <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-8">
+                <div className="space-y-6">
+                  <h3 className="text-[#00ffff] text-lg font-light tracking-wider border-b border-[#00ffff]/10 pb-2">
+                    Account Details
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm text-[#00ffff]/80 mb-2 ml-1 tracking-wider uppercase">
+                        Username
+                      </label>
+                      <input
+                        {...register('username')}
+                        className={`block w-full rounded-xl border ${
+                          errors.username ? 'border-red-500' : touchedFields.username ? 'border-green-500/50' : 'border-[#00ffff]/20'
+                        } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                        focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                        backdrop-blur-sm transition-all duration-300
+                        hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                        placeholder="Choose a username"
                       />
+                      {errors.username && (
+                        <p className="mt-1 text-sm text-red-400 flex items-center">
+                          <span className="mr-1">⚠️</span>
+                          {errors.username.message}
+                        </p>
+                      )}
+                    </div>
 
-                      <InputField
-                        label="Email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        required
-                      />
-
-                      <InputField
-                        label="Password"
-                        name="password"
-                        type="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        required
-                      />
-                      
-                      <InputField
-                        label="Confirm Password"
-                        name="confirmPassword"
-                        type="password"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        required
-                      />
-                      
-                      <p className="text-white/40 text-sm tracking-wide bg-[#00ffff]/5 p-3 rounded-lg">
-                        At least 5 characters, but 10 or more is better. Use a combination of upper and lower case letters, numbers and symbols.
-                      </p>
+                    <div>
+                      <label className="block text-sm text-[#00ffff]/80 mb-2 ml-1 tracking-wider uppercase">
+                        Email
+                      </label>
+                      <div className="relative">
+                        <input
+                          {...register('email')}
+                          type="email"
+                          className={`block w-full rounded-xl border ${
+                            errors.email ? 'border-red-500' : touchedFields.email ? 'border-green-500/50' : 'border-[#00ffff]/20'
+                          } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                          focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                          backdrop-blur-sm transition-all duration-300
+                          hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                          placeholder="Enter your email"
+                        />
+                        {touchedFields.email && !errors.email && (
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">✓</span>
+                        )}
+                      </div>
+                      {errors.email && (
+                        <p className="mt-1 text-sm text-red-400 flex items-center">
+                          <span className="mr-1">⚠️</span>
+                          {errors.email.message}
+                        </p>
+                      )}
                     </div>
                   </div>
-
-                  {/* Right Column - Personal Information */}
-                  <div className="space-y-6">
-                    <div className="space-y-5">
-                      <h3 className="text-[#00ffff]/90 text-lg font-light tracking-wider uppercase border-b border-[#00ffff]/10 pb-2">
-                        Personal Information
-                      </h3>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <InputField
-                          label="First Name"
-                          name="firstName"
-                          type="text"
-                          value={formData.firstName}
-                          onChange={handleChange}
-                          required
-                        />
-                        <InputField
-                          label="Last Name"
-                          name="lastName"
-                          type="text"
-                          value={formData.lastName}
-                          onChange={handleChange}
-                          required
-                        />
-                      </div>
-
-                      {/* Date of Birth with enhanced styling */}
-                      <div className="space-y-2">
-                        <label className="block text-sm text-[#00ffff]/80 tracking-wider uppercase">
-                          Date of Birth
-                        </label>
-                        <div className="grid grid-cols-3 gap-3">
-                          {/* Month Selection */}
-                          <div className="relative group">
-                            <select
-                              name="dob.month"
-                              value={formData.dateOfBirth.month}
-                              onChange={handleChange}
-                              className="appearance-none w-full bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
-                                text-white px-4 py-3.5 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                                hover:border-[#00ffff]/30 transition-all duration-300
-                                cursor-pointer pr-10"
-                              required
-                            >
-                              <option value="" className="bg-[#002222]">Month</option>
-                              {['January', 'February', 'March', 'April', 'May', 'June', 'July', 
-                                'August', 'September', 'October', 'November', 'December'].map((month, index) => (
-                                <option key={month} value={index + 1} className="bg-[#002222]">
-                                  {month}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                              <svg className="h-5 w-5 text-[#00ffff]/50" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                            <div className="absolute inset-0 rounded-xl transition-opacity duration-300 opacity-0 
-                              group-hover:opacity-100 pointer-events-none border border-[#00ffff]/20" />
-                          </div>
-
-                          {/* Day Selection */}
-                          <div className="relative group">
-                            <select
-                              name="dob.day"
-                              value={formData.dateOfBirth.day}
-                              onChange={handleChange}
-                              className="appearance-none w-full bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
-                                text-white px-4 py-3.5 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                                hover:border-[#00ffff]/30 transition-all duration-300
-                                cursor-pointer pr-10"
-                              required
-                            >
-                              <option value="" className="bg-[#002222]">Day</option>
-                              {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                                <option key={day} value={day} className="bg-[#002222]">
-                                  {day.toString().padStart(2, '0')}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                              <svg className="h-5 w-5 text-[#00ffff]/50" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                            <div className="absolute inset-0 rounded-xl transition-opacity duration-300 opacity-0 
-                              group-hover:opacity-100 pointer-events-none border border-[#00ffff]/20" />
-                          </div>
-
-                          {/* Year Selection */}
-                          <div className="relative group">
-                            <select
-                              name="dob.year"
-                              value={formData.dateOfBirth.year}
-                              onChange={handleChange}
-                              className="appearance-none w-full bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
-                                text-white px-4 py-3.5 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                                hover:border-[#00ffff]/30 transition-all duration-300
-                                cursor-pointer pr-10"
-                              required
-                            >
-                              <option value="" className="bg-[#002222]">Year</option>
-                              {years.map(year => (
-                                <option key={year} value={year} className="bg-[#002222]">
-                                  {year}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                              <svg className="h-5 w-5 text-[#00ffff]/50" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                            <div className="absolute inset-0 rounded-xl transition-opacity duration-300 opacity-0 
-                              group-hover:opacity-100 pointer-events-none border border-[#00ffff]/20" />
-                          </div>
-                        </div>
-                        <p className="text-white/40 text-sm tracking-wide flex items-center gap-2 mt-1">
-                          <div className="h-1 w-1 rounded-full bg-[#00ffff]/40" />
-                          You must be at least 16 years old
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm text-[#00ffff]/80 mb-2 ml-1 tracking-wider uppercase">
+                        Password
+                      </label>
+                      <input
+                        {...register('password')}
+                        type="password"
+                        className={`block w-full rounded-xl border ${
+                          errors.password ? 'border-red-500' : touchedFields.password ? 'border-green-500/50' : 'border-[#00ffff]/20'
+                        } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                        focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                        backdrop-blur-sm transition-all duration-300
+                        hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                        placeholder="Create a password"
+                      />
+                      <div className="mt-2 space-y-1 text-sm">
+                        <p className={`flex items-center ${passwordRequirements.length ? 'text-green-400' : 'text-white/50'}`}>
+                          <span className="mr-1">{passwordRequirements.length ? '✓' : '○'}</span>
+                          At least 8 characters
+                        </p>
+                        <p className={`flex items-center ${passwordRequirements.uppercase ? 'text-green-400' : 'text-white/50'}`}>
+                          <span className="mr-1">{passwordRequirements.uppercase ? '✓' : '○'}</span>
+                          One uppercase letter
+                        </p>
+                        <p className={`flex items-center ${passwordRequirements.number ? 'text-green-400' : 'text-white/50'}`}>
+                          <span className="mr-1">{passwordRequirements.number ? '✓' : '○'}</span>
+                          One number
+                        </p>
+                        <p className={`flex items-center ${passwordRequirements.special ? 'text-green-400' : 'text-white/50'}`}>
+                          <span className="mr-1">{passwordRequirements.special ? '✓' : '○'}</span>
+                          One special character
                         </p>
                       </div>
+                      {errors.password && (
+                        <p className="mt-1 text-sm text-red-400 flex items-center">
+                          <span className="mr-1">⚠️</span>
+                          {errors.password.message}
+                        </p>
+                      )}
+                    </div>
 
-                      <InputField
-                        label="Phone Number"
-                        name="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="+1 234 567 8900"
-                        required
+                    <div>
+                      <label className="block text-sm text-[#00ffff]/80 mb-2 ml-1 tracking-wider uppercase">
+                        Confirm Password
+                      </label>
+                      <input
+                        {...register('confirmPassword')}
+                        type="password"
+                        className={`block w-full rounded-xl border ${
+                          errors.confirmPassword ? 'border-red-500' : touchedFields.confirmPassword ? 'border-green-500/50' : 'border-[#00ffff]/20'
+                        } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                        focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                        backdrop-blur-sm transition-all duration-300
+                        hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                        placeholder="Confirm your password"
                       />
+                      {errors.confirmPassword && (
+                        <p className="mt-1 text-sm text-red-400 flex items-center">
+                          <span className="mr-1">⚠️</span>
+                          {errors.confirmPassword.message}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Optional Information - Full Width */}
-                <div className="mt-8 space-y-6">
-                  <h3 className="text-[#00ffff]/90 text-lg font-light tracking-wider uppercase border-b border-[#00ffff]/10 pb-2">
+                <div className="space-y-6">
+                  <h3 className="text-[#00ffff] text-lg font-light tracking-wider border-b border-[#00ffff]/10 pb-2">
+                    Personal Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm text-[#00ffff]/80 mb-2 ml-1 tracking-wider uppercase">
+                        First Name
+                      </label>
+                      <input
+                        {...register('firstName')}
+                        className={`block w-full rounded-xl border ${
+                          errors.firstName ? 'border-red-500' : touchedFields.firstName ? 'border-green-500/50' : 'border-[#00ffff]/20'
+                        } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                        focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                        backdrop-blur-sm transition-all duration-300
+                        hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                        placeholder="Enter your first name"
+                      />
+                      {errors.firstName && (
+                        <p className="mt-1 text-sm text-red-400 flex items-center">
+                          <span className="mr-1">⚠️</span>
+                          {errors.firstName.message}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-[#00ffff]/80 mb-2 ml-1 tracking-wider uppercase">
+                        Last Name
+                      </label>
+                      <input
+                        {...register('lastName')}
+                        className={`block w-full rounded-xl border ${
+                          errors.lastName ? 'border-red-500' : touchedFields.lastName ? 'border-green-500/50' : 'border-[#00ffff]/20'
+                        } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                        focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                        backdrop-blur-sm transition-all duration-300
+                        hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                        placeholder="Enter your last name"
+                      />
+                      {errors.lastName && (
+                        <p className="mt-1 text-sm text-red-400 flex items-center">
+                          <span className="mr-1">⚠️</span>
+                          {errors.lastName.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm text-[#00ffff]/80 mb-2 ml-1 tracking-wider uppercase">
+                        Date of Birth
+                      </label>
+                      <div className="grid grid-cols-3 gap-4">
+                        <select
+                          {...register('dateOfBirth.month')}
+                          className={`block w-full rounded-xl border ${
+                            errors.dateOfBirth?.month ? 'border-red-500' : touchedFields.dateOfBirth?.month ? 'border-green-500/50' : 'border-[#00ffff]/20'
+                          } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                          focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                          backdrop-blur-sm transition-all duration-300
+                          hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                        >
+                          <option value="" className="bg-[#002222]">Month</option>
+                          {MONTHS.map(month => (
+                            <option key={month.value} value={month.value} className="bg-[#002222]">
+                              {month.label}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          {...register('dateOfBirth.day')}
+                          className={`block w-full rounded-xl border ${
+                            errors.dateOfBirth?.day ? 'border-red-500' : touchedFields.dateOfBirth?.day ? 'border-green-500/50' : 'border-[#00ffff]/20'
+                          } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                          focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                          backdrop-blur-sm transition-all duration-300
+                          hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                        >
+                          <option value="" className="bg-[#002222]">Day</option>
+                          {DAYS.map(day => (
+                            <option key={day} value={day} className="bg-[#002222]">{day}</option>
+                          ))}
+                        </select>
+                        <select
+                          {...register('dateOfBirth.year')}
+                          className={`block w-full rounded-xl border ${
+                            errors.dateOfBirth?.year ? 'border-red-500' : touchedFields.dateOfBirth?.year ? 'border-green-500/50' : 'border-[#00ffff]/20'
+                          } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                          focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                          backdrop-blur-sm transition-all duration-300
+                          hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                        >
+                          <option value="" className="bg-[#002222]">Year</option>
+                          {YEARS.map(year => (
+                            <option key={year} value={year} className="bg-[#002222]">{year}</option>
+                          ))}
+                        </select>
+                      </div>
+                      {(errors.dateOfBirth?.month || errors.dateOfBirth?.day || errors.dateOfBirth?.year) && (
+                        <p className="mt-1 text-sm text-red-400 flex items-center">
+                          <span className="mr-1">⚠️</span>
+                          {errors.dateOfBirth?.message || 'Please complete all date fields'}
+                        </p>
+                      )}
+                      <p className="mt-1 text-sm text-white/50">You must be at least 16 years old</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-[#00ffff]/80 mb-2 ml-1 tracking-wider uppercase">
+                        Phone Number
+                      </label>
+                      <div className="relative">
+                        <input
+                          {...register('phoneNumber')}
+                          type="tel"
+                          className={`block w-full rounded-xl border ${
+                            errors.phoneNumber ? 'border-red-500' : touchedFields.phoneNumber ? 'border-green-500/50' : 'border-[#00ffff]/20'
+                          } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                          focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                          backdrop-blur-sm transition-all duration-300
+                          hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                          placeholder="+1 234 567 8900"
+                        />
+                        {touchedFields.phoneNumber && !errors.phoneNumber && (
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">✓</span>
+                        )}
+                      </div>
+                      {errors.phoneNumber && (
+                        <p className="mt-1 text-sm text-red-400 flex items-center">
+                          <span className="mr-1">⚠️</span>
+                          {errors.phoneNumber.message}
+                        </p>
+                      )}
+                      <p className="mt-1 text-sm text-white/50">Enter a valid phone number with country code</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <h3 className="text-[#00ffff] text-lg font-light tracking-wider border-b border-[#00ffff]/10 pb-2">
                     Additional Information
                   </h3>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <InputField
-                      label="Address (Optional)"
-                      name="address"
-                      type="text"
-                      value={formData.address}
-                      onChange={handleChange}
-                    />
-
-                    <InputField
-                      label="Referral Email (Optional)"
-                      name="referralEmail"
-                      type="email"
-                      value={formData.referralEmail}
-                      onChange={handleChange}
-                      placeholder="example@example.com"
-                    />
-                  </div>
-
-                  {/* Games Selection */}
-                  <div className="space-y-2">
-                    <label className="block text-sm text-[#00ffff]/80 tracking-wider uppercase">
-                      Games (Optional)
-                    </label>
-                    <div className="relative">
-                      <select
-                        name="games"
-                        multiple
-                        size={5}
-                        className="w-full bg-white/[0.02] border border-[#00ffff]/20 rounded-xl 
-                          text-white px-4 py-3 focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                          hover:border-[#00ffff]/30 transition-all duration-300
-                          [&>option]:p-3 [&>option]:cursor-pointer [&>option]:mb-1
-                          [&>option]:rounded-lg [&>option]:transition-colors [&>option]:duration-200
-                          [&>option:hover]:bg-[#00ffff]/10 [&>option:checked]:bg-[#00ffff]/20
-                          [&>option]:flex [&>option]:items-center [&>option]:gap-2
-                          scrollbar-thin scrollbar-track-white/5 scrollbar-thumb-[#00ffff]/20
-                          hover:scrollbar-thumb-[#00ffff]/30"
-                      >
-                        <option value="panda-master" className="game-option">
-                          🐼 Panda Master
-                        </option>
-                        <option value="juwa" className="game-option">
-                          🎮 Juwa
-                        </option>
-                        <option value="orion-star" className="game-option">
-                          ⭐ Orion Star
-                        </option>
-                        <option value="fire-kirin" className="game-option">
-                          🔥 Fire Kirin
-                        </option>
-                        <option value="golden-treasure" className="game-option">
-                          💎 Golden Treasure
-                        </option>
-                        <option value="egame" className="game-option">
-                          🎲 Egame
-                        </option>
-                        <option value="milky-way" className="game-option">
-                          🌌 Milky Way
-                        </option>
-                        <option value="golden-dragon" className="game-option">
-                          🐉 Golden Dragon
-                        </option>
-                        <option value="vblink" className="game-option">
-                          🔗 Vblink
-                        </option>
-                      </select>
-                      <div className="absolute inset-0 pointer-events-none rounded-xl 
-                        transition-opacity duration-300 opacity-0 
-                        group-hover:opacity-100 border border-[#00ffff]/20" 
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm text-[#00ffff]/80 mb-2 ml-1 tracking-wider uppercase">
+                        Address (Optional)
+                      </label>
+                      <input
+                        {...register('address')}
+                        className="block w-full rounded-xl border border-[#00ffff]/20 bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30"
+                        placeholder="Enter your address"
                       />
                     </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <div className="h-1 w-1 rounded-full bg-[#00ffff]/40" />
-                      <p className="text-white/40 text-sm tracking-wide">
-                        Hold Ctrl (Windows) or Command (Mac) to select multiple games
-                      </p>
+
+                    <div>
+                      <label className="block text-sm text-[#00ffff]/80 mb-2 ml-1 tracking-wider uppercase">
+                        Referral Email (Optional)
+                      </label>
+                      <input
+                        {...register('referralEmail')}
+                        type="email"
+                        className="block w-full rounded-xl border border-[#00ffff]/20 bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30"
+                        placeholder="example@example.com"
+                      />
                     </div>
-                    <p className="text-white/40 text-sm tracking-wide flex items-center gap-2">
-                      <div className="h-1 w-1 rounded-full bg-[#00ffff]/40" />
-                      If you already have a game account just select any of them
-                    </p>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm text-[#00ffff]/80 mb-2 ml-1 tracking-wider uppercase">
+                        Games (Optional)
+                      </label>
+                      <select
+                        multiple
+                        {...register('games')}
+                        className={`block w-full rounded-xl border ${
+                          errors.games ? 'border-red-500' : touchedFields.games ? 'border-green-500/50' : 'border-[#00ffff]/20'
+                        } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                        focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                        backdrop-blur-sm transition-all duration-300
+                        hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                      >
+                        {GAMES.map(game => (
+                          <option key={game.id} value={game.id} className="bg-[#002222] py-2">
+                            {game.name}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-sm text-white/50">
+                        Hold Ctrl (Windows) or Command (Mac) to select multiple games (max 5)
+                      </p>
+                      {errors.games && (
+                        <p className="mt-1 text-sm text-red-400 flex items-center">
+                          <span className="mr-1">⚠️</span>
+                          {errors.games.message}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Terms and Submit Section */}
-                <div className="mt-8 space-y-6">
-                  {/* Terms and conditions */}
-                  <div className="flex items-start p-4 bg-white/[0.02] rounded-xl border border-[#00ffff]/10">
-                    <div className="flex items-center h-5">
-                      <input
-                        id="terms"
-                        name="terms"
-                        type="checkbox"
-                        required
-                        className="h-4 w-4 rounded-md border-[#00ffff]/20 bg-white/[0.02] text-[#00ffff]
-                        focus:ring-1 focus:ring-[#00ffff]/50 transition-colors duration-200"
-                      />
-                    </div>
-                    <label htmlFor="terms" className="ml-3 block text-sm text-white/50 tracking-wide">
-                      By checking this box you agree to our{' '}
-                      <a href="/rules" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
-                        rules
-                      </a>
-                      ,{' '}
-                      <a href="/policies" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
-                        policies and disclaimer
-                      </a>
-                      , and{' '}
-                      <a href="/terms" className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200">
-                        terms and conditions
-                      </a>
+                <div className="space-y-6">
+                  <div className="flex items-center space-x-3 pt-4">
+                    <input
+                      type="checkbox"
+                      {...register('termsAccepted')}
+                      className="h-5 w-5 rounded border-[#00ffff]/20 bg-white/[0.02] text-[#00ffff]"
+                    />
+                    <label className="text-white/70">
+                      By checking this box you agree to our rules, policies and disclaimer, and terms and conditions
                     </label>
                   </div>
+                  {errors.termsAccepted && (
+                    <p className="mt-1 text-sm text-red-400 flex items-center">
+                      <span className="mr-1">⚠️</span>
+                      {errors.termsAccepted.message}
+                    </p>
+                  )}
+                </div>
 
-                  {/* Submit button */}
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="relative w-full rounded-xl border border-[#00ffff]/20
+                {reduxErrors?.submit && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                    <p className="text-red-400 text-sm flex items-center">
+                      <span className="mr-1">⚠️</span>
+                      {reduxErrors.submit}
+                    </p>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={!isValid || signupMutation.isPending}
+                  className={`relative w-full rounded-xl border border-[#00ffff]/20
                     bg-[#00ffff]/10 px-6 py-4 text-[#00ffff] tracking-[0.2em] uppercase
                     hover:bg-[#00ffff]/20 focus:outline-none focus:ring-2 
                     focus:ring-[#00ffff]/50 transition-all duration-300
                     disabled:opacity-70 disabled:cursor-not-allowed
-                    group overflow-hidden"
-                  >
-                    {isLoading && (
+                    group overflow-hidden`}
+                >
+                  {signupMutation.isPending && (
+                    <motion.div
+                      className="absolute bottom-0 left-0 h-[2px] bg-[#00ffff]/30"
+                      initial={{ width: 0 }}
+                      animate={{ width: '100%' }}
+                      transition={{ duration: 1, ease: 'easeInOut' }}
+                    >
                       <motion.div
-                        className="absolute bottom-0 left-0 h-[2px] bg-[#00ffff]/30"
-                        initial={{ width: 0 }}
+                        className="absolute top-0 left-0 h-full bg-[#00ffff]"
+                        initial={{ width: '0%' }}
                         animate={{ width: '100%' }}
                         transition={{ duration: 1, ease: 'easeInOut' }}
-                      >
-                        <motion.div
-                          className="absolute top-0 left-0 h-full bg-[#00ffff]"
-                          initial={{ width: '0%' }}
-                          animate={{ width: '100%' }}
-                          transition={{ duration: 1, ease: 'easeInOut' }}
-                        />
-                      </motion.div>
-                    )}
-                    <span className="relative flex items-center justify-center">
-                      {isLoading ? 'Creating Account...' : 'Create Account'}
-                    </span>
-                  </button>
-
-                  {/* Sign in link */}
-                  <div className="text-center">
-                    <span className="text-white/50 tracking-wider">Already have an account? </span>
-                    <a href="/login" 
-                      className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200 
-                      tracking-wider">
-                      Sign in
-                    </a>
-                  </div>
-                </div>
+                      />
+                    </motion.div>
+                  )}
+                  <span className="relative flex items-center justify-center">
+                    {signupMutation.isPending ? 'Creating Account...' : 'Sign Up'}
+                  </span>
+                </button>
               </form>
+
+              <div className="mt-8 text-center">
+                <span className="text-white/50 tracking-wider">Already have an account? </span>
+                <a
+                  href="/login"
+                  className="text-[#00ffff]/80 hover:text-[#00ffff] transition-colors duration-200 tracking-wider"
+                >
+                  Login
+                </a>
+              </div>
             </div>
-          </motion.div>
+          </div>
         </motion.div>
       </div>
     </div>
   );
 };
 
-// Reusable Input Field Component
-const InputField = ({ 
-  label, 
-  name, 
-  type, 
-  value, 
-  onChange, 
-  required = false,
-  placeholder = ''
-}: {
-  label: string;
-  name: string;
-  type: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  required?: boolean;
-  placeholder?: string;
-}) => (
-  <div className="group relative">
-    <label htmlFor={name} className="block text-sm text-[#00ffff]/80 mb-2 ml-1 
-      tracking-wider uppercase">
-      {label}
-    </label>
-    <input
-      id={name}
-      name={name}
-      type={type}
-      required={required}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      className="block w-full rounded-xl border border-[#00ffff]/20 
-      bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-      focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-      backdrop-blur-sm transition-all duration-300
-      hover:border-[#00ffff]/30 hover:bg-white/[0.04]"
-    />
-  </div>
-);
-
-export default SignUp; 
+export default Signup; 
