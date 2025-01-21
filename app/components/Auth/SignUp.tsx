@@ -143,19 +143,20 @@ const Signup = () => {
     // Show all errors in a single toast
     if (errorMessages.length > 0) {
       toast.error(
-        <div className="space-y-1">
-          <p className="font-medium">Please fix the following errors:</p>
+        <div className="space-y-0.5">
+          <p className="text-sm font-medium">Please fix the following errors:</p>
           {errorMessages.map((message, index) => (
-            <p key={index} className="text-sm">• {message}</p>
+            <p key={index} className="text-xs">• {message}</p>
           ))}
         </div>,
         {
-          duration: 5000, // Show for 5 seconds
+          duration: 5000,
           style: {
             maxWidth: '500px',
             background: '#002222',
             color: '#fff',
             border: '1px solid rgba(0, 255, 255, 0.1)',
+            fontSize: '0.875rem',
           },
         }
       );
@@ -163,24 +164,24 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#002222] w-full">
+    <div className="min-h-screen relative overflow-hidden bg-[#002222] w-full py-32">
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-[linear-gradient(45deg,#00ffff05_1px,transparent_1px),linear-gradient(135deg,#00ffff05_1px,transparent_1px)] bg-[size:2rem_2rem]" />
       </div>
 
-      <div className="relative flex min-h-screen items-center justify-center p-4">
+      <div className="relative flex min-h-screen items-start justify-center px-4">
         <motion.div
-          className="w-full max-w-4xl relative my-10"
+          className="w-full max-w-4xl relative"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="absolute left-1/2 -translate-x-1/2 -top-24 z-10">
+          <div className="absolute left-1/2 -translate-x-1/2 -top-16 z-10">
             <div className="relative">
-              <motion.div className="relative z-10 scale-150">
+              <motion.div className="relative z-10">
                 <Logo />
               </motion.div>
-              <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-[#00ffff]/5 rounded-full blur-[100px]" />
+              <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#00ffff]/5 rounded-full blur-[80px]" />
             </div>
           </div>
 
@@ -211,8 +212,8 @@ const Signup = () => {
                         placeholder="Choose a username"
                       />
                       {errors.username && (
-                        <p className="mt-1 text-sm text-red-400 flex items-center">
-                          <span className="mr-1">⚠️</span>
+                        <p className="mt-0.5 text-xs text-red-400/90 flex items-center">
+                          <span className="mr-1 text-xs">⚠️</span>
                           {errors.username.message}
                         </p>
                       )}
@@ -239,8 +240,8 @@ const Signup = () => {
                         )}
                       </div>
                       {errors.email && (
-                        <p className="mt-1 text-sm text-red-400 flex items-center">
-                          <span className="mr-1">⚠️</span>
+                        <p className="mt-0.5 text-xs text-red-400/90 flex items-center">
+                          <span className="mr-1 text-xs">⚠️</span>
                           {errors.email.message}
                         </p>
                       )}
@@ -281,8 +282,8 @@ const Signup = () => {
                         </p>
                       </div>
                       {errors.password && (
-                        <p className="mt-1 text-sm text-red-400 flex items-center">
-                          <span className="mr-1">⚠️</span>
+                        <p className="mt-0.5 text-xs text-red-400/90 flex items-center">
+                          <span className="mr-1 text-xs">⚠️</span>
                           {errors.password.message}
                         </p>
                       )}
@@ -304,8 +305,8 @@ const Signup = () => {
                         placeholder="Confirm your password"
                       />
                       {errors.confirmPassword && (
-                        <p className="mt-1 text-sm text-red-400 flex items-center">
-                          <span className="mr-1">⚠️</span>
+                        <p className="mt-0.5 text-xs text-red-400/90 flex items-center">
+                          <span className="mr-1 text-xs">⚠️</span>
                           {errors.confirmPassword.message}
                         </p>
                       )}
@@ -333,8 +334,8 @@ const Signup = () => {
                         placeholder="Enter your first name"
                       />
                       {errors.firstName && (
-                        <p className="mt-1 text-sm text-red-400 flex items-center">
-                          <span className="mr-1">⚠️</span>
+                        <p className="mt-0.5 text-xs text-red-400/90 flex items-center">
+                          <span className="mr-1 text-xs">⚠️</span>
                           {errors.firstName.message}
                         </p>
                       )}
@@ -355,8 +356,8 @@ const Signup = () => {
                         placeholder="Enter your last name"
                       />
                       {errors.lastName && (
-                        <p className="mt-1 text-sm text-red-400 flex items-center">
-                          <span className="mr-1">⚠️</span>
+                        <p className="mt-0.5 text-xs text-red-400/90 flex items-center">
+                          <span className="mr-1 text-xs">⚠️</span>
                           {errors.lastName.message}
                         </p>
                       )}
@@ -414,8 +415,8 @@ const Signup = () => {
                         </select>
                       </div>
                       {(errors.dateOfBirth?.month || errors.dateOfBirth?.day || errors.dateOfBirth?.year) && (
-                        <p className="mt-1 text-sm text-red-400 flex items-center">
-                          <span className="mr-1">⚠️</span>
+                        <p className="mt-0.5 text-xs text-red-400/90 flex items-center">
+                          <span className="mr-1 text-xs">⚠️</span>
                           {errors.dateOfBirth?.message || 'Please complete all date fields'}
                         </p>
                       )}
@@ -443,8 +444,8 @@ const Signup = () => {
                         )}
                       </div>
                       {errors.phoneNumber && (
-                        <p className="mt-1 text-sm text-red-400 flex items-center">
-                          <span className="mr-1">⚠️</span>
+                        <p className="mt-0.5 text-xs text-red-400/90 flex items-center">
+                          <span className="mr-1 text-xs">⚠️</span>
                           {errors.phoneNumber.message}
                         </p>
                       )}
@@ -506,8 +507,8 @@ const Signup = () => {
                         Hold Ctrl (Windows) or Command (Mac) to select multiple games (max 5)
                       </p>
                       {errors.games && (
-                        <p className="mt-1 text-sm text-red-400 flex items-center">
-                          <span className="mr-1">⚠️</span>
+                        <p className="mt-0.5 text-xs text-red-400/90 flex items-center">
+                          <span className="mr-1 text-xs">⚠️</span>
                           {errors.games.message}
                         </p>
                       )}
@@ -527,8 +528,8 @@ const Signup = () => {
                     </label>
                   </div>
                   {errors.termsAccepted && (
-                    <p className="mt-1 text-sm text-red-400 flex items-center">
-                      <span className="mr-1">⚠️</span>
+                    <p className="mt-0.5 text-xs text-red-400/90 flex items-center">
+                      <span className="mr-1 text-xs">⚠️</span>
                       {errors.termsAccepted.message}
                     </p>
                   )}
