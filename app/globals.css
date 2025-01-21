@@ -84,3 +84,23 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes progress-indeterminate {
+  0% {
+    width: 0%;
+    left: -25%;
+  }
+  50% {
+    width: 75%;
+  }
+  75% {
+    left: 100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.animate-progress-indeterminate {
+  animation: progress-indeterminate 1.5s infinite ease-in-out;
+}
