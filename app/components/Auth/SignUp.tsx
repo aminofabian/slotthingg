@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Logo from '../Logo/Logo';
 import { RootState } from '@/app/store/store';
+import { signupUser } from '@/lib/auth';
 
 const GAMES = [
   { id: 'panda', name: '🐼 Panda Master' },
@@ -73,30 +74,15 @@ const Signup = () => {
 
   const signupMutation = useMutation({
     mutationFn: async (data: SignupFormData) => {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Signup failed');
-      }
-      
-      return response.json();
+      return signupUser(data.email);
     },
-    onSuccess: async (response: Response) => {
-      const data = await response.json();
-      dispatch(setFormData(data));
-      dispatch(setErrors(null));
+    onSuccess: (data) => {
       reset();
-      toast.success('Account created successfully!');
+      toast.success('OTP has been sent to your email!');
+      // You might want to redirect to an OTP verification page here
     },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to create account');
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to sign up');
     },
   });
 
@@ -104,9 +90,9 @@ const Signup = () => {
     toast.promise(
       signupMutation.mutateAsync(data),
       {
-        loading: 'Creating account...',
-        success: 'Account created successfully!',
-        error: (err: Error) => err.message || 'Failed to create account'
+        loading: 'Sending OTP...',
+        success: 'OTP sent successfully!',
+        error: (err: Error) => err.message || 'Failed to send OTP'
       }
     );
   };
@@ -199,28 +185,6 @@ const Signup = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm text-[#00ffff]/80 mb-2 ml-1 tracking-wider uppercase">
-                        Username
-                      </label>
-                      <input
-                        {...register('username')}
-                        className={`block w-full rounded-xl border ${
-                          errors.username ? 'border-red-500' : touchedFields.username ? 'border-green-500/50' : 'border-[#00ffff]/20'
-                        } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-                        focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                        backdrop-blur-sm transition-all duration-300
-                        hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-                        placeholder="Choose a username"
-                      />
-                      {errors.username && (
-                        <p className="mt-0.5 text-xs text-red-400/90 flex items-center">
-                          <span className="mr-1 text-xs">⚠️</span>
-                          {errors.username.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm text-[#00ffff]/80 mb-2 ml-1 tracking-wider uppercase">
                         Email
                       </label>
                       <div className="relative">
@@ -243,71 +207,6 @@ const Signup = () => {
                         <p className="mt-0.5 text-xs text-red-400/90 flex items-center">
                           <span className="mr-1 text-xs">⚠️</span>
                           {errors.email.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm text-[#00ffff]/80 mb-2 ml-1 tracking-wider uppercase">
-                        Password
-                      </label>
-                      <input
-                        {...register('password')}
-                        type="password"
-                        className={`block w-full rounded-xl border ${
-                          errors.password ? 'border-red-500' : touchedFields.password ? 'border-green-500/50' : 'border-[#00ffff]/20'
-                        } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-                        focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                        backdrop-blur-sm transition-all duration-300
-                        hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-                        placeholder="Create a password"
-                      />
-                      <div className="mt-2 space-y-1 text-sm">
-                        <p className={`flex items-center ${passwordRequirements.length ? 'text-green-400' : 'text-white/50'}`}>
-                          <span className="mr-1">{passwordRequirements.length ? '✓' : '○'}</span>
-                          At least 8 characters
-                        </p>
-                        <p className={`flex items-center ${passwordRequirements.uppercase ? 'text-green-400' : 'text-white/50'}`}>
-                          <span className="mr-1">{passwordRequirements.uppercase ? '✓' : '○'}</span>
-                          One uppercase letter
-                        </p>
-                        <p className={`flex items-center ${passwordRequirements.number ? 'text-green-400' : 'text-white/50'}`}>
-                          <span className="mr-1">{passwordRequirements.number ? '✓' : '○'}</span>
-                          One number
-                        </p>
-                        <p className={`flex items-center ${passwordRequirements.special ? 'text-green-400' : 'text-white/50'}`}>
-                          <span className="mr-1">{passwordRequirements.special ? '✓' : '○'}</span>
-                          One special character
-                        </p>
-                      </div>
-                      {errors.password && (
-                        <p className="mt-0.5 text-xs text-red-400/90 flex items-center">
-                          <span className="mr-1 text-xs">⚠️</span>
-                          {errors.password.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm text-[#00ffff]/80 mb-2 ml-1 tracking-wider uppercase">
-                        Confirm Password
-                      </label>
-                      <input
-                        {...register('confirmPassword')}
-                        type="password"
-                        className={`block w-full rounded-xl border ${
-                          errors.confirmPassword ? 'border-red-500' : touchedFields.confirmPassword ? 'border-green-500/50' : 'border-[#00ffff]/20'
-                        } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-                        focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                        backdrop-blur-sm transition-all duration-300
-                        hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-                        placeholder="Confirm your password"
-                      />
-                      {errors.confirmPassword && (
-                        <p className="mt-0.5 text-xs text-red-400/90 flex items-center">
-                          <span className="mr-1 text-xs">⚠️</span>
-                          {errors.confirmPassword.message}
                         </p>
                       )}
                     </div>
@@ -560,7 +459,7 @@ const Signup = () => {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Creating Account...
+                      Sending OTP...
                     </div>
                   ) : (
                     'Sign Up'

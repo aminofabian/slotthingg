@@ -1,5 +1,5 @@
-import SignUp from '@/app/components/Auth/SignUp';
+import SimpleSignUp from '@/app/components/Auth/SimpleSignUp';
 
 export default function SignupPage() {
-  return <SignUp />;
+  return <SimpleSignUp />;
 } 

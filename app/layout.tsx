@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { generateFaviconTags } from './utils/favicon';
-import ClientLayout from './ClientLayout';
+import RootClientLayout from './RootClientLayout';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -28,7 +28,7 @@ export default function RootLayout({
         <link rel="manifest" href="/site.webmanifest" />
       </head>
       <body className={inter.className}>
-        <ClientLayout>{children}</ClientLayout>
+        <RootClientLayout>{children}</RootClientLayout>
       </body>
     </html>
   );
