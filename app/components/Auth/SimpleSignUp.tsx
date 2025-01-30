@@ -32,7 +32,13 @@ export default function SimpleSignUp() {
 
   const signupMutation = useMutation({
     mutationFn: async (data: SignupFormData) => {
-      return signupUser(data.email);
+      const result = await signupUser(data.email);
+      console.log('Step 1 Data:', {
+        email: data.email,
+        username: result.username,
+        whitelabel_admin_uuid: localStorage.getItem('whitelabel_admin_uuid')
+      });
+      return result;
     },
     onSuccess: (data) => {
       reset();

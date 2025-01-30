@@ -33,36 +33,72 @@ export default function OTPSignupModal({ isOpen, onClose, email, username }: OTP
 
   const signupMutation = useMutation({
     mutationFn: async (data: OTPSignupFormData) => {
+      const requestBody = {
+        username: username,
+        password: data.password,
+        whitelabel_admin_uuid: localStorage.getItem('whitelabel_admin_uuid') || '',
+        otp: data.otp,
+        full_name: data.full_name,
+        email: email
+      };
+
+      console.log('Final Signup Request Body:', JSON.stringify(requestBody, null, 2));
+
       const response = await fetch('https://serverhub.biz/users/signup/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          username,
-          password: data.password,
-          whitelabel_admin_uuid: localStorage.getItem('whitelabel_admin_uuid') || '',
-          otp: data.otp,
-          full_name: data.full_name,
-          email
-        })
+        body: JSON.stringify(requestBody)
       });
 
+      const responseData = await response.json();
+      console.log('Server Response:', responseData);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Signup failed');
+        // Log the full error details
+        console.error('Error Details:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: responseData
+        });
+
+        // Handle specific error cases
+        if (responseData.email?.[0]) {
+          throw new Error(`Email error: ${responseData.email[0]}`);
+        }
+        if (responseData.non_field_errors?.[0]) {
+          throw new Error(responseData.non_field_errors[0]);
+        }
+        if (responseData.otp?.[0]) {
+          throw new Error(`OTP error: ${responseData.otp[0]}`);
+        }
+        throw new Error(responseData.message || 'Signup failed');
       }
 
-      return response.json();
+      return responseData;
     },
     onSuccess: () => {
       reset();
       onClose();
-      toast.success('Account created successfully!');
-      // You might want to redirect to login or dashboard here
+      toast.success('Account created successfully! You can now log in.');
+      // Redirect to login page
+      window.location.href = '/login';
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to create account');
+      console.error('Mutation Error:', error);
+      if (error.message.includes('OTP')) {
+        toast.error(error.message, { duration: 5000 });
+      } else if (error.message.includes('email already exists')) {
+        toast.error('This email is already registered. Please try logging in instead.', {
+          duration: 5000,
+        });
+        // Close modal and redirect to login
+        onClose();
+        window.location.href = '/login';
+      } else {
+        toast.error(error.message || 'Failed to create account', { duration: 5000 });
+      }
     },
   });
 
