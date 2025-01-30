@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { signupUser } from '@/app/lib/auth';
 import { useState } from 'react';
 import OTPSignupModal from './OTPSignupModal';
+import Logo from '../Logo/Logo';
 
 const signupSchema = z.object({
   email: z.string()
@@ -68,6 +69,7 @@ export default function SimpleSignUp() {
         <div className="w-full max-w-md">
           <div className="backdrop-blur-xl bg-white/[0.02] rounded-2xl border border-[#00ffff]/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-8">
             <h2 className="text-[#00ffff] text-2xl font-light tracking-[0.3em] uppercase text-center mb-8">
+            <Logo />
               Create Account
             </h2>
 
