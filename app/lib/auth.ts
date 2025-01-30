@@ -1,3 +1,16 @@
+export const generateUniqueUsername = () => {
+  // Generate random components
+  const randomNum = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+  const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed similar looking characters
+  let randomStr = '';
+  for (let i = 0; i < 3; i++) {
+    randomStr += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  
+  // Combine components: player + 4 digits + 3 random chars
+  return `player${randomNum}${randomStr}`;
+};
+
 export const signupUser = async (email: string) => {
   const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
   
@@ -5,9 +18,8 @@ export const signupUser = async (email: string) => {
     throw new Error('Missing whitelabel admin UUID');
   }
 
-  // Generate username in the format "player" + number padded to 3 digits
-  const randomNum = Math.floor(Math.random() * 999) + 1;
-  const username = `player${String(randomNum).padStart(3, '0')}`;
+  // Generate a unique username
+  const username = generateUniqueUsername();
 
   try {
     const response = await fetch('https://serverhub.biz/users/otp-signup/', {
