@@ -1,138 +1,77 @@
 'use client';
 
+import { useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
+import { verifyOTP } from '@/app/lib/auth';
+import Modal from '@/app/components/Modal';
 
 const otpSignupSchema = z.object({
-  otp: z.string().min(6, 'OTP must be 6 digits').max(6, 'OTP must be 6 digits'),
+  otp: z.string().min(6, 'OTP must be at least 6 characters'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   full_name: z.string().min(1, 'Full name is required'),
 });
 
 type OTPSignupFormData = z.infer<typeof otpSignupSchema>;
 
+interface VerifyOTPData {
+  email: string;
+  username: string;
+  otp: string;
+  password: string;
+  full_name: string;
+}
+
 interface OTPSignupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  email: string;
-  username: string;
+  signupData: {
+    email: string;
+    username: string;
+  };
 }
 
-export default function OTPSignupModal({ isOpen, onClose, email, username }: OTPSignupModalProps) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset
-  } = useForm<OTPSignupFormData>({
+export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignupModalProps) {
+  const router = useRouter();
+  const { register, handleSubmit, formState: { errors } } = useForm<OTPSignupFormData>({
     resolver: zodResolver(otpSignupSchema)
   });
 
-  const signupMutation = useMutation({
+  const verifyOTPMutation = useMutation({
     mutationFn: async (data: OTPSignupFormData) => {
-      const requestBody = {
-        username: username,
-        password: data.password,
-        whitelabel_admin_uuid: localStorage.getItem('whitelabel_admin_uuid') || '',
+      return verifyOTP({
+        email: signupData.email,
+        username: signupData.username,
         otp: data.otp,
-        full_name: data.full_name,
-        email: email
-      };
-
-      console.log('Final Signup Request Body:', JSON.stringify(requestBody, null, 2));
-
-      const response = await fetch('https://serverhub.biz/users/signup/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
+        password: data.password,
+        full_name: data.full_name
       });
-
-      const responseData = await response.json();
-      console.log('Server Response:', responseData);
-
-      if (!response.ok) {
-        // Log the full error details
-        console.error('Error Details:', {
-          status: response.status,
-          statusText: response.statusText,
-          data: responseData
-        });
-
-        // Handle specific error cases
-        if (responseData.email?.[0]) {
-          throw new Error(`Email error: ${responseData.email[0]}`);
-        }
-        if (responseData.non_field_errors?.[0]) {
-          throw new Error(responseData.non_field_errors[0]);
-        }
-        if (responseData.otp?.[0]) {
-          throw new Error(`OTP error: ${responseData.otp[0]}`);
-        }
-        throw new Error(responseData.message || 'Signup failed');
-      }
-
-      return responseData;
     },
     onSuccess: () => {
-      reset();
-      onClose();
       toast.success('Account created successfully! You can now log in.');
-      // Redirect to login page
-      window.location.href = '/login';
+      onClose();
+      router.push('/login');
     },
     onError: (error: Error) => {
-      console.error('Mutation Error:', error);
-      if (error.message.includes('OTP')) {
-        toast.error(error.message, { duration: 5000 });
-      } else if (error.message.includes('email already exists')) {
-        toast.error('This email is already registered. Please try logging in instead.', {
-          duration: 5000,
-        });
-        // Close modal and redirect to login
-        onClose();
-        window.location.href = '/login';
-      } else {
-        toast.error(error.message || 'Failed to create account', { duration: 5000 });
-      }
+      toast.error(error.message || 'Failed to verify OTP');
     },
   });
 
   const onSubmit = (data: OTPSignupFormData) => {
-    signupMutation.mutate(data);
+    verifyOTPMutation.mutate(data);
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-md bg-[#002222] rounded-2xl border border-[#00ffff]/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-8">
-        <h2 className="text-[#00ffff] text-xl font-light tracking-[0.2em] uppercase text-center mb-6">
-          Complete Your Registration
-        </h2>
-
-        {/* Username Display Box */}
-        <div className="mb-6 p-4 bg-[#00ffff]/5 rounded-xl border border-[#00ffff]/10">
-          <div className="flex items-center justify-between">
-            <p className="text-[#00ffff]/80 text-sm tracking-wider">Your Username:</p>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(username);
-                toast.success('Username copied to clipboard!');
-              }}
-              className="text-[#00ffff]/60 hover:text-[#00ffff] text-sm transition-colors duration-200"
-            >
-              Copy
-            </button>
-          </div>
-          <p className="text-white text-xl font-medium mt-1 font-mono">{username}</p>
-          <p className="text-white/50 text-xs mt-2">Save this username for logging in</p>
-        </div>
-
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="p-6">
+        <h2 className="text-xl font-semibold mb-4">Complete Your Registration</h2>
+        <p className="text-gray-600 mb-4">
+          An OTP has been sent to {signupData.email}.<br />
+          Your username will be: <span className="font-semibold">{signupData.username}</span>
+        </p>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
@@ -206,12 +145,12 @@ export default function OTPSignupModal({ isOpen, onClose, email, username }: OTP
             </button>
             <button
               type="submit"
-              disabled={signupMutation.isPending}
+              disabled={verifyOTPMutation.isPending}
               className="flex-1 rounded-xl border border-[#00ffff]/20 bg-[#00ffff]/10 px-6 py-3 text-[#00ffff] tracking-[0.2em] uppercase
                 hover:bg-[#00ffff]/20 focus:outline-none focus:ring-2 focus:ring-[#00ffff]/50 transition-all duration-300
                 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {signupMutation.isPending ? (
+              {verifyOTPMutation.isPending ? (
                 <div className="flex items-center justify-center">
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-[#00ffff]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -226,6 +165,6 @@ export default function OTPSignupModal({ isOpen, onClose, email, username }: OTP
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
-} 
+}

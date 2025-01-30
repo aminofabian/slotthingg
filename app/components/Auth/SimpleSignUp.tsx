@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { signupUser } from '@/lib/auth';
+import { signupUser } from '@/app/lib/auth';
 import { useState } from 'react';
 import OTPSignupModal from './OTPSignupModal';
 
@@ -33,16 +33,16 @@ export default function SimpleSignUp() {
   const signupMutation = useMutation({
     mutationFn: async (data: SignupFormData) => {
       const result = await signupUser(data.email);
-      console.log('Step 1 Data:', {
-        email: data.email,
-        username: result.username,
-        whitelabel_admin_uuid: localStorage.getItem('whitelabel_admin_uuid')
-      });
+      console.log('Signup Response:', result);  // Debug log
       return result;
     },
     onSuccess: (data) => {
       reset();
-      setSignupData({ email: data.email, username: data.username });
+      console.log('Setting signup data:', data);  // Debug log
+      setSignupData({
+        email: data.email,
+        username: data.username
+      });
       toast.success('OTP has been sent to your email!', { duration: 5000 });
       setIsOTPModalOpen(true);
     },
@@ -97,9 +97,21 @@ export default function SimpleSignUp() {
 
               {signupData && (
                 <div className="p-4 bg-[#00ffff]/5 rounded-xl border border-[#00ffff]/10">
-                  <p className="text-[#00ffff]/80 text-sm tracking-wider">Your generated username:</p>
-                  <p className="text-white text-lg font-medium mt-1">{signupData.username}</p>
-                  <p className="text-white/50 text-xs mt-2">Please save this username for logging in later</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[#00ffff]/80 text-sm tracking-wider">Your generated username:</p>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(signupData.username);
+                        toast.success('Username copied to clipboard!');
+                      }}
+                      type="button"
+                      className="text-[#00ffff]/60 hover:text-[#00ffff] text-sm transition-colors duration-200"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <p className="text-white text-lg font-medium mt-1 font-mono select-all">{signupData.username}</p>
+                  <p className="text-white/50 text-xs mt-2">⚠️ Please save this username - you'll need it to log in</p>
                 </div>
               )}
 
@@ -143,8 +155,7 @@ export default function SimpleSignUp() {
         <OTPSignupModal
           isOpen={isOTPModalOpen}
           onClose={() => setIsOTPModalOpen(false)}
-          email={signupData.email}
-          username={signupData.username}
+          signupData={signupData}
         />
       )}
     </>

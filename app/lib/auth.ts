@@ -1,25 +1,31 @@
-export const generateUniqueUsername = () => {
-  // Generate random components
-  const randomNum = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
-  const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed similar looking characters
-  let randomStr = '';
-  for (let i = 0; i < 3; i++) {
-    randomStr += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  
-  // Combine components: player + 4 digits + 3 random chars
-  return `player${randomNum}${randomStr}`;
-};
+/**
+ * Authentication utilities
+ */
 
-export const signupUser = async (email: string) => {
+import { generateUsername } from './utils';
+
+interface SignupResponse {
+  email: string;
+  username: string;
+}
+
+interface VerifyOTPResponse {
+  success: boolean;
+  message: string;
+}
+
+/**
+ * Initiates the signup process by requesting an OTP
+ */
+export async function signupUser(email: string): Promise<SignupResponse> {
   const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
   
   if (!whitelabel_admin_uuid) {
     throw new Error('Missing whitelabel admin UUID');
   }
 
-  // Generate a unique username
-  const username = generateUniqueUsername();
+  const username = generateUsername();
+  console.log('Generated username:', username);
 
   try {
     const response = await fetch('https://serverhub.biz/users/otp-signup/', {
@@ -35,7 +41,6 @@ export const signupUser = async (email: string) => {
     });
 
     const data = await response.json();
-    console.log('OTP Signup Response:', data);
 
     if (!response.ok) {
       if (data.email?.[0]?.includes('already exists')) {
@@ -43,10 +48,66 @@ export const signupUser = async (email: string) => {
       }
       throw new Error(data.message || data.detail || 'Failed to send OTP');
     }
-    
-    return { ...data, username, email };
+
+    return {
+      email,
+      username
+    };
   } catch (error) {
     console.error('Error during signup:', error);
     throw error;
   }
-}; 
+}
+
+export async function verifyOTP(data: { 
+  email: string; 
+  username: string; 
+  otp: string;
+  password: string;
+  full_name: string;
+}): Promise<VerifyOTPResponse> {
+  const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
+  
+  if (!whitelabel_admin_uuid) {
+    throw new Error('Missing whitelabel admin UUID');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('username', data.username);
+    formData.append('password', data.password);
+    formData.append('whitelabel_admin_uuid', whitelabel_admin_uuid);
+    formData.append('otp', data.otp);
+    formData.append('full_name', data.full_name);
+    formData.append('email', data.email);
+
+    const response = await fetch('https://serverhub.biz/users/signup/', {
+      method: 'POST',
+      body: formData
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      // Handle specific error cases
+      if (responseData.email?.[0]) {
+        throw new Error(`Email error: ${responseData.email[0]}`);
+      }
+      if (responseData.non_field_errors?.[0]) {
+        throw new Error(responseData.non_field_errors[0]);
+      }
+      if (responseData.otp?.[0]) {
+        throw new Error(`OTP error: ${responseData.otp[0]}`);
+      }
+      throw new Error(responseData.message || 'Signup failed');
+    }
+
+    return {
+      success: true,
+      message: 'Account created successfully'
+    };
+  } catch (error) {
+    console.error('Error during verification:', error);
+    throw error;
+  }
+} 
