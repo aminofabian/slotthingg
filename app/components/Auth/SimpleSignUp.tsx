@@ -42,8 +42,8 @@ export default function SimpleSignUp() {
     },
     onSuccess: (data) => {
       reset();
-      toast.success('OTP has been sent to your email!');
       setSignupData({ email: data.email, username: data.username });
+      toast.success('OTP has been sent to your email!', { duration: 5000 });
       setIsOTPModalOpen(true);
     },
     onError: (error: Error) => {
@@ -94,6 +94,14 @@ export default function SimpleSignUp() {
                   </p>
                 )}
               </div>
+
+              {signupData && (
+                <div className="p-4 bg-[#00ffff]/5 rounded-xl border border-[#00ffff]/10">
+                  <p className="text-[#00ffff]/80 text-sm tracking-wider">Your generated username:</p>
+                  <p className="text-white text-lg font-medium mt-1">{signupData.username}</p>
+                  <p className="text-white/50 text-xs mt-2">Please save this username for logging in later</p>
+                </div>
+              )}
 
               <button
                 type="submit"

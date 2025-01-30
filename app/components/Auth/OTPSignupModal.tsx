@@ -115,6 +115,24 @@ export default function OTPSignupModal({ isOpen, onClose, email, username }: OTP
           Complete Your Registration
         </h2>
 
+        {/* Username Display Box */}
+        <div className="mb-6 p-4 bg-[#00ffff]/5 rounded-xl border border-[#00ffff]/10">
+          <div className="flex items-center justify-between">
+            <p className="text-[#00ffff]/80 text-sm tracking-wider">Your Username:</p>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(username);
+                toast.success('Username copied to clipboard!');
+              }}
+              className="text-[#00ffff]/60 hover:text-[#00ffff] text-sm transition-colors duration-200"
+            >
+              Copy
+            </button>
+          </div>
+          <p className="text-white text-xl font-medium mt-1 font-mono">{username}</p>
+          <p className="text-white/50 text-xs mt-2">Save this username for logging in</p>
+        </div>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">

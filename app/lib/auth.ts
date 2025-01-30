@@ -5,8 +5,9 @@ export const signupUser = async (email: string) => {
     throw new Error('Missing whitelabel admin UUID');
   }
 
-  // Generate username in the format "player" + number
-  const username = `player${Math.floor(Math.random() * 1000)}`;
+  // Generate username in the format "player" + number padded to 3 digits
+  const randomNum = Math.floor(Math.random() * 999) + 1;
+  const username = `player${String(randomNum).padStart(3, '0')}`;
 
   try {
     const response = await fetch('https://serverhub.biz/users/otp-signup/', {
