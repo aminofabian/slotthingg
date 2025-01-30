@@ -28,27 +28,73 @@ const Login = () => {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormData) => {
-      const formData = new FormData();
-      formData.append('username', data.username);
-      formData.append('password', data.password);
-      formData.append('whitelabel_admin_uuid', localStorage.getItem('whitelabel_admin_uuid') || '');
-
-      const response = await fetch('https://serverhub.biz/users/login', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Invalid credentials');
+      const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
+      
+      if (!whitelabel_admin_uuid) {
+        throw new Error('Missing whitelabel admin UUID');
       }
 
-      return response.json();
+      try {
+        const formData = new FormData();
+        formData.append('username', data.username);
+        formData.append('password', data.password);
+        formData.append('whitelabel_admin_uuid', whitelabel_admin_uuid);
+
+        // Log the request data
+        console.log('Login Request:', {
+          username: data.username,
+          whitelabel_admin_uuid,
+          url: 'https://serverhub.biz/users/login/'
+        });
+
+        const response = await fetch('https://serverhub.biz/users/login/', {
+          method: 'POST',
+          body: formData
+        });
+
+        // Log response details
+        console.log('Response Status:', response.status);
+        console.log('Response Headers:', Object.fromEntries(response.headers.entries()));
+
+        const responseText = await response.text();
+        console.log('Raw Response:', responseText);
+
+        if (!response.ok) {
+          try {
+            const errorData = JSON.parse(responseText);
+            if (errorData.non_field_errors?.[0]) {
+              throw new Error(errorData.non_field_errors[0]);
+            }
+            throw new Error(errorData.message || errorData.detail || 'Login failed');
+          } catch (parseError) {
+            console.error('Error parsing response:', parseError);
+            throw new Error('Login failed - invalid server response');
+          }
+        }
+
+        try {
+          const responseData = JSON.parse(responseText);
+          return responseData;
+        } catch (parseError) {
+          console.error('Error parsing success response:', parseError);
+          throw new Error('Login failed - invalid success response');
+        }
+      } catch (error: any) {
+        console.error('Login error details:', {
+          message: error.message,
+          stack: error.stack,
+          error
+        });
+        throw error;
+      }
     },
     onSuccess: (data) => {
+      console.log('Login success data:', data);
       reset();
       toast.success('Login successful!');
-      // Redirect to dashboard
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
       window.location.href = '/dashboard';
     },
     onError: (error: Error) => {
