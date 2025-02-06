@@ -21,7 +21,7 @@ const otpSignupSchema = z.object({
   mobile_number: z.string()
     .min(1, 'Mobile number is required')
     .regex(/^\+[1-9]\d{1,14}$/, 'Must be a valid international phone number starting with +'),
-  State: z.string().min(1, 'State is required'),
+  state: z.string().min(1, 'State is required'),
   full_name: z.string().min(1, 'Full name is required'),
   email: z.string().email('Invalid email format')
 });
@@ -35,7 +35,7 @@ interface VerifyOTPData {
   otp: string;
   dob: string;
   mobile_number: string;
-  State: string;
+  state: string;
   full_name: string;
   email: string;
 }
@@ -70,7 +70,7 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
         full_name: data.full_name,
         dob: data.dob,
         mobile_number: data.mobile_number,
-        State: data.State,
+        state: data.state,
         whitelabel_admin_uuid: data.whitelabel_admin_uuid
       });
     },
@@ -93,7 +93,7 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
       full_name: data.full_name,
       dob: data.dob,
       mobile_number: data.mobile_number,
-      State: data.State,
+      state: data.state,
       whitelabel_admin_uuid: data.whitelabel_admin_uuid
     });
     verifyOTPMutation.mutate(data);
@@ -304,10 +304,10 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
               <div className="relative">
                 <FiMapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00ffff]/40" />
                 <input
-                  {...register('State')}
+                  {...register('state')}
                   type="text"
                   className={`block w-full rounded-xl border pl-11 ${
-                    errors.State ? 'border-red-500' : 'border-[#00ffff]/20'
+                    errors.state ? 'border-red-500' : 'border-[#00ffff]/20'
                   } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
                   focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
                   backdrop-blur-sm transition-all duration-300
@@ -315,8 +315,8 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
                   placeholder="Enter your state"
                 />
               </div>
-              {errors.State && (
-                <p className="mt-1 text-sm text-red-400">{errors.State.message}</p>
+              {errors.state && (
+                <p className="mt-1 text-sm text-red-400">{errors.state.message}</p>
               )}
             </div>
           </div>

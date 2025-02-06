@@ -67,7 +67,7 @@ export async function verifyOTP(data: {
   full_name: string;
   dob: string;
   mobile_number: string;
-  State: string;
+  state: string;
   whitelabel_admin_uuid: string;
 }): Promise<VerifyOTPResponse> {
   try {
@@ -82,7 +82,7 @@ export async function verifyOTP(data: {
     formData.append('email', data.email);
     formData.append('dob', data.dob);
     formData.append('mobile_number', data.mobile_number);
-    formData.append('State', data.State);
+    formData.append('state', data.state);
 
     // Log FormData entries
     console.log('FormData entries being sent:');
