@@ -85,6 +85,17 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
   });
 
   const onSubmit = (data: OTPSignupFormData) => {
+    console.log('Form data being submitted:', {
+      username: data.username,
+      email: data.email,
+      password: data.password,
+      otp: data.otp,
+      full_name: data.full_name,
+      dob: data.dob,
+      mobile_number: data.mobile_number,
+      State: data.State,
+      whitelabel_admin_uuid: data.whitelabel_admin_uuid
+    });
     verifyOTPMutation.mutate(data);
   };
 

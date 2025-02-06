@@ -71,6 +71,8 @@ export async function verifyOTP(data: {
   whitelabel_admin_uuid: string;
 }): Promise<VerifyOTPResponse> {
   try {
+    console.log('Raw data received by verifyOTP:', data);
+
     const formData = new FormData();
     formData.append('username', data.username);
     formData.append('password', data.password);
@@ -82,14 +84,11 @@ export async function verifyOTP(data: {
     formData.append('mobile_number', data.mobile_number);
     formData.append('State', data.State);
 
-    console.log('Sending signup data:', {
-      username: data.username,
-      email: data.email,
-      dob: data.dob,
-      mobile_number: data.mobile_number,
-      State: data.State,
-      full_name: data.full_name
-    });
+    // Log FormData entries
+    console.log('FormData entries being sent:');
+    for (const [key, value] of formData.entries()) {
+      console.log(`${key}: ${value}`);
+    }
 
     const response = await fetch('https://serverhub.biz/users/signup/', {
       method: 'POST',
@@ -97,7 +96,12 @@ export async function verifyOTP(data: {
     });
 
     const responseData = await response.json();
-    console.log('Server response:', responseData);
+    console.log('Full server response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries()),
+      data: responseData
+    });
 
     if (!response.ok) {
       // Handle specific error cases
@@ -111,7 +115,11 @@ export async function verifyOTP(data: {
         throw new Error(`OTP error: ${responseData.otp[0]}`);
       }
       // Log the full error response
-      console.error('Server error response:', responseData);
+      console.error('Server error details:', {
+        status: response.status,
+        statusText: response.statusText,
+        data: responseData
+      });
       throw new Error(responseData.message || responseData.detail || 'Signup failed');
     }
 
@@ -120,7 +128,7 @@ export async function verifyOTP(data: {
       message: 'Account created successfully'
     };
   } catch (error) {
-    console.error('Error during verification:', error);
+    console.error('Full error details:', error);
     throw error;
   }
 } 
