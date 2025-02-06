@@ -17,7 +17,7 @@ const otpSignupSchema = z.object({
   otp: z.string().min(6, 'OTP must be at least 6 characters'),
   dob: z.string()
     .min(1, 'Date of birth is required')
-    .regex(/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/, 'Date must be in DD/MM/YYYY format'),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
   mobile_number: z.string()
     .min(1, 'Mobile number is required')
     .regex(/^\+[1-9]\d{1,14}$/, 'Must be a valid international phone number starting with +'),
@@ -258,14 +258,14 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
                   <FiCalendar className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00ffff]/40" />
                   <input
                     {...register('dob')}
-                    type="text"
+                    type="date"
                     className={`block w-full rounded-xl border pl-11 ${
                       errors.dob ? 'border-red-500' : 'border-[#00ffff]/20'
                     } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
                     focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
                     backdrop-blur-sm transition-all duration-300
                     hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-                    placeholder="DD/MM/YYYY"
+                    placeholder="YYYY-MM-DD"
                   />
                 </div>
                 {errors.dob && (
