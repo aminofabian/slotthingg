@@ -5,7 +5,15 @@ import { BiMoney, BiHistory, BiUser } from 'react-icons/bi';
 import { FaGamepad, FaStore, FaDice } from 'react-icons/fa';
 import { GiDiamonds, GiStarsStack, GiTakeMyMoney } from 'react-icons/gi';
 import { IoTicketOutline } from 'react-icons/io5';
+import { useEffect, useState } from 'react';
 import Logo from '../Logo/Logo';
+
+type UserInfo = {
+  username: string;
+  role: string;
+  userId: string;
+  lastLogin: string;
+};
 
 type StatMenuItem = {
   label: string;
@@ -30,6 +38,30 @@ type MenuGroup = {
 
 const Navbar = () => {
   const pathname = usePathname();
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+
+  useEffect(() => {
+    // Get user info from localStorage
+    const username = localStorage.getItem('username');
+    const role = localStorage.getItem('user_role');
+    const userId = localStorage.getItem('user_id');
+    const lastLogin = localStorage.getItem('last_login');
+
+    if (username && role && userId && lastLogin) {
+      setUserInfo({
+        username,
+        role,
+        userId,
+        lastLogin: new Date(lastLogin).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      });
+    }
+  }, []);
 
   const menuGroups: MenuGroup[] = [
     {
@@ -82,6 +114,30 @@ const Navbar = () => {
               <Logo />
             </div>
           </div>
+
+          {/* User Info Section */}
+          {userInfo && (
+            <div className="px-6 py-4 border-y border-[#00ffff]/10 backdrop-blur-sm bg-white/[0.02]">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[#00ffff] font-medium">{userInfo.username}</span>
+                  <span className="text-xs text-white/60 px-2 py-1 rounded-full bg-[#00ffff]/10 capitalize">
+                    {userInfo.role}
+                  </span>
+                </div>
+                <div className="text-xs text-white/40 space-y-1">
+                  <div className="flex justify-between">
+                    <span>ID:</span>
+                    <span className="text-white/60">{userInfo.userId}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Last Login:</span>
+                    <span className="text-white/60">{userInfo.lastLogin}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Menu Content */}
           <div className="p-6 flex-1">
