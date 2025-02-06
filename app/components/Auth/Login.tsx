@@ -35,50 +35,38 @@ const Login = () => {
       }
 
       try {
-        const formData = new FormData();
-        formData.append('username', data.username);
-        formData.append('password', data.password);
-        formData.append('whitelabel_admin_uuid', whitelabel_admin_uuid);
+        const requestData = {
+          username: data.username,
+          password: data.password,
+          whitelabel_admin_uuid
+        };
 
         // Log the request data
         console.log('Login Request:', {
-          username: data.username,
-          whitelabel_admin_uuid,
+          ...requestData,
           url: 'https://serverhub.biz/users/login/'
         });
 
         const response = await fetch('https://serverhub.biz/users/login/', {
           method: 'POST',
-          body: formData
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData)
         });
 
         // Log response details
         console.log('Response Status:', response.status);
         console.log('Response Headers:', Object.fromEntries(response.headers.entries()));
 
-        const responseText = await response.text();
-        console.log('Raw Response:', responseText);
+        const responseData = await response.json();
+        console.log('Response Data:', responseData);
 
         if (!response.ok) {
-          try {
-            const errorData = JSON.parse(responseText);
-            if (errorData.non_field_errors?.[0]) {
-              throw new Error(errorData.non_field_errors[0]);
-            }
-            throw new Error(errorData.message || errorData.detail || 'Login failed');
-          } catch (parseError) {
-            console.error('Error parsing response:', parseError);
-            throw new Error('Login failed - invalid server response');
-          }
+          throw new Error(responseData.message || responseData.detail || 'Login failed');
         }
 
-        try {
-          const responseData = JSON.parse(responseText);
-          return responseData;
-        } catch (parseError) {
-          console.error('Error parsing success response:', parseError);
-          throw new Error('Login failed - invalid success response');
-        }
+        return responseData;
       } catch (error: any) {
         console.error('Login error details:', {
           message: error.message,
@@ -92,8 +80,9 @@ const Login = () => {
       console.log('Login success data:', data);
       reset();
       toast.success('Login successful!');
-      if (data.token) {
-        localStorage.setItem('token', data.token);
+      if (data.auth_token) {
+        localStorage.setItem('token', data.auth_token.access);
+        localStorage.setItem('refresh_token', data.auth_token.refresh);
       }
       window.location.href = '/dashboard';
     },
