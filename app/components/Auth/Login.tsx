@@ -44,13 +44,14 @@ const Login = () => {
         // Log the request data
         console.log('Login Request:', {
           ...requestData,
-          url: 'https://serverhub.biz/users/login/'
+          url: 'https://serverhub.biz/users/login'
         });
 
-        const response = await fetch('https://serverhub.biz/users/login/', {
+        const response = await fetch('https://serverhub.biz/users/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json'
           },
           body: JSON.stringify(requestData)
         });
@@ -59,8 +60,18 @@ const Login = () => {
         console.log('Response Status:', response.status);
         console.log('Response Headers:', Object.fromEntries(response.headers.entries()));
 
-        const responseData = await response.json();
-        console.log('Response Data:', responseData);
+        // First get the raw text response
+        const responseText = await response.text();
+        console.log('Raw Response:', responseText);
+
+        // Try to parse it as JSON
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Failed to parse response as JSON:', responseText.substring(0, 200));
+          throw new Error('Server returned an invalid response. Please try again later.');
+        }
 
         if (!response.ok) {
           throw new Error(responseData.message || responseData.detail || 'Login failed');
