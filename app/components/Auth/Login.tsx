@@ -79,11 +79,20 @@ const Login = () => {
     onSuccess: (data) => {
       console.log('Login success data:', data);
       reset();
-      toast.success('Login successful!');
+      
+      // Store auth tokens
       if (data.auth_token) {
         localStorage.setItem('token', data.auth_token.access);
         localStorage.setItem('refresh_token', data.auth_token.refresh);
       }
+      
+      // Store user data
+      localStorage.setItem('user_id', data.pk.toString());
+      localStorage.setItem('user_role', data.role);
+      localStorage.setItem('username', data.username);
+      localStorage.setItem('last_login', data.last_login);
+      
+      toast.success('Login successful!');
       window.location.href = '/dashboard';
     },
     onError: (error: Error) => {
