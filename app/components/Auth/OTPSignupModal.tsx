@@ -11,7 +11,7 @@ import Modal from '@/app/components/Modal';
 import { FiUser, FiMail, FiLock, FiCalendar, FiPhone, FiMapPin, FiKey } from 'react-icons/fi';
 import { useState } from 'react';
 import { format } from 'date-fns';
-import Select from 'react-select';
+import Select, { SingleValue } from 'react-select';
 import { states } from '@/app/lib/states';
 
 const otpSignupSchema = z.object({
@@ -52,6 +52,11 @@ interface OTPSignupModalProps {
     username: string;
   };
 }
+
+type StateOption = {
+  label: string;
+  value: string;
+};
 
 export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignupModalProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -332,9 +337,11 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
                   name="state"
                   control={control}
                   render={({ field }) => (
-                    <Select
+                    <Select<StateOption>
                       {...field}
                       options={states}
+                      onChange={(newValue: SingleValue<StateOption>) => field.onChange(newValue?.value)}
+                      value={field.value ? states.find((option) => option.value === field.value) || null : null}
                       classNames={{
                         control: (state) => 
                           `!rounded-xl !border ${
