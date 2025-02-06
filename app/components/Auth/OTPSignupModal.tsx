@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { verifyOTP } from '@/app/lib/auth';
 import Modal from '@/app/components/Modal';
+import { FiUser, FiMail, FiLock, FiCalendar, FiPhone, FiMapPin, FiKey } from 'react-icons/fi';
 
 const otpSignupSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -47,7 +48,11 @@ interface OTPSignupModalProps {
 export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignupModalProps) {
   const router = useRouter();
   const { register, handleSubmit, formState: { errors } } = useForm<OTPSignupFormData>({
-    resolver: zodResolver(otpSignupSchema)
+    resolver: zodResolver(otpSignupSchema),
+    defaultValues: {
+      email: signupData.email,
+      username: signupData.username,
+    }
   });
 
   const verifyOTPMutation = useMutation({
@@ -80,172 +85,224 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Complete Your Registration</h2>
-        <p className="text-gray-600 mb-4">
-          An OTP has been sent to {signupData.email}.<br />
-          Your username will be: <span className="font-semibold">{signupData.username}</span>
-        </p>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
-              Username
-            </label>
-            <input
-              {...register('username')}
-              type="text"
-              className={`block w-full rounded-xl border ${
-                errors.username ? 'border-red-500' : 'border-[#00ffff]/20'
-              } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-              focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-              backdrop-blur-sm transition-all duration-300
-              hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-              placeholder="Enter username"
-            />
-            {errors.username && (
-              <p className="mt-1 text-sm text-red-400">{errors.username.message}</p>
-            )}
+      <div className="p-8 max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-white mb-3">Complete Your Registration</h2>
+          <div className="bg-[#00ffff]/5 rounded-lg p-4 border border-[#00ffff]/10">
+            <p className="text-[#00ffff]/80">
+              An OTP has been sent to <span className="font-medium text-white">{signupData.email}</span>
+            </p>
+            <p className="text-sm text-[#00ffff]/60 mt-1">
+              Your username: <span className="font-mono bg-[#00ffff]/10 px-2 py-1 rounded text-white">{signupData.username}</span>
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Account Information Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-[#00ffff]/80 border-b border-[#00ffff]/10 pb-2 mb-4">
+              Account Information
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative">
+                <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
+                  Username
+                </label>
+                <div className="relative">
+                  <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00ffff]/40" />
+                  <input
+                    {...register('username')}
+                    type="text"
+                    disabled
+                    className={`block w-full rounded-xl border pl-11 ${
+                      errors.username ? 'border-red-500' : 'border-[#00ffff]/20'
+                    } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                    focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                    backdrop-blur-sm transition-all duration-300
+                    hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                  />
+                </div>
+                {errors.username && (
+                  <p className="mt-1 text-sm text-red-400">{errors.username.message}</p>
+                )}
+              </div>
+
+              <div className="relative">
+                <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
+                  Email
+                </label>
+                <div className="relative">
+                  <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00ffff]/40" />
+                  <input
+                    {...register('email')}
+                    type="email"
+                    disabled
+                    className={`block w-full rounded-xl border pl-11 ${
+                      errors.email ? 'border-red-500' : 'border-[#00ffff]/20'
+                    } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                    focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                    backdrop-blur-sm transition-all duration-300
+                    hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative">
+                <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
+                  OTP Code
+                </label>
+                <div className="relative">
+                  <FiKey className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00ffff]/40" />
+                  <input
+                    {...register('otp')}
+                    type="text"
+                    maxLength={6}
+                    className={`block w-full rounded-xl border pl-11 ${
+                      errors.otp ? 'border-red-500' : 'border-[#00ffff]/20'
+                    } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                    focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                    backdrop-blur-sm transition-all duration-300
+                    hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                    placeholder="Enter 6-digit OTP"
+                  />
+                </div>
+                {errors.otp && (
+                  <p className="mt-1 text-sm text-red-400">{errors.otp.message}</p>
+                )}
+              </div>
+
+              <div className="relative">
+                <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
+                  Password
+                </label>
+                <div className="relative">
+                  <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00ffff]/40" />
+                  <input
+                    {...register('password')}
+                    type="password"
+                    className={`block w-full rounded-xl border pl-11 ${
+                      errors.password ? 'border-red-500' : 'border-[#00ffff]/20'
+                    } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                    focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                    backdrop-blur-sm transition-all duration-300
+                    hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                    placeholder="Create a password"
+                  />
+                </div>
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>
+                )}
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
-              Email
-            </label>
-            <input
-              {...register('email')}
-              type="email"
-              className={`block w-full rounded-xl border ${
-                errors.email ? 'border-red-500' : 'border-[#00ffff]/20'
-              } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-              focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-              backdrop-blur-sm transition-all duration-300
-              hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-              placeholder="Enter email"
-            />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>
-            )}
-          </div>
+          {/* Personal Information Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-[#00ffff]/80 border-b border-[#00ffff]/10 pb-2 mb-4">
+              Personal Information
+            </h3>
+            
+            <div className="relative">
+              <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
+                Full Name
+              </label>
+              <div className="relative">
+                <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00ffff]/40" />
+                <input
+                  {...register('full_name')}
+                  type="text"
+                  className={`block w-full rounded-xl border pl-11 ${
+                    errors.full_name ? 'border-red-500' : 'border-[#00ffff]/20'
+                  } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                  focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                  backdrop-blur-sm transition-all duration-300
+                  hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                  placeholder="Enter your full name"
+                />
+              </div>
+              {errors.full_name && (
+                <p className="mt-1 text-sm text-red-400">{errors.full_name.message}</p>
+              )}
+            </div>
 
-          <div>
-            <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
-              OTP Code
-            </label>
-            <input
-              {...register('otp')}
-              type="text"
-              maxLength={6}
-              className={`block w-full rounded-xl border ${
-                errors.otp ? 'border-red-500' : 'border-[#00ffff]/20'
-              } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-              focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-              backdrop-blur-sm transition-all duration-300
-              hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-              placeholder="Enter 6-digit OTP"
-            />
-            {errors.otp && (
-              <p className="mt-1 text-sm text-red-400">{errors.otp.message}</p>
-            )}
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative">
+                <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
+                  Date of Birth
+                </label>
+                <div className="relative">
+                  <FiCalendar className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00ffff]/40" />
+                  <input
+                    {...register('dob')}
+                    type="text"
+                    className={`block w-full rounded-xl border pl-11 ${
+                      errors.dob ? 'border-red-500' : 'border-[#00ffff]/20'
+                    } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                    focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                    backdrop-blur-sm transition-all duration-300
+                    hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                    placeholder="MM/DD/YYYY"
+                  />
+                </div>
+                {errors.dob && (
+                  <p className="mt-1 text-sm text-red-400">{errors.dob.message}</p>
+                )}
+              </div>
 
-          <div>
-            <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
-              Full Name
-            </label>
-            <input
-              {...register('full_name')}
-              type="text"
-              className={`block w-full rounded-xl border ${
-                errors.full_name ? 'border-red-500' : 'border-[#00ffff]/20'
-              } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-              focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-              backdrop-blur-sm transition-all duration-300
-              hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-              placeholder="Enter your full name"
-            />
-            {errors.full_name && (
-              <p className="mt-1 text-sm text-red-400">{errors.full_name.message}</p>
-            )}
-          </div>
+              <div className="relative">
+                <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
+                  Mobile Number
+                </label>
+                <div className="relative">
+                  <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00ffff]/40" />
+                  <input
+                    {...register('mobile_number')}
+                    type="tel"
+                    className={`block w-full rounded-xl border pl-11 ${
+                      errors.mobile_number ? 'border-red-500' : 'border-[#00ffff]/20'
+                    } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                    focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                    backdrop-blur-sm transition-all duration-300
+                    hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                    placeholder="+1234567890"
+                  />
+                </div>
+                {errors.mobile_number && (
+                  <p className="mt-1 text-sm text-red-400">{errors.mobile_number.message}</p>
+                )}
+              </div>
+            </div>
 
-          <div>
-            <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
-              Password
-            </label>
-            <input
-              {...register('password')}
-              type="password"
-              className={`block w-full rounded-xl border ${
-                errors.password ? 'border-red-500' : 'border-[#00ffff]/20'
-              } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-              focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-              backdrop-blur-sm transition-all duration-300
-              hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-              placeholder="Create a password"
-            />
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
-              Date of Birth
-            </label>
-            <input
-              {...register('dob')}
-              type="text"
-              className={`block w-full rounded-xl border ${
-                errors.dob ? 'border-red-500' : 'border-[#00ffff]/20'
-              } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-              focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-              backdrop-blur-sm transition-all duration-300
-              hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-              placeholder="MM/DD/YYYY"
-            />
-            {errors.dob && (
-              <p className="mt-1 text-sm text-red-400">{errors.dob.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
-              Mobile Number
-            </label>
-            <input
-              {...register('mobile_number')}
-              type="tel"
-              className={`block w-full rounded-xl border ${
-                errors.mobile_number ? 'border-red-500' : 'border-[#00ffff]/20'
-              } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-              focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-              backdrop-blur-sm transition-all duration-300
-              hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-              placeholder="+1234567890"
-            />
-            {errors.mobile_number && (
-              <p className="mt-1 text-sm text-red-400">{errors.mobile_number.message}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
-              Carlifornia
-            </label>
-            <input
-              {...register('State')}
-              type="text"
-              className={`block w-full rounded-xl border ${
-                errors.State ? 'border-red-500' : 'border-[#00ffff]/20'
-              } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-              focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-              backdrop-blur-sm transition-all duration-300
-              hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-              placeholder="Carlifornia"
-            />
-            {errors.State && (
-              <p className="mt-1 text-sm text-red-400">{errors.State.message}</p>
-            )}
+            <div className="relative">
+              <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
+                State
+              </label>
+              <div className="relative">
+                <FiMapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00ffff]/40" />
+                <input
+                  {...register('State')}
+                  type="text"
+                  className={`block w-full rounded-xl border pl-11 ${
+                    errors.State ? 'border-red-500' : 'border-[#00ffff]/20'
+                  } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                  focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                  backdrop-blur-sm transition-all duration-300
+                  hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                  placeholder="Enter your state"
+                />
+              </div>
+              {errors.State && (
+                <p className="mt-1 text-sm text-red-400">{errors.State.message}</p>
+              )}
+            </div>
           </div>
 
           <input
@@ -254,11 +311,11 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
             value="c0945d59-d796-402d-8bb5-d1b2029b9eea"
           />
 
-          <div className="flex gap-4 mt-6">
+          <div className="flex gap-4 mt-8 pt-4 border-t border-[#00ffff]/10">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-xl border border-[#00ffff]/20 bg-transparent px-6 py-3 text-[#00ffff] tracking-[0.2em] uppercase
+              className="flex-1 rounded-xl border border-[#00ffff]/20 bg-transparent px-6 py-4 text-[#00ffff] tracking-[0.2em] uppercase
                 hover:bg-[#00ffff]/10 focus:outline-none focus:ring-2 focus:ring-[#00ffff]/50 transition-all duration-300"
             >
               Cancel
@@ -266,9 +323,9 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
             <button
               type="submit"
               disabled={verifyOTPMutation.isPending}
-              className="flex-1 rounded-xl border border-[#00ffff]/20 bg-[#00ffff]/10 px-6 py-3 text-[#00ffff] tracking-[0.2em] uppercase
+              className="flex-1 rounded-xl border border-[#00ffff]/20 bg-[#00ffff]/10 px-6 py-4 text-[#00ffff] tracking-[0.2em] uppercase
                 hover:bg-[#00ffff]/20 focus:outline-none focus:ring-2 focus:ring-[#00ffff]/50 transition-all duration-300
-                disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               {verifyOTPMutation.isPending ? (
                 <div className="flex items-center justify-center">
