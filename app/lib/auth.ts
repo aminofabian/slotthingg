@@ -17,15 +17,12 @@ interface VerifyOTPResponse {
 /**
  * Initiates the signup process by requesting an OTP
  */
-export async function signupUser(email: string): Promise<SignupResponse> {
+export async function signupUser(email: string, username: string): Promise<SignupResponse> {
   const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
   
   if (!whitelabel_admin_uuid) {
     throw new Error('Missing whitelabel admin UUID');
   }
-
-  const username = generateUsername();
-  console.log('Generated username:', username);
 
   try {
     const response = await fetch('https://serverhub.biz/users/otp-signup/', {
@@ -45,6 +42,9 @@ export async function signupUser(email: string): Promise<SignupResponse> {
     if (!response.ok) {
       if (data.email?.[0]?.includes('already exists')) {
         throw new Error('This email is already registered. Please try logging in instead.');
+      }
+      if (data.username?.[0]?.includes('already exists')) {
+        throw new Error('This username is already taken. Please choose another one.');
       }
       throw new Error(data.message || data.detail || 'Failed to send OTP');
     }

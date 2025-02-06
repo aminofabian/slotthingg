@@ -13,7 +13,11 @@ import Logo from '../Logo/Logo';
 const signupSchema = z.object({
   email: z.string()
     .min(1, 'Email is required')
-    .email('Please enter a valid email address')
+    .email('Please enter a valid email address'),
+  username: z.string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(20, 'Username must be less than 20 characters')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens')
 });
 
 type SignupFormData = z.infer<typeof signupSchema>;
@@ -33,7 +37,7 @@ export default function SimpleSignUp() {
 
   const signupMutation = useMutation({
     mutationFn: async (data: SignupFormData) => {
-      const result = await signupUser(data.email);
+      const result = await signupUser(data.email, data.username);
       console.log('Signup Response:', result);  // Debug log
       return result;
     },
@@ -97,25 +101,28 @@ export default function SimpleSignUp() {
                 )}
               </div>
 
-              {signupData && (
-                <div className="p-4 bg-[#00ffff]/5 rounded-xl border border-[#00ffff]/10">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[#00ffff]/80 text-sm tracking-wider">Your generated username:</p>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(signupData.username);
-                        toast.success('Username copied to clipboard!');
-                      }}
-                      type="button"
-                      className="text-[#00ffff]/60 hover:text-[#00ffff] text-sm transition-colors duration-200"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                  <p className="text-white text-lg font-medium mt-1 font-mono select-all">{signupData.username}</p>
-                  <p className="text-white/50 text-xs mt-2">⚠️ Please save this username - you'll need it to log in</p>
-                </div>
-              )}
+              <div>
+                <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
+                  Username
+                </label>
+                <input
+                  {...register('username')}
+                  type="text"
+                  className={`block w-full rounded-xl border ${
+                    errors.username ? 'border-red-500' : 'border-[#00ffff]/20'
+                  } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                  focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                  backdrop-blur-sm transition-all duration-300
+                  hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                  placeholder="Choose your username"
+                />
+                {errors.username && (
+                  <p className="mt-2 text-sm text-red-400 flex items-center">
+                    <span className="mr-1">⚠️</span>
+                    {errors.username.message}
+                  </p>
+                )}
+              </div>
 
               <button
                 type="submit"
