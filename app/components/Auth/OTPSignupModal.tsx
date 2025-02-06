@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation';
 import { verifyOTP } from '@/app/lib/auth';
 import Modal from '@/app/components/Modal';
 import { FiUser, FiMail, FiLock, FiCalendar, FiPhone, FiMapPin, FiKey } from 'react-icons/fi';
+import { useState } from 'react';
+import { format } from 'date-fns';
 
 const otpSignupSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -50,8 +52,9 @@ interface OTPSignupModalProps {
 }
 
 export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignupModalProps) {
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const router = useRouter();
-  const { register, handleSubmit, formState: { errors } } = useForm<OTPSignupFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<OTPSignupFormData>({
     resolver: zodResolver(otpSignupSchema),
     defaultValues: {
       email: signupData.email,
@@ -59,6 +62,8 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
       whitelabel_admin_uuid: 'c0945d59-d796-402d-8bb5-d1b2029b9eea'
     }
   });
+
+  const selectedDate = watch('dob');
 
   const verifyOTPMutation = useMutation({
     mutationFn: async (data: OTPSignupFormData) => {
@@ -254,23 +259,41 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
                 <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
                   Date of Birth
                 </label>
-                <div className="relative">
-                  <FiCalendar className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00ffff]/40" />
+                <div className="relative group">
+                  <FiCalendar className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00ffff]/40 group-hover:text-[#00ffff]/60 transition-colors duration-200" />
                   <input
                     {...register('dob')}
                     type="date"
+                    max={format(new Date(), 'yyyy-MM-dd')}
                     className={`block w-full rounded-xl border pl-11 ${
                       errors.dob ? 'border-red-500' : 'border-[#00ffff]/20'
                     } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
                     focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
                     backdrop-blur-sm transition-all duration-300
-                    hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                    hover:border-[#00ffff]/30 hover:bg-white/[0.04]
+                    [&::-webkit-calendar-picker-indicator]:bg-[#00ffff]/20
+                    [&::-webkit-calendar-picker-indicator]:hover:bg-[#00ffff]/40
+                    [&::-webkit-calendar-picker-indicator]:rounded
+                    [&::-webkit-calendar-picker-indicator]:p-1
+                    [&::-webkit-calendar-picker-indicator]:cursor-pointer
+                    [&::-webkit-calendar-picker-indicator]:transition-all
+                    [&::-webkit-calendar-picker-indicator]:duration-300
+                    [&::-webkit-calendar-picker-indicator]:filter
+                    [&::-webkit-calendar-picker-indicator]:invert`}
                     placeholder="YYYY-MM-DD"
                   />
+                  {selectedDate && (
+                    <div className="absolute right-12 top-1/2 -translate-y-1/2 text-[#00ffff]/60 text-sm">
+                      {format(new Date(selectedDate), 'MMM dd, yyyy')}
+                    </div>
+                  )}
                 </div>
                 {errors.dob && (
                   <p className="mt-1 text-sm text-red-400">{errors.dob.message}</p>
                 )}
+                <p className="mt-1 text-xs text-[#00ffff]/40">
+                  Please enter your date of birth in YYYY-MM-DD format
+                </p>
               </div>
 
               <div className="relative">
