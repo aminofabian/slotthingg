@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
@@ -11,6 +11,8 @@ import Modal from '@/app/components/Modal';
 import { FiUser, FiMail, FiLock, FiCalendar, FiPhone, FiMapPin, FiKey } from 'react-icons/fi';
 import { useState } from 'react';
 import { format } from 'date-fns';
+import Select from 'react-select';
+import { states } from '@/app/lib/states';
 
 const otpSignupSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -54,7 +56,7 @@ interface OTPSignupModalProps {
 export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignupModalProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const router = useRouter();
-  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<OTPSignupFormData>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch, control } = useForm<OTPSignupFormData>({
     resolver: zodResolver(otpSignupSchema),
     defaultValues: {
       email: signupData.email,
@@ -325,17 +327,35 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
                 State
               </label>
               <div className="relative">
-                <FiMapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00ffff]/40" />
-                <input
-                  {...register('state')}
-                  type="text"
-                  className={`block w-full rounded-xl border pl-11 ${
-                    errors.state ? 'border-red-500' : 'border-[#00ffff]/20'
-                  } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-                  focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                  backdrop-blur-sm transition-all duration-300
-                  hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-                  placeholder="Enter your state"
+                <FiMapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00ffff]/40 z-10" />
+                <Controller
+                  name="state"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      options={states}
+                      classNames={{
+                        control: (state) => 
+                          `!rounded-xl !border ${
+                            errors.state ? '!border-red-500' : '!border-[#00ffff]/20'
+                          } !bg-white/[0.02] !pl-8 !min-h-[54px]
+                          ${state.isFocused ? '!border-[#00ffff] !ring-1 !ring-[#00ffff]/50' : ''}
+                          hover:!border-[#00ffff]/30 hover:!bg-white/[0.04]`,
+                        input: () => '!text-white',
+                        singleValue: () => '!text-white',
+                        menu: () => '!bg-[#1a1a1a] !border !border-[#00ffff]/20',
+                        option: (state) => 
+                          `!text-white ${
+                            state.isFocused ? '!bg-[#00ffff]/10' : ''
+                          } ${
+                            state.isSelected ? '!bg-[#00ffff]/20' : ''
+                          }`,
+                        placeholder: () => '!text-white/30',
+                      }}
+                      placeholder="Select your state"
+                    />
+                  )}
                 />
               </div>
               {errors.state && (
