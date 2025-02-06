@@ -67,7 +67,7 @@ export async function verifyOTP(data: {
   full_name: string;
   dob: string;
   mobile_number: string;
-  Carlifornia: string;
+  State: string;
   whitelabel_admin_uuid: string;
 }): Promise<VerifyOTPResponse> {
   try {
@@ -80,7 +80,7 @@ export async function verifyOTP(data: {
     formData.append('email', data.email);
     formData.append('dob', data.dob);
     formData.append('mobile_number', data.mobile_number);
-    formData.append('Carlifornia', data.Carlifornia);
+    formData.append('State', data.State);
 
     const response = await fetch('https://serverhub.biz/users/signup/', {
       method: 'POST',

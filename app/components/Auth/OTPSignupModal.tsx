@@ -15,9 +15,13 @@ const otpSignupSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   whitelabel_admin_uuid: z.string().uuid('Invalid UUID format'),
   otp: z.string().min(6, 'OTP must be at least 6 characters'),
-  dob: z.string().min(1, 'Date of birth is required'),
-  mobile_number: z.string().min(1, 'Mobile number is required'),
-  State: z.string().min(1, 'Carlifornia is required'),
+  dob: z.string()
+    .min(1, 'Date of birth is required')
+    .regex(/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/, 'Date must be in DD/MM/YYYY format'),
+  mobile_number: z.string()
+    .min(1, 'Mobile number is required')
+    .regex(/^\+[1-9]\d{1,14}$/, 'Must be a valid international phone number starting with +'),
+  State: z.string().min(1, 'State is required'),
   full_name: z.string().min(1, 'Full name is required'),
   email: z.string().email('Invalid email format')
 });
@@ -52,6 +56,7 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
     defaultValues: {
       email: signupData.email,
       username: signupData.username,
+      State: 'State',
     }
   });
 
@@ -65,7 +70,7 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
         full_name: data.full_name,
         dob: data.dob,
         mobile_number: data.mobile_number,
-        Carlifornia: data.State,
+        State: data.State,
         whitelabel_admin_uuid: data.whitelabel_admin_uuid
       });
     },
@@ -249,7 +254,7 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
                     focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
                     backdrop-blur-sm transition-all duration-300
                     hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-                    placeholder="MM/DD/YYYY"
+                    placeholder="DD/MM/YYYY"
                   />
                 </div>
                 {errors.dob && (
@@ -272,7 +277,7 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
                     focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
                     backdrop-blur-sm transition-all duration-300
                     hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-                    placeholder="+1234567890"
+                    placeholder="+254722522163"
                   />
                 </div>
                 {errors.mobile_number && (
@@ -290,13 +295,14 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
                 <input
                   {...register('State')}
                   type="text"
+                  defaultValue="State"
+                  disabled
                   className={`block w-full rounded-xl border pl-11 ${
                     errors.State ? 'border-red-500' : 'border-[#00ffff]/20'
                   } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
                   focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
                   backdrop-blur-sm transition-all duration-300
                   hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-                  placeholder="Enter your state"
                 />
               </div>
               {errors.State && (
