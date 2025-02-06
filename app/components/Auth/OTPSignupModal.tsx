@@ -318,7 +318,7 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
                     focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
                     backdrop-blur-sm transition-all duration-300
                     hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-                    placeholder="+254722522163"
+                    placeholder="+12124567890	"
                   />
                 </div>
                 {errors.mobile_number && (
