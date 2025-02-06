@@ -65,21 +65,22 @@ export async function verifyOTP(data: {
   otp: string;
   password: string;
   full_name: string;
+  dob: string;
+  mobile_number: string;
+  Carlifornia: string;
+  whitelabel_admin_uuid: string;
 }): Promise<VerifyOTPResponse> {
-  const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
-  
-  if (!whitelabel_admin_uuid) {
-    throw new Error('Missing whitelabel admin UUID');
-  }
-
   try {
     const formData = new FormData();
     formData.append('username', data.username);
     formData.append('password', data.password);
-    formData.append('whitelabel_admin_uuid', whitelabel_admin_uuid);
+    formData.append('whitelabel_admin_uuid', data.whitelabel_admin_uuid);
     formData.append('otp', data.otp);
     formData.append('full_name', data.full_name);
     formData.append('email', data.email);
+    formData.append('dob', data.dob);
+    formData.append('mobile_number', data.mobile_number);
+    formData.append('Carlifornia', data.Carlifornia);
 
     const response = await fetch('https://serverhub.biz/users/signup/', {
       method: 'POST',

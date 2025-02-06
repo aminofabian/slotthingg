@@ -10,19 +10,29 @@ import { verifyOTP } from '@/app/lib/auth';
 import Modal from '@/app/components/Modal';
 
 const otpSignupSchema = z.object({
-  otp: z.string().min(6, 'OTP must be at least 6 characters'),
+  username: z.string().min(1, 'Username is required'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
+  whitelabel_admin_uuid: z.string().uuid('Invalid UUID format'),
+  otp: z.string().min(6, 'OTP must be at least 6 characters'),
+  dob: z.string().min(1, 'Date of birth is required'),
+  mobile_number: z.string().min(1, 'Mobile number is required'),
+  State: z.string().min(1, 'Carlifornia is required'),
   full_name: z.string().min(1, 'Full name is required'),
+  email: z.string().email('Invalid email format')
 });
 
 type OTPSignupFormData = z.infer<typeof otpSignupSchema>;
 
 interface VerifyOTPData {
-  email: string;
   username: string;
-  otp: string;
   password: string;
+  whitelabel_admin_uuid: string;
+  otp: string;
+  dob: string;
+  mobile_number: string;
+  Carlifornia: string;
   full_name: string;
+  email: string;
 }
 
 interface OTPSignupModalProps {
@@ -43,11 +53,15 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
   const verifyOTPMutation = useMutation({
     mutationFn: async (data: OTPSignupFormData) => {
       return verifyOTP({
-        email: signupData.email,
-        username: signupData.username,
+        email: data.email,
+        username: data.username,
         otp: data.otp,
         password: data.password,
-        full_name: data.full_name
+        full_name: data.full_name,
+        dob: data.dob,
+        mobile_number: data.mobile_number,
+        Carlifornia: data.State,
+        whitelabel_admin_uuid: data.whitelabel_admin_uuid
       });
     },
     onSuccess: () => {
@@ -73,6 +87,46 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
           Your username will be: <span className="font-semibold">{signupData.username}</span>
         </p>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div>
+            <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
+              Username
+            </label>
+            <input
+              {...register('username')}
+              type="text"
+              className={`block w-full rounded-xl border ${
+                errors.username ? 'border-red-500' : 'border-[#00ffff]/20'
+              } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+              focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+              backdrop-blur-sm transition-all duration-300
+              hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+              placeholder="Enter username"
+            />
+            {errors.username && (
+              <p className="mt-1 text-sm text-red-400">{errors.username.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
+              Email
+            </label>
+            <input
+              {...register('email')}
+              type="email"
+              className={`block w-full rounded-xl border ${
+                errors.email ? 'border-red-500' : 'border-[#00ffff]/20'
+              } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+              focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+              backdrop-blur-sm transition-all duration-300
+              hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+              placeholder="Enter email"
+            />
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>
+            )}
+          </div>
+
           <div>
             <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
               OTP Code
@@ -133,6 +187,72 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
               <p className="mt-1 text-sm text-red-400">{errors.password.message}</p>
             )}
           </div>
+
+          <div>
+            <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
+              Date of Birth
+            </label>
+            <input
+              {...register('dob')}
+              type="text"
+              className={`block w-full rounded-xl border ${
+                errors.dob ? 'border-red-500' : 'border-[#00ffff]/20'
+              } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+              focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+              backdrop-blur-sm transition-all duration-300
+              hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+              placeholder="MM/DD/YYYY"
+            />
+            {errors.dob && (
+              <p className="mt-1 text-sm text-red-400">{errors.dob.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
+              Mobile Number
+            </label>
+            <input
+              {...register('mobile_number')}
+              type="tel"
+              className={`block w-full rounded-xl border ${
+                errors.mobile_number ? 'border-red-500' : 'border-[#00ffff]/20'
+              } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+              focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+              backdrop-blur-sm transition-all duration-300
+              hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+              placeholder="+1234567890"
+            />
+            {errors.mobile_number && (
+              <p className="mt-1 text-sm text-red-400">{errors.mobile_number.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
+              Carlifornia
+            </label>
+            <input
+              {...register('State')}
+              type="text"
+              className={`block w-full rounded-xl border ${
+                errors.State ? 'border-red-500' : 'border-[#00ffff]/20'
+              } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+              focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+              backdrop-blur-sm transition-all duration-300
+              hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+              placeholder="Carlifornia"
+            />
+            {errors.State && (
+              <p className="mt-1 text-sm text-red-400">{errors.State.message}</p>
+            )}
+          </div>
+
+          <input
+            type="hidden"
+            {...register('whitelabel_admin_uuid')}
+            value="c0945d59-d796-402d-8bb5-d1b2029b9eea"
+          />
 
           <div className="flex gap-4 mt-6">
             <button

@@ -34,7 +34,7 @@ const SlotReel = ({ symbols, delay = 0 }: SlotReelProps) => {
   }, [spinning, symbols.length, delay]);
 
   return (
-    <div className="relative w-24 h-24 bg-gradient-to-b from-[#00ffff]/20 to-[#009999]/20 
+    <div className="relative w-24 h-24 bg-gradient-to-b from-[#00ffff]/10 to-[#009999]/20 
       rounded-lg border border-[#00ffff]/30 overflow-hidden">
       <motion.div
         animate={{
