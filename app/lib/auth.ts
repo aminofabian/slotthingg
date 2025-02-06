@@ -67,7 +67,7 @@ export async function verifyOTP(data: {
   full_name: string;
   dob: string;
   mobile_number: string;
-  State: string;
+  Carlifornia: string;
   whitelabel_admin_uuid: string;
 }): Promise<VerifyOTPResponse> {
   try {
@@ -80,7 +80,16 @@ export async function verifyOTP(data: {
     formData.append('email', data.email);
     formData.append('dob', data.dob);
     formData.append('mobile_number', data.mobile_number);
-    formData.append('State', data.State);
+    formData.append('Carlifornia', data.Carlifornia);
+
+    console.log('Sending signup data:', {
+      username: data.username,
+      email: data.email,
+      dob: data.dob,
+      mobile_number: data.mobile_number,
+      Carlifornia: data.Carlifornia,
+      full_name: data.full_name
+    });
 
     const response = await fetch('https://serverhub.biz/users/signup/', {
       method: 'POST',
@@ -88,6 +97,7 @@ export async function verifyOTP(data: {
     });
 
     const responseData = await response.json();
+    console.log('Server response:', responseData);
 
     if (!response.ok) {
       // Handle specific error cases
@@ -100,7 +110,9 @@ export async function verifyOTP(data: {
       if (responseData.otp?.[0]) {
         throw new Error(`OTP error: ${responseData.otp[0]}`);
       }
-      throw new Error(responseData.message || 'Signup failed');
+      // Log the full error response
+      console.error('Server error response:', responseData);
+      throw new Error(responseData.message || responseData.detail || 'Signup failed');
     }
 
     return {
