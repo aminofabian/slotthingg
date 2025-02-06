@@ -31,7 +31,7 @@ interface VerifyOTPData {
   otp: string;
   dob: string;
   mobile_number: string;
-  Carlifornia: string;
+  State: string;
   full_name: string;
   email: string;
 }
