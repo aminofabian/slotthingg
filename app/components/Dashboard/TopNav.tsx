@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { IoNotificationsOutline } from 'react-icons/io5';
 import { BiUser } from 'react-icons/bi';
@@ -16,6 +16,15 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
   const [notifications] = useState(3);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isCashoutModalOpen, setIsCashoutModalOpen] = useState(false);
+  const [username, setUsername] = useState<string>('');
+
+  useEffect(() => {
+    // Get username from localStorage
+    const storedUsername = localStorage.getItem('username');
+    if (storedUsername) {
+      setUsername(storedUsername);
+    }
+  }, []);
 
   return (
     <>
@@ -105,7 +114,7 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
                 <span className="hidden md:block text-[#00ffff] font-medium text-lg
                   group-hover:text-white transition-colors"
                 >
-                  John Doe
+                  {username || 'Guest'}
                 </span>
               </Link>
             </div>
