@@ -33,15 +33,23 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
       const response = await fetch('https://serverhub.biz/users/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
       });
 
       if (!response.ok) {
-        throw new Error('Logout failed');
+        const data = await response.json();
+        throw new Error(data.message || data.detail || 'Logout failed');
       }
 
       // Clear local storage
@@ -54,7 +62,13 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
-      toast.error('Failed to logout. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Failed to logout. Please try again.');
+      
+      // If token is invalid or expired, clear storage and redirect anyway
+      if (error instanceof Error && error.message.includes('No authentication token')) {
+        localStorage.clear();
+        router.push('/login');
+      }
     } finally {
       setIsLoggingOut(false);
     }
