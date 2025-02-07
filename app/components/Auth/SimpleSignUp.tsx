@@ -51,8 +51,10 @@ export default function SimpleSignUp() {
       toast.success('OTP has been sent to your email!', { duration: 5000 });
       setIsOTPModalOpen(true);
     },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to send OTP');
+    onError: (error: any) => {
+      // Get the actual error message from the server response if available
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to send OTP';
+      toast.error(errorMessage);
     },
   });
 
@@ -62,7 +64,7 @@ export default function SimpleSignUp() {
       {
         loading: 'Sending OTP...',
         success: 'OTP sent successfully!',
-        error: (err: Error) => err.message || 'Failed to send OTP'
+        error: (err: any) => err.response?.data?.message || err.message || 'Failed to send OTP'
       }
     );
   };
