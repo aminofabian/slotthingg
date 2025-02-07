@@ -1,12 +1,13 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { BiMoney, BiHistory, BiUser } from 'react-icons/bi';
+import { usePathname, useRouter } from 'next/navigation';
+import { BiMoney, BiHistory, BiUser, BiLogOut } from 'react-icons/bi';
 import { FaGamepad, FaStore, FaDice } from 'react-icons/fa';
 import { GiDiamonds, GiStarsStack, GiTakeMyMoney } from 'react-icons/gi';
 import { IoTicketOutline } from 'react-icons/io5';
 import { useEffect, useState } from 'react';
 import Logo from '../Logo/Logo';
+import toast from 'react-hot-toast';
 
 type UserInfo = {
   username: string;
@@ -38,7 +39,9 @@ type MenuGroup = {
 
 const Navbar = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     // Get user info from localStorage
@@ -98,6 +101,50 @@ const Navbar = () => {
     { label: 'Marketplace', icon: FaStore, href: '/dashboard/marketplace' },
     { label: 'Profile', icon: BiUser, href: '/dashboard/profile' },
   ];
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch('https://serverhub.biz/users/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || data.detail || 'Logout failed');
+      }
+
+      // Clear local storage
+      localStorage.clear();
+      
+      // Show success message
+      toast.success('Logged out successfully');
+      
+      // Redirect to login page
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to logout. Please try again.');
+      
+      // If token is invalid or expired, clear storage and redirect anyway
+      if (error instanceof Error && error.message.includes('No authentication token')) {
+        localStorage.clear();
+        router.push('/login');
+      }
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <>
@@ -202,6 +249,33 @@ const Navbar = () => {
               </div>
             ))}
           </div>
+
+          {/* Logout Button */}
+          <div className="p-6 border-t border-[#00ffff]/10">
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="w-full flex items-center gap-4 p-3 rounded-xl 
+                bg-gradient-to-r from-red-500/10 to-transparent
+                hover:from-red-500/20 hover:to-red-500/5
+                text-red-500 transition-all duration-300 group"
+            >
+              <div className="p-2.5 rounded-lg bg-red-500/10 
+                group-hover:bg-red-500/20 transition-all duration-300">
+                {isLoggingOut ? (
+                  <svg className="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <BiLogOut className="text-2xl sm:text-3xl" />
+                )}
+              </div>
+              <span className="text-lg">
+                {isLoggingOut ? 'Logging out...' : 'Logout'}
+              </span>
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -219,6 +293,24 @@ const Navbar = () => {
                 <span className="text-xs whitespace-nowrap">{item.label}</span>
               </Link>
             ))}
+            {/* Mobile Logout Button */}
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 text-red-500 hover:text-red-400 transition-colors"
+            >
+              {isLoggingOut ? (
+                <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <BiLogOut className="w-5 h-5" />
+              )}
+              <span className="text-xs whitespace-nowrap">
+                {isLoggingOut ? 'Logging out...' : 'Logout'}
+              </span>
+            </button>
           </div>
         </div>
       </div>
