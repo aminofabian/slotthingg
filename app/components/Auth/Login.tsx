@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { fetchDashboardData } from '@/lib/auth';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -28,10 +29,17 @@ const Login = () => {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormData) => {
-      const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
+      let whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
       
+      // If UUID is missing, fetch it from the dashboard endpoint
       if (!whitelabel_admin_uuid) {
-        throw new Error('Missing whitelabel admin UUID');
+        try {
+          const dashboardData = await fetchDashboardData();
+          whitelabel_admin_uuid = dashboardData.data.whitelabel_admin_uuid;
+        } catch (error) {
+          console.error('Failed to fetch whitelabel UUID:', error);
+          throw new Error('Failed to initialize application. Please try again.');
+        }
       }
 
       try {
