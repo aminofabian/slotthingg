@@ -17,6 +17,7 @@ import {
   FaChartLine,
   FaQuestionCircle
 } from 'react-icons/fa';
+import { BiUser, BiHistory, BiLogOut } from 'react-icons/bi';
 
 // Group menu items by category
 const menuGroups = [
@@ -100,136 +101,79 @@ const menuGroups = [
   }
 ];
 
-export default function MoreDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+interface MoreDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onLogout: () => Promise<void>;
+  isLoggingOut: boolean;
+}
+
+const drawerItems = [
+  { href: '/dashboard/profile', label: 'Profile', icon: BiUser },
+  { href: '/dashboard/history', label: 'History', icon: BiHistory },
+  { href: '/dashboard/games', label: 'Games', icon: FaGamepad },
+];
+
+export default function MoreDrawer({ isOpen, onClose, onLogout, isLoggingOut }: MoreDrawerProps) {
+  if (!isOpen) return null;
+
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-black/90 backdrop-blur-sm" />
-        </Transition.Child>
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
+        onClick={onClose}
+      />
 
-        <div className="fixed inset-0 overflow-hidden">
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="pointer-events-none fixed inset-y-0 right-0 left-0 flex max-w-full justify-center">
-              <Transition.Child
-                as={Fragment}
-                enter="transform transition ease-out duration-300"
-                enterFrom="translate-y-full"
-                enterTo="translate-y-0"
-                leave="transform transition ease-in duration-200"
-                leaveFrom="translate-y-0"
-                leaveTo="translate-y-full"
+      {/* Drawer */}
+      <div className="fixed bottom-0 left-0 right-0 bg-[#002222] rounded-t-3xl z-50
+        transform transition-transform duration-300 ease-out"
+      >
+        <div className="p-4">
+          {/* Handle */}
+          <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+
+          {/* Menu Items */}
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            {drawerItems.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={onClose}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl
+                  bg-white/5 hover:bg-white/10 transition-colors duration-200"
               >
-                <Dialog.Panel className="pointer-events-auto w-full max-w-md">
-                  <div className="flex h-full flex-col overflow-hidden bg-gradient-to-b from-gray-900/95 via-black to-black rounded-t-3xl">
-                    {/* Drawer Handle */}
-                    <div className="flex justify-center pt-4 pb-2">
-                      <div className="h-1 w-12 rounded-full bg-white/20" />
-                    </div>
-
-                    {/* Header with Close Button */}
-                    <div className="px-4 py-3 flex justify-between items-center border-b border-white/5">
-                      <h2 className="text-lg font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 
-                        text-transparent bg-clip-text">
-                        Quick Menu
-                      </h2>
-                      <button
-                        onClick={onClose}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-full
-                          bg-white/5 hover:bg-white/10 border border-white/10
-                          hover:border-white/20 transition-all duration-200 group"
-                      >
-                        <span className="text-sm font-medium text-white/70 
-                          group-hover:text-white">
-                          Close
-                        </span>
-                        <FaTimes className="w-4 h-4 text-white/60 
-                          group-hover:text-white group-hover:rotate-90
-                          transition-all duration-300" />
-                      </button>
-                    </div>
-
-                    {/* Content */}
-                    <div className="overflow-y-auto px-4 py-2">
-                      {menuGroups.map((group, index) => (
-                        <div 
-                          key={group.title}
-                          className={`py-4 ${
-                            index !== 0 ? 'border-t border-white/5' : ''
-                          }`}
-                        >
-                          <h3 className="text-sm font-medium text-white/60 px-2 mb-3">
-                            {group.title}
-                          </h3>
-                          <div className="grid grid-cols-2 gap-3">
-                            {group.items.map((item) => (
-                              <Link
-                                key={item.href}
-                                href={item.href}
-                                onClick={onClose}
-                                className={`flex flex-col items-center p-3 rounded-xl
-                                  bg-gradient-to-br ${item.color}
-                                  hover:scale-105 transition-all duration-200
-                                  border border-white/5 hover:border-white/20
-                                  group relative overflow-hidden`}
-                              >
-                                <div className={`p-3 rounded-xl bg-black/30 
-                                  backdrop-blur-sm mb-2 relative z-10
-                                  group-hover:bg-black/40 transition-colors`}
-                                >
-                                  <item.icon className={`w-5 h-5 ${item.iconColor}
-                                    group-hover:scale-110 transition-transform duration-200`} 
-                                  />
-                                </div>
-                                <span className="text-sm font-medium text-white/90 
-                                  group-hover:text-white relative z-10">
-                                  {item.label}
-                                </span>
-                                {/* Hover gradient overlay */}
-                                <div className="absolute inset-0 opacity-0 
-                                  group-hover:opacity-100 transition-opacity duration-200
-                                  bg-gradient-to-t from-white/5 to-transparent" 
-                                />
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Logout Button */}
-                    <div className="mt-auto p-4 border-t border-white/5">
-                      <button
-                        onClick={onClose}
-                        className="w-full flex items-center justify-center gap-3 p-4 
-                          rounded-xl bg-gradient-to-r from-red-500/10 to-red-600/5
-                          hover:from-red-500/20 hover:to-red-600/10
-                          border border-red-500/20 hover:border-red-500/30
-                          transition-all duration-200 group"
-                      >
-                        <FaSignOutAlt className="w-5 h-5 text-red-500 
-                          group-hover:scale-110 transition-transform duration-200" 
-                        />
-                        <span className="font-medium text-red-500">
-                          Logout
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
+                <item.icon className="text-2xl text-[#00ffff]" />
+                <span className="text-sm text-white/80">{item.label}</span>
+              </Link>
+            ))}
           </div>
+
+          {/* Logout Button */}
+          <button
+            onClick={onLogout}
+            disabled={isLoggingOut}
+            className="w-full flex items-center justify-center gap-3 p-4 rounded-xl
+              bg-red-500/10 hover:bg-red-500/20 text-red-500
+              transition-all duration-300 disabled:opacity-50"
+          >
+            {isLoggingOut ? (
+              <>
+                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Logging out...</span>
+              </>
+            ) : (
+              <>
+                <BiLogOut className="text-xl" />
+                <span>Logout</span>
+              </>
+            )}
+          </button>
         </div>
-      </Dialog>
-    </Transition.Root>
+      </div>
+    </>
   );
 } 

@@ -1,16 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { FaHome, FaHistory, FaGamepad, FaEllipsisH } from 'react-icons/fa';
 import { IoWallet } from 'react-icons/io5';
 import { useState } from 'react';
 import MoreDrawer from './MoreDrawer';
 import { SiMarketo } from 'react-icons/si';
-import { BiMoney, BiMoneyWithdraw, BiPurchaseTag } from 'react-icons/bi';
+import { BiMoney, BiMoneyWithdraw, BiPurchaseTag, BiLogOut } from 'react-icons/bi';
 import { FaMoneyBill } from 'react-icons/fa6';
 import { BsCash } from 'react-icons/bs';
 import { GiCash } from 'react-icons/gi';
+import toast from 'react-hot-toast';
 
 const navItems = [
   { href: '/dashboard/purchase', label: 'Purchase', icon: BiMoney },
@@ -22,13 +23,64 @@ const navItems = [
 
 export default function MobileNavbar() {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch('https://serverhub.biz/users/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || data.detail || 'Logout failed');
+      }
+
+      // Clear local storage
+      localStorage.clear();
+      
+      // Show success message
+      toast.success('Logged out successfully');
+      
+      // Close the more drawer if it's open
+      setIsMoreOpen(false);
+      
+      // Redirect to login page
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to logout. Please try again.');
+      
+      // If token is invalid or expired, clear storage and redirect anyway
+      if (error instanceof Error && error.message.includes('No authentication token')) {
+        localStorage.clear();
+        router.push('/login');
+      }
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <>
       <MoreDrawer 
         isOpen={isMoreOpen}
         onClose={() => setIsMoreOpen(false)}
+        onLogout={handleLogout}
+        isLoggingOut={isLoggingOut}
       />
       
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40">
