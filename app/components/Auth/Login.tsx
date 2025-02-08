@@ -407,7 +407,7 @@ const Login = () => {
               <div className="mt-8">
                 <button
                   type="submit"
-                  disabled={forgotPasswordMutation.isLoading}
+                  disabled={forgotPasswordMutation.isPending}
                   className="w-full flex justify-center py-3 px-4 
                     bg-[#00ffff] text-[#002222] font-bold rounded-xl
                     hover:bg-[#00ffff]/90 
@@ -415,7 +415,7 @@ const Login = () => {
                     transition-all duration-200
                     shadow-[0_0_20px_rgba(0,255,255,0.2)]"
                 >
-                  {forgotPasswordMutation.isLoading ? (
+                  {forgotPasswordMutation.isPending ? (
                     <div className="flex items-center">
                       <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#002222]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
