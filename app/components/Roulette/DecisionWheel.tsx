@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { AnimatePresence, motion } from 'framer-motion';
