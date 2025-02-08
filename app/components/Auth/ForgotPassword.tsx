@@ -7,13 +7,84 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    setIsSubmitted(true);
+    setError('');
+    
+    try {
+      // Always fetch fresh UUID from dashboard-games
+      const dashboardResponse = await fetch('https://serverhub.biz/users/dashboard-games/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          project_domain: "https://serverhub.biz"
+        })
+      });
+
+      const dashboardData = await dashboardResponse.json();
+      const whitelabel_admin_uuid = dashboardData.data.whitelabel_admin_uuid;
+
+      if (!whitelabel_admin_uuid) {
+        throw new Error('Failed to get required authentication data');
+      }
+
+      // Log the forgot password request payload
+      const forgotPasswordPayload = {
+        email,
+        whitelabel_admin_uuid
+      };
+      console.log('Forgot password request payload:', forgotPasswordPayload);
+
+      const response = await fetch('https://serverhub.biz/users/forgot-password/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(forgotPasswordPayload)
+      });
+
+      // Log response status and headers
+      console.log('Forgot password response status:', response.status);
+      console.log('Forgot password response headers:', Object.fromEntries(response.headers.entries()));
+
+      // Get the raw text response
+      const responseText = await response.text();
+      console.log('Raw forgot password response:', responseText);
+
+      // Try to parse it as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse forgot password response as JSON:', responseText);
+        throw new Error('Server returned an invalid response. Please try again later.');
+      }
+
+      if (!response.ok) {
+        // Check if the error is in a known format
+        if (data.message) {
+          throw new Error(data.message);
+        } else if (data.detail) {
+          throw new Error(data.detail);
+        } else if (typeof data === 'string') {
+          throw new Error(data);
+        } else {
+          throw new Error('Failed to process request. Please try again later.');
+        }
+      }
+
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
