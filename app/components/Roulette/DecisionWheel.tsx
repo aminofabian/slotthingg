@@ -63,7 +63,16 @@ export default function DecisionWheel() {
   };
 
   const getRandomOption = () => {
-    return Math.floor(Math.random() * currentOptions.length);
+    // Use crypto for true randomness
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    return Math.floor((array[0] / (0xffffffff + 1)) * currentOptions.length);
+  };
+
+  const getRandomFloat = (min: number, max: number) => {
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    return min + (array[0] / (0xffffffff + 1)) * (max - min);
   };
 
   const spin = () => {
@@ -72,21 +81,31 @@ export default function DecisionWheel() {
     setSpinning(true);
     setResult(null);
     
-    // Determine winning option first
+    // Determine winning option using crypto-secure random
     const winningIndex = getRandomOption();
     
+    // Add more randomness to the spin animation
+    const minSpins = 5;
+    const maxSpins = 12; // Increased max spins for more variation
+    const baseSpins = getRandomFloat(minSpins, maxSpins);
+    
+    // Add random "wobble" to make the spin less predictable
+    const wobble = getRandomFloat(-30, 30);
+    
     // Calculate required rotation to land on the winning option
-    const baseSpins = 5 + Math.floor(Math.random() * 5); // 5-10 full spins
-    const targetDegree = 360 - (winningIndex * sliceDegrees); // Degrees needed to land on option
-    const spinDegrees = (baseSpins * 360) + targetDegree + Math.random() * (sliceDegrees * 0.8);
+    const targetDegree = 360 - (winningIndex * sliceDegrees);
+    const spinDegrees = (baseSpins * 360) + targetDegree + getRandomFloat(0, sliceDegrees * 0.8) + wobble;
+    
+    // Randomize the spin duration between 3.5 and 4.5 seconds
+    const spinDuration = getRandomFloat(3500, 4500);
     
     setRotation(prevRotation => prevRotation + spinDegrees);
 
-    // Show result after spin
+    // Show result after random spin duration
     spinTimeoutRef.current = setTimeout(() => {
       setResult(currentOptions[winningIndex].text);
       setSpinning(false);
-    }, 4000);
+    }, spinDuration);
   };
 
   useEffect(() => {
@@ -228,7 +247,7 @@ export default function DecisionWheel() {
                 className="w-full h-full transform relative z-10"
                 style={{
                   transform: `rotate(${rotation}deg)`,
-                  transition: spinning ? 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none'
+                  transition: spinning ? `transform ${spinning ? getRandomFloat(3.5, 4.5) : 0}s cubic-bezier(${getRandomFloat(0.1, 0.2)}, ${getRandomFloat(0.6, 0.7)}, ${getRandomFloat(0.1, 0.2)}, ${getRandomFloat(0.95, 1)})` : 'none'
                 }}
               >
                 {/* Outer ring */}
