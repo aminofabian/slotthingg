@@ -94,7 +94,7 @@ const HeroSection = () => {
                 Ready to Play?
               </h1>
               <Link 
-                href="/dashboard"
+                href="/login"
                 className="inline-block bg-[#00ffff] text-[#004d4d] px-20 py-6 rounded-2xl
                          text-3xl md:text-4xl uppercase tracking-widest hover:scale-105 
                          transition-all duration-300 font-black shadow-lg shadow-[#00ffff]/20
