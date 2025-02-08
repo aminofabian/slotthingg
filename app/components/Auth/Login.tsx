@@ -127,14 +127,34 @@ const Login = () => {
 
   const forgotPasswordMutation = useMutation({
     mutationFn: async (data: ForgotPasswordFormData) => {
-      const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
-      
       try {
-        const response = await fetch('https://serverhub.biz/users/forgot-password', {
+        // First fetch the dashboard data to get a fresh whitelabel_admin_uuid
+        const dashboardResponse = await fetch('https://serverhub.biz/users/dashboard-games/', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            project_domain: "https://serverhub.biz"
+          })
+        });
+
+        if (!dashboardResponse.ok) {
+          throw new Error('Failed to initialize application');
+        }
+
+        const dashboardData = await dashboardResponse.json();
+        const whitelabel_admin_uuid = dashboardData.data.whitelabel_admin_uuid;
+
+        if (!whitelabel_admin_uuid) {
+          throw new Error('Failed to get required authentication data');
+        }
+
+        // Now make the forgot password request with the fresh UUID
+        const response = await fetch('https://serverhub.biz/users/forgot-password/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             email: data.email,
@@ -142,14 +162,39 @@ const Login = () => {
           })
         });
 
-        const responseData = await response.json();
+        // First get the raw text response
+        const responseText = await response.text();
+        console.log('Raw forgot password response:', responseText);
+
+        // Try to parse it as JSON
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Failed to parse forgot password response as JSON:', responseText);
+          throw new Error('Server returned an invalid response. Please try again later.');
+        }
+
         if (!response.ok) {
-          throw new Error(responseData.message || responseData.detail || 'Failed to process request');
+          // Check if the error is in a known format
+          if (responseData.message) {
+            throw new Error(responseData.message);
+          } else if (responseData.detail) {
+            throw new Error(responseData.detail);
+          } else if (typeof responseData === 'string') {
+            throw new Error(responseData);
+          } else {
+            throw new Error('Failed to process request. Please try again later.');
+          }
         }
 
         return responseData;
       } catch (error: any) {
-        console.error('Forgot password error:', error);
+        console.error('Forgot password error details:', {
+          message: error.message,
+          stack: error.stack,
+          error
+        });
         throw error;
       }
     },
@@ -158,7 +203,8 @@ const Login = () => {
       setShowForgotPassword(false);
     },
     onError: (error: any) => {
-      toast.error(error.message || 'Failed to process request');
+      const errorMessage = error?.message || 'Failed to process request. Please try again later.';
+      toast.error(errorMessage);
     }
   });
 
@@ -306,14 +352,14 @@ const Login = () => {
 
       {/* Forgot Password Modal */}
       {showForgotPassword && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Reset Password</h2>
+        <div className="fixed inset-0 bg-[#002222]/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-[#003333] rounded-2xl p-8 max-w-md w-full border border-[#00ffff]/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-2xl font-bold text-white">Reset Password</h2>
               <button
                 type="button"
                 onClick={() => setShowForgotPassword(false)}
-                className="text-gray-400 hover:text-gray-500"
+                className="text-[#00ffff]/60 hover:text-[#00ffff] transition-colors duration-200"
               >
                 <span className="sr-only">Close</span>
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -322,27 +368,48 @@ const Login = () => {
               </button>
             </div>
             <form onSubmit={handleForgotPasswordSubmit((data) => forgotPasswordMutation.mutate(data))}>
-              <div className="mb-4">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <div className="mb-6">
+                <label htmlFor="email" className="block text-sm font-medium text-[#00ffff]/80 mb-2">
                   Email address
                 </label>
-                <input
-                  {...registerForgotPassword('email')}
-                  type="email"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  placeholder="Enter your email"
-                />
-                {forgotPasswordErrors.email && (
-                  <p className="mt-2 text-sm text-red-600">{forgotPasswordErrors.email.message}</p>
-                )}
+                <div className="relative">
+                  <input
+                    {...registerForgotPassword('email')}
+                    type="email"
+                    className="w-full bg-[#002222] text-white px-4 py-3 rounded-xl
+                      border border-[#00ffff]/20 outline-none
+                      placeholder:text-[#00ffff]/30
+                      focus:border-[#00ffff]/40 focus:ring-0
+                      transition-colors duration-200"
+                    placeholder="Enter your email"
+                  />
+                  {forgotPasswordErrors.email && (
+                    <p className="mt-2 text-sm text-red-400">{forgotPasswordErrors.email.message}</p>
+                  )}
+                </div>
               </div>
-              <div className="mt-4">
+              <div className="mt-8">
                 <button
                   type="submit"
                   disabled={forgotPasswordMutation.isLoading}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="w-full flex justify-center py-3 px-4 
+                    bg-[#00ffff] text-[#002222] font-bold rounded-xl
+                    hover:bg-[#00ffff]/90 
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    transition-all duration-200
+                    shadow-[0_0_20px_rgba(0,255,255,0.2)]"
                 >
-                  {forgotPasswordMutation.isLoading ? 'Sending...' : 'Send Reset Instructions'}
+                  {forgotPasswordMutation.isLoading ? (
+                    <div className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#002222]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Sending...
+                    </div>
+                  ) : (
+                    'Send Reset Instructions'
+                  )}
                 </button>
               </div>
             </form>
