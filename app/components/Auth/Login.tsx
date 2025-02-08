@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Logo from '../Logo/Logo';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
@@ -26,7 +26,15 @@ const Login = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectPath = searchParams.get('redirect') || '/dashboard';
+  const [redirectPath, setRedirectPath] = useState('/dashboard');
+
+  useEffect(() => {
+    // Get redirect path from URL params
+    const redirect = searchParams.get('redirect');
+    if (redirect) {
+      setRedirectPath(redirect);
+    }
+  }, [searchParams]);
 
   const {
     register,
