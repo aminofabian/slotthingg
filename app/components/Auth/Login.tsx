@@ -14,9 +14,15 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
 type LoginFormData = z.infer<typeof loginSchema>;
+type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 const Login = () => {
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -119,6 +125,52 @@ const Login = () => {
     },
   });
 
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (data: ForgotPasswordFormData) => {
+      const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
+      
+      try {
+        const response = await fetch('https://serverhub.biz/users/forgot-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            email: data.email,
+            whitelabel_admin_uuid
+          })
+        });
+
+        const responseData = await response.json();
+        if (!response.ok) {
+          throw new Error(responseData.message || responseData.detail || 'Failed to process request');
+        }
+
+        return responseData;
+      } catch (error: any) {
+        console.error('Forgot password error:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success('Password reset instructions have been sent to your email');
+      setShowForgotPassword(false);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to process request');
+    }
+  });
+
+  const {
+    register: registerForgotPassword,
+    handleSubmit: handleForgotPasswordSubmit,
+    formState: { errors: forgotPasswordErrors },
+  } = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    mode: 'onChange'
+  });
+
   const onSubmit = (data: LoginFormData) => {
     toast.promise(
       loginMutation.mutateAsync(data),
@@ -204,6 +256,18 @@ const Login = () => {
                 )}
               </div>
 
+              <div className="flex items-center justify-between">
+                <div className="text-sm">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="font-medium text-indigo-600 hover:text-indigo-500"
+                  >
+                    Forgot your password?
+                  </button>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={loginMutation.isPending}
@@ -239,6 +303,52 @@ const Login = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Reset Password</h2>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <span className="sr-only">Close</span>
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleForgotPasswordSubmit((data) => forgotPasswordMutation.mutate(data))}>
+              <div className="mb-4">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email address
+                </label>
+                <input
+                  {...registerForgotPassword('email')}
+                  type="email"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  placeholder="Enter your email"
+                />
+                {forgotPasswordErrors.email && (
+                  <p className="mt-2 text-sm text-red-600">{forgotPasswordErrors.email.message}</p>
+                )}
+              </div>
+              <div className="mt-4">
+                <button
+                  type="submit"
+                  disabled={forgotPasswordMutation.isLoading}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  {forgotPasswordMutation.isLoading ? 'Sending...' : 'Send Reset Instructions'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
