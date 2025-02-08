@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { fetchDashboardData } from '@/lib/auth';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -23,6 +24,10 @@ type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 const Login = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectPath = searchParams.get('redirect') || '/dashboard';
+
   const {
     register,
     handleSubmit,
@@ -50,40 +55,18 @@ const Login = () => {
           whitelabel_admin_uuid
         };
 
-        // Log the request data
-        console.log('Login Request:', {
-          ...requestData,
-          url: 'https://serverhub.biz/users/login'
-        });
-
-        const response = await fetch('https://serverhub.biz/users/login', {
+        const response = await fetch('/api/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
           },
           body: JSON.stringify(requestData)
         });
 
-        // Log response details
-        console.log('Response Status:', response.status);
-        console.log('Response Headers:', Object.fromEntries(response.headers.entries()));
-
-        // First get the raw text response
-        const responseText = await response.text();
-        console.log('Raw Response:', responseText);
-
-        // Try to parse it as JSON
-        let responseData;
-        try {
-          responseData = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error('Failed to parse response as JSON:', responseText.substring(0, 200));
-          throw new Error('Server returned an invalid response. Please try again later.');
-        }
+        const responseData = await response.json();
 
         if (!response.ok) {
-          throw new Error(responseData.message || responseData.detail || 'Login failed');
+          throw new Error(responseData.error || 'Login failed');
         }
 
         return responseData;
@@ -100,20 +83,14 @@ const Login = () => {
       console.log('Login success data:', data);
       reset();
       
-      // Store auth tokens
-      if (data.auth_token) {
-        localStorage.setItem('token', data.auth_token.access);
-        localStorage.setItem('refresh_token', data.auth_token.refresh);
-      }
-      
-      // Store user data
-      localStorage.setItem('user_id', data.pk.toString());
-      localStorage.setItem('user_role', data.role);
-      localStorage.setItem('username', data.username);
-      localStorage.setItem('last_login', data.last_login);
+      // Store user data in localStorage (but not the token, as it's in the cookie now)
+      localStorage.setItem('user_id', data.user.id.toString());
+      localStorage.setItem('user_role', data.user.role);
+      localStorage.setItem('username', data.user.username);
+      localStorage.setItem('last_login', data.user.last_login);
       
       toast.success('Login successful!');
-      window.location.href = '/dashboard';
+      router.push(redirectPath);
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Login failed');

@@ -105,23 +105,18 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
 
-      const response = await fetch('https://serverhub.biz/users/logout', {
+      const response = await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+          'Content-Type': 'application/json'
+        }
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || data.detail || 'Logout failed');
+        throw new Error(data.error || 'Logout failed');
       }
 
       // Clear local storage
@@ -136,11 +131,9 @@ const Navbar = () => {
       console.error('Logout error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to logout. Please try again.');
       
-      // If token is invalid or expired, clear storage and redirect anyway
-      if (error instanceof Error && error.message.includes('No authentication token')) {
-        localStorage.clear();
-        router.push('/login');
-      }
+      // If there's an error, clear storage and redirect anyway
+      localStorage.clear();
+      router.push('/login');
     } finally {
       setIsLoggingOut(false);
     }
