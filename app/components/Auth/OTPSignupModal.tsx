@@ -10,7 +10,7 @@ import { verifyOTP } from '@/app/lib/auth';
 import Modal from '@/app/components/Modal';
 import { FiUser, FiMail, FiLock, FiCalendar, FiPhone, FiMapPin, FiKey } from 'react-icons/fi';
 import { useState } from 'react';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import Select, { SingleValue } from 'react-select';
 import { states } from '@/app/lib/states';
 
@@ -58,6 +58,27 @@ type StateOption = {
   value: string;
 };
 
+type DateParts = {
+  day: string;
+  month: string;
+  year: string;
+};
+
+const months = [
+  { value: '01', label: 'January' },
+  { value: '02', label: 'February' },
+  { value: '03', label: 'March' },
+  { value: '04', label: 'April' },
+  { value: '05', label: 'May' },
+  { value: '06', label: 'June' },
+  { value: '07', label: 'July' },
+  { value: '08', label: 'August' },
+  { value: '09', label: 'September' },
+  { value: '10', label: 'October' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'December' },
+];
+
 export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignupModalProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const router = useRouter();
@@ -71,6 +92,39 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
   });
 
   const selectedDate = watch('dob');
+
+  const [dateParts, setDateParts] = useState<DateParts>({ day: '', month: '', year: '' });
+  
+  const generateYearOptions = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let year = currentYear - 100; year <= currentYear - 18; year++) {
+      years.push({ value: year.toString(), label: year.toString() });
+    }
+    return years;
+  };
+
+  const generateDayOptions = () => {
+    const days = [];
+    for (let day = 1; day <= 31; day++) {
+      const value = day.toString().padStart(2, '0');
+      days.push({ value, label: value });
+    }
+    return days;
+  };
+
+  const handleDatePartChange = (part: keyof DateParts, value: string) => {
+    const newDateParts = { ...dateParts, [part]: value };
+    setDateParts(newDateParts);
+    
+    if (newDateParts.day && newDateParts.month && newDateParts.year) {
+      const dateString = `${newDateParts.year}-${newDateParts.month}-${newDateParts.day}`;
+      const date = new Date(dateString);
+      if (isValid(date)) {
+        setValue('dob', dateString);
+      }
+    }
+  };
 
   const verifyOTPMutation = useMutation({
     mutationFn: async (data: OTPSignupFormData) => {
@@ -272,32 +326,94 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
                           <FiCalendar className="w-4 h-4 text-[#00ffff]" />
                           Date of Birth
                         </label>
-                        <div className="relative group">
-                          <input
-                            {...register('dob')}
-                            type="date"
-                            max={format(new Date(), 'yyyy-MM-dd')}
-                            className="block w-full rounded-xl border border-[#00ffff]/20 bg-white/[0.02] pl-12 pr-4 py-4 text-white
-                            focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50 transition-all duration-300
-                            hover:border-[#00ffff]/40 group-hover:bg-white/[0.04]
-                            [&::-webkit-calendar-picker-indicator]:filter
-                            [&::-webkit-calendar-picker-indicator]:invert
-                            [&::-webkit-calendar-picker-indicator]:opacity-50
-                            [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
-                          />
-                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center">
-                            <FiCalendar className="w-4 h-4 text-[#00ffff]" />
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div className="relative">
+                            <label className="block text-xs text-[#00ffff]/60 mb-1">Month</label>
+                            <Select
+                              options={months}
+                              value={months.find(m => m.value === dateParts.month)}
+                              onChange={(option) => handleDatePartChange('month', option?.value || '')}
+                              classNames={{
+                                control: (state) => 
+                                  `!rounded-xl !border !border-[#00ffff]/20 !bg-white/[0.02] !min-h-[56px]
+                                  ${state.isFocused ? '!border-[#00ffff] !ring-1 !ring-[#00ffff]/50' : ''}
+                                  hover:!border-[#00ffff]/40 hover:!bg-white/[0.04]`,
+                                input: () => '!text-white',
+                                singleValue: () => '!text-white',
+                                menu: () => '!bg-[#001a1a] !border !border-[#00ffff]/20 !rounded-xl !mt-2',
+                                option: (state) => 
+                                  `!text-white !py-3 ${
+                                    state.isFocused ? '!bg-[#00ffff]/10' : ''
+                                  } ${
+                                    state.isSelected ? '!bg-[#00ffff]/20' : ''
+                                  }`,
+                                placeholder: () => '!text-white/40',
+                              }}
+                              placeholder="Month"
+                            />
                           </div>
-                          {selectedDate && (
-                            <div className="absolute right-12 top-1/2 -translate-y-1/2 text-[#00ffff]/80 text-sm">
-                              {format(new Date(selectedDate), 'MMM dd, yyyy')}
-                            </div>
-                          )}
+
+                          <div className="relative">
+                            <label className="block text-xs text-[#00ffff]/60 mb-1">Day</label>
+                            <Select
+                              options={generateDayOptions()}
+                              value={generateDayOptions().find(d => d.value === dateParts.day)}
+                              onChange={(option) => handleDatePartChange('day', option?.value || '')}
+                              classNames={{
+                                control: (state) => 
+                                  `!rounded-xl !border !border-[#00ffff]/20 !bg-white/[0.02] !min-h-[56px]
+                                  ${state.isFocused ? '!border-[#00ffff] !ring-1 !ring-[#00ffff]/50' : ''}
+                                  hover:!border-[#00ffff]/40 hover:!bg-white/[0.04]`,
+                                input: () => '!text-white',
+                                singleValue: () => '!text-white',
+                                menu: () => '!bg-[#001a1a] !border !border-[#00ffff]/20 !rounded-xl !mt-2 !max-h-[200px] !overflow-y-auto',
+                                option: (state) => 
+                                  `!text-white !py-3 ${
+                                    state.isFocused ? '!bg-[#00ffff]/10' : ''
+                                  } ${
+                                    state.isSelected ? '!bg-[#00ffff]/20' : ''
+                                  }`,
+                                placeholder: () => '!text-white/40',
+                              }}
+                              placeholder="Day"
+                            />
+                          </div>
+
+                          <div className="relative">
+                            <label className="block text-xs text-[#00ffff]/60 mb-1">Year</label>
+                            <Select
+                              options={generateYearOptions()}
+                              value={generateYearOptions().find(y => y.value === dateParts.year)}
+                              onChange={(option) => handleDatePartChange('year', option?.value || '')}
+                              classNames={{
+                                control: (state) => 
+                                  `!rounded-xl !border !border-[#00ffff]/20 !bg-white/[0.02] !min-h-[56px]
+                                  ${state.isFocused ? '!border-[#00ffff] !ring-1 !ring-[#00ffff]/50' : ''}
+                                  hover:!border-[#00ffff]/40 hover:!bg-white/[0.04]`,
+                                input: () => '!text-white',
+                                singleValue: () => '!text-white',
+                                menu: () => '!bg-[#001a1a] !border !border-[#00ffff]/20 !rounded-xl !mt-2 !max-h-[200px] !overflow-y-auto',
+                                option: (state) => 
+                                  `!text-white !py-3 ${
+                                    state.isFocused ? '!bg-[#00ffff]/10' : ''
+                                  } ${
+                                    state.isSelected ? '!bg-[#00ffff]/20' : ''
+                                  }`,
+                                placeholder: () => '!text-white/40',
+                              }}
+                              placeholder="Year"
+                            />
+                          </div>
                         </div>
                         {errors.dob && (
                           <p className="mt-2 text-sm text-red-400 flex items-center gap-2">
                             <span>⚠️</span>
                             {errors.dob.message}
+                          </p>
+                        )}
+                        {dateParts.day && dateParts.month && dateParts.year && (
+                          <p className="mt-2 text-sm text-[#00ffff]/60">
+                            {format(new Date(`${dateParts.year}-${dateParts.month}-${dateParts.day}`), 'MMMM d, yyyy')}
                           </p>
                         )}
                       </div>
