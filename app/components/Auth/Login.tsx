@@ -128,27 +128,42 @@ const Login = () => {
   const forgotPasswordMutation = useMutation({
     mutationFn: async (data: ForgotPasswordFormData) => {
       try {
+        // Log the dashboard request payload
+        const dashboardPayload = {
+          project_domain: "https://serverhub.biz"
+        };
+        console.log('Dashboard request payload:', dashboardPayload);
+
         // First fetch the dashboard data to get a fresh whitelabel_admin_uuid
         const dashboardResponse = await fetch('https://serverhub.biz/users/dashboard-games/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            project_domain: "https://serverhub.biz"
-          })
+          body: JSON.stringify(dashboardPayload)
         });
 
         if (!dashboardResponse.ok) {
+          const errorText = await dashboardResponse.text();
+          console.error('Dashboard response error:', errorText);
           throw new Error('Failed to initialize application');
         }
 
         const dashboardData = await dashboardResponse.json();
+        console.log('Dashboard response:', dashboardData);
+        
         const whitelabel_admin_uuid = dashboardData.data.whitelabel_admin_uuid;
 
         if (!whitelabel_admin_uuid) {
           throw new Error('Failed to get required authentication data');
         }
+
+        // Log the forgot password request payload
+        const forgotPasswordPayload = {
+          email: data.email,
+          whitelabel_admin_uuid
+        };
+        console.log('Forgot password request payload:', forgotPasswordPayload);
 
         // Now make the forgot password request with the fresh UUID
         const response = await fetch('https://serverhub.biz/users/forgot-password/', {
@@ -156,13 +171,14 @@ const Login = () => {
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            email: data.email,
-            whitelabel_admin_uuid
-          })
+          body: JSON.stringify(forgotPasswordPayload)
         });
 
-        // First get the raw text response
+        // Log response status and headers
+        console.log('Forgot password response status:', response.status);
+        console.log('Forgot password response headers:', Object.fromEntries(response.headers.entries()));
+
+        // Get the raw text response
         const responseText = await response.text();
         console.log('Raw forgot password response:', responseText);
 
