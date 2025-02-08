@@ -24,18 +24,28 @@ export default function RouletteWheel() {
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [rotation, setRotation] = useState(0);
+  const [arrowRotation, setArrowRotation] = useState(0);
   const spinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [showInfo, setShowInfo] = useState(false);
 
   const sliceDegrees = 360 / prizes.length;
 
+  const getRandomFloat = (min: number, max: number) => {
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    return min + (array[0] / (0xffffffff + 1)) * (max - min);
+  };
+
   const getRandomPrize = () => {
-    const totalWeight = prizes.reduce((acc, prize) => acc + prize.weight, 0);
-    let random = Math.random() * totalWeight;
+    // Use crypto for true randomness
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    const random = (array[0] / (0xffffffff + 1)) * prizes.reduce((acc, prize) => acc + prize.weight, 0);
     
+    let currentWeight = 0;
     for (let i = 0; i < prizes.length; i++) {
-      random -= prizes[i].weight;
-      if (random <= 0) {
+      currentWeight += prizes[i].weight;
+      if (random <= currentWeight) {
         return i;
       }
     }
@@ -48,21 +58,35 @@ export default function RouletteWheel() {
     setSpinning(true);
     setResult(null);
     
-    // Determine winning prize first
+    // Determine winning prize using crypto-secure random
     const winningIndex = getRandomPrize();
     
+    // Add more randomness to the spin animation
+    const minSpins = 5;
+    const maxSpins = 12; // Increased max spins for more variation
+    const baseSpins = getRandomFloat(minSpins, maxSpins);
+    
+    // Add random "wobble" to make the spin less predictable
+    const wobble = getRandomFloat(-30, 30);
+    
     // Calculate required rotation to land on the winning prize
-    const baseSpins = 5 + Math.floor(Math.random() * 5); // 5-10 full spins
-    const targetDegree = 360 - (winningIndex * sliceDegrees); // Degrees needed to land on prize
-    const spinDegrees = (baseSpins * 360) + targetDegree + Math.random() * (sliceDegrees * 0.8);
+    const targetDegree = 360 - (winningIndex * sliceDegrees);
+    const spinDegrees = (baseSpins * 360) + targetDegree + getRandomFloat(0, sliceDegrees * 0.8) + wobble;
+    
+    // Calculate the arrow rotation to point at the winning option
+    const arrowTargetDegree = (winningIndex * sliceDegrees) + (sliceDegrees / 2);
+    
+    // Randomize the spin duration between 3.5 and 4.5 seconds
+    const spinDuration = getRandomFloat(3500, 4500);
     
     setRotation(prevRotation => prevRotation + spinDegrees);
+    setArrowRotation(arrowTargetDegree);
 
-    // Show result after spin
+    // Show result after random spin duration
     spinTimeoutRef.current = setTimeout(() => {
       setResult(prizes[winningIndex].name);
       setSpinning(false);
-    }, 4000);
+    }, spinDuration);
   };
 
   useEffect(() => {
@@ -178,13 +202,43 @@ export default function RouletteWheel() {
             <div className="relative w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] md:w-[600px] md:h-[600px] lg:w-[800px] lg:h-[800px] 
               mx-auto mb-4 sm:mb-6 md:mb-8 lg:mb-10">
               
+              {/* Result Arrow */}
+              <div 
+                className="absolute top-1/2 left-1/2 w-0 h-0 z-30"
+                style={{
+                  transform: `translate(-50%, -50%) rotate(${arrowRotation}deg)`,
+                  transition: spinning ? `transform ${spinning ? getRandomFloat(3.5, 4.5) : 0}s cubic-bezier(${getRandomFloat(0.1, 0.2)}, ${getRandomFloat(0.6, 0.7)}, ${getRandomFloat(0.1, 0.2)}, ${getRandomFloat(0.95, 1)})` : 'none',
+                  opacity: result ? 1 : 0
+                }}
+              >
+                <div className="absolute top-0 left-0 transform -translate-x-1/2 -translate-y-1/2">
+                  <svg width="80" height="80" viewBox="0 0 60 60" className="transform -rotate-90">
+                    <defs>
+                      <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                        <feMerge>
+                          <feMergeNode in="coloredBlur"/>
+                          <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                      </filter>
+                    </defs>
+                    <path
+                      d="M30 0 L60 30 L30 60 L45 30 Z"
+                      fill="#00ffff"
+                      className="filter drop-shadow-lg"
+                      style={{ filter: 'url(#glow)' }}
+                    />
+                  </svg>
+                </div>
+              </div>
+
               {/* Wheel SVG */}
               <svg 
                 viewBox="0 0 100 100" 
                 className="w-full h-full transform relative z-10"
                 style={{
                   transform: `rotate(${rotation}deg)`,
-                  transition: spinning ? 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none'
+                  transition: spinning ? `transform ${spinning ? getRandomFloat(3.5, 4.5) : 0}s cubic-bezier(${getRandomFloat(0.1, 0.2)}, ${getRandomFloat(0.6, 0.7)}, ${getRandomFloat(0.1, 0.2)}, ${getRandomFloat(0.95, 1)})` : 'none'
                 }}
               >
                 {/* Outer ring */}
