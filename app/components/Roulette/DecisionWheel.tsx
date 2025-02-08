@@ -31,6 +31,7 @@ export default function DecisionWheel() {
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [rotation, setRotation] = useState(0);
+  const [arrowRotation, setArrowRotation] = useState(0);
   const spinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [customOptions, setCustomOptions] = useState<Option[]>([]);
@@ -96,10 +97,14 @@ export default function DecisionWheel() {
     const targetDegree = 360 - (winningIndex * sliceDegrees);
     const spinDegrees = (baseSpins * 360) + targetDegree + getRandomFloat(0, sliceDegrees * 0.8) + wobble;
     
+    // Calculate the arrow rotation to point at the winning option
+    const arrowTargetDegree = (winningIndex * sliceDegrees) + (sliceDegrees / 2);
+    
     // Randomize the spin duration between 3.5 and 4.5 seconds
     const spinDuration = getRandomFloat(3500, 4500);
     
     setRotation(prevRotation => prevRotation + spinDegrees);
+    setArrowRotation(arrowTargetDegree);
 
     // Show result after random spin duration
     spinTimeoutRef.current = setTimeout(() => {
@@ -241,6 +246,26 @@ export default function DecisionWheel() {
             <div className="relative w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] md:w-[600px] md:h-[600px] lg:w-[800px] lg:h-[800px] 
               mx-auto mb-4 sm:mb-6 md:mb-8 lg:mb-10">
               
+              {/* Result Arrow */}
+              <div 
+                className="absolute top-1/2 left-1/2 w-0 h-0 z-30"
+                style={{
+                  transform: `translate(-50%, -50%) rotate(${arrowRotation}deg)`,
+                  transition: spinning ? `transform ${spinning ? getRandomFloat(3.5, 4.5) : 0}s cubic-bezier(${getRandomFloat(0.1, 0.2)}, ${getRandomFloat(0.6, 0.7)}, ${getRandomFloat(0.1, 0.2)}, ${getRandomFloat(0.95, 1)})` : 'none',
+                  opacity: result ? 1 : 0
+                }}
+              >
+                <div className="absolute top-0 left-0 transform -translate-x-1/2 -translate-y-1/2">
+                  <svg width="60" height="60" viewBox="0 0 60 60" className="transform -rotate-90">
+                    <path
+                      d="M30 0 L60 30 L30 60 L45 30 Z"
+                      fill="#00ffff"
+                      className="filter drop-shadow-lg"
+                    />
+                  </svg>
+                </div>
+              </div>
+
               {/* Wheel SVG */}
               <svg 
                 viewBox="0 0 100 100" 
