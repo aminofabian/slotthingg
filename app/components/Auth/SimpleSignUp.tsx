@@ -80,30 +80,7 @@ export default function SimpleSignUp() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div>
                 <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
-                  Email
-                </label>
-                <input
-                  {...register('email')}
-                  type="email"
-                  className={`block w-full rounded-xl border ${
-                    errors.email ? 'border-red-500' : 'border-[#00ffff]/20'
-                  } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
-                  focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
-                  backdrop-blur-sm transition-all duration-300
-                  hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-                  placeholder="Enter your email"
-                />
-                {errors.email && (
-                  <p className="mt-2 text-sm text-red-400 flex items-center">
-                    <span className="mr-1">⚠️</span>
-                    {errors.email.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
-                  Username
+                  Choose Username
                 </label>
                 <input
                   {...register('username')}
@@ -114,7 +91,8 @@ export default function SimpleSignUp() {
                   focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
                   backdrop-blur-sm transition-all duration-300
                   hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
-                  placeholder="Choose your username"
+                  placeholder="Pick a unique username"
+                  autoComplete="username"
                 />
                 {errors.username && (
                   <p className="mt-2 text-sm text-red-400 flex items-center">
@@ -122,6 +100,36 @@ export default function SimpleSignUp() {
                     {errors.username.message}
                   </p>
                 )}
+                <p className="mt-1 text-xs text-[#00ffff]/50">
+                  This will be your public display name
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
+                  Your Email Address
+                </label>
+                <input
+                  {...register('email')}
+                  type="email"
+                  className={`block w-full rounded-xl border ${
+                    errors.email ? 'border-red-500' : 'border-[#00ffff]/20'
+                  } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                  focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
+                  backdrop-blur-sm transition-all duration-300
+                  hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
+                  placeholder="name@example.com"
+                  autoComplete="email"
+                />
+                {errors.email && (
+                  <p className="mt-2 text-sm text-red-400 flex items-center">
+                    <span className="mr-1">⚠️</span>
+                    {errors.email.message}
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-[#00ffff]/50">
+                  We'll send a verification code to this email
+                </p>
               </div>
 
               <button
