@@ -35,20 +35,15 @@ const Login = () => {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormData) => {
-      let whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
-      
-      // If UUID is missing, fetch it from the dashboard endpoint
-      if (!whitelabel_admin_uuid) {
-        try {
-          const dashboardData = await fetchDashboardData();
-          whitelabel_admin_uuid = dashboardData.data.whitelabel_admin_uuid;
-        } catch (error) {
-          console.error('Failed to fetch whitelabel UUID:', error);
-          throw new Error('Failed to initialize application. Please try again.');
-        }
-      }
-
       try {
+        // Always fetch fresh UUID from dashboard-games
+        const dashboardData = await fetchDashboardData();
+        const whitelabel_admin_uuid = dashboardData.data.whitelabel_admin_uuid;
+
+        if (!whitelabel_admin_uuid) {
+          throw new Error('Failed to get required authentication data');
+        }
+
         const requestData = {
           username: data.username,
           password: data.password,
@@ -128,30 +123,8 @@ const Login = () => {
   const forgotPasswordMutation = useMutation({
     mutationFn: async (data: ForgotPasswordFormData) => {
       try {
-        // Log the dashboard request payload
-        const dashboardPayload = {
-          project_domain: "https://serverhub.biz"
-        };
-        console.log('Dashboard request payload:', dashboardPayload);
-
-        // First fetch the dashboard data to get a fresh whitelabel_admin_uuid
-        const dashboardResponse = await fetch('https://serverhub.biz/users/dashboard-games/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(dashboardPayload)
-        });
-
-        if (!dashboardResponse.ok) {
-          const errorText = await dashboardResponse.text();
-          console.error('Dashboard response error:', errorText);
-          throw new Error('Failed to initialize application');
-        }
-
-        const dashboardData = await dashboardResponse.json();
-        console.log('Dashboard response:', dashboardData);
-        
+        // Always fetch fresh UUID from dashboard-games
+        const dashboardData = await fetchDashboardData();
         const whitelabel_admin_uuid = dashboardData.data.whitelabel_admin_uuid;
 
         if (!whitelabel_admin_uuid) {
@@ -318,16 +291,37 @@ const Login = () => {
                 )}
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="text-sm">
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotPassword(true)}
-                    className="font-medium text-indigo-600 hover:text-indigo-500"
-                  >
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotPassword(true)}
+                  className="text-sm text-[#00ffff]/70 hover:text-[#00ffff] 
+                  transition-all duration-300 transform hover:scale-105
+                  relative group inline-flex items-center
+                  hover:shadow-[0_0_10px_rgba(0,255,255,0.2)]
+                  focus:outline-none focus:ring-2 focus:ring-[#00ffff]/30 rounded-lg px-2 py-1"
+                >
+                  <span className="relative">
                     Forgot your password?
-                  </button>
-                </div>
+                    <span className="absolute bottom-0 left-0 w-0 h-[1px] 
+                    bg-[#00ffff] transition-all duration-300 
+                    group-hover:w-full"></span>
+                  </span>
+                  <svg 
+                    className="ml-1 w-4 h-4 opacity-70 group-hover:opacity-100 
+                    group-hover:translate-x-1 transition-all duration-300" 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M17 8l4 4m0 0l-4 4m4-4H3"
+                    />
+                  </svg>
+                </button>
               </div>
 
               <button
