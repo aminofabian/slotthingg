@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { FiLock } from 'react-icons/fi';
+import { useRouter } from 'next/navigation';
 
 const changePasswordSchema = z.object({
   oldPassword: z.string().min(1, 'Current password is required'),
@@ -23,6 +24,7 @@ const changePasswordSchema = z.object({
 type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 
 const ChangePassword = () => {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -47,17 +49,12 @@ const ChangePassword = () => {
   const changePasswordMutation = useMutation({
     mutationFn: async (data: ChangePasswordFormData) => {
       try {
-        const accessToken = localStorage.getItem('accessToken');
-        if (!accessToken) {
-          throw new Error('Please log in to change your password');
-        }
-
-        const response = await fetch('https://serverhub.biz/users/change-password/', {
+        const response = await fetch('/api/auth/change-password', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
           },
+          credentials: 'include',
           body: JSON.stringify({
             old_password: data.oldPassword,
             password: data.newPassword
@@ -75,7 +72,11 @@ const ChangePassword = () => {
         }
 
         if (!response.ok) {
-          throw new Error(responseData.message || responseData.detail || 'Failed to change password');
+          if (response.status === 401) {
+            router.push('/login');
+            throw new Error('Please log in to change your password');
+          }
+          throw new Error(responseData.error || responseData.message || responseData.detail || 'Failed to change password');
         }
 
         return responseData;
