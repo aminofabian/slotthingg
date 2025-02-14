@@ -6,9 +6,12 @@ import { SiNintendogamecube } from 'react-icons/si';
 import { FaTwitter, FaDiscord, FaTelegram, FaInstagram, FaTimes } from 'react-icons/fa';
 import Logo from '../Logo/Logo';
 import GameSelectionModal from './GameSelectionModal';
-import { useState, Fragment } from 'react';
+import { useState, Fragment, useEffect } from 'react';
 import Footer from '../Footer/Footer';
 import { Dialog, Transition } from '@headlessui/react';
+import { useRouter } from 'next/navigation';
+import useGameStore from '@/lib/store/useGameStore';
+import { Game } from '@/lib/store/useGameStore';
 
 const games = [
   {
@@ -208,14 +211,19 @@ function GameActionModal({ isOpen, onClose, game }: GameActionModalProps) {
 }
 
 export default function DashboardContent() {
+  const router = useRouter();
   const [isGameSelectionOpen, setIsGameSelectionOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<any>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  
+  const { games, isLoading, error, fetchGames } = useGameStore();
+
+  useEffect(() => {
+    fetchGames();
+  }, [fetchGames]);
 
   const handleGameSelect = (game: any) => {
-    // Handle game selection here
     console.log('Selected game:', game);
-    // Add your logic to handle the selected game
   };
 
   const handleGameClick = (game: any) => {
@@ -240,15 +248,20 @@ export default function DashboardContent() {
         />
       )}
 
-      {/* Slider Section */}
       <DashboardSlider />
-      {/* Slider Section End */}
 
-      {/* Updated Games Grid */}
       <div className="w-full px-6">
         <div className="max-w-[1440px] mx-auto">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-white">Games</h2>
+            <div className="flex items-center gap-4">
+              <h2 className="text-2xl font-bold text-white">Games</h2>
+              {isLoading && (
+                <div className="w-4 h-4 border-2 border-[#7ffdfd] border-t-transparent rounded-full animate-spin" />
+              )}
+              {error && (
+                <p className="text-red-500 text-sm">{error}</p>
+              )}
+            </div>
             <button 
               onClick={() => setIsGameSelectionOpen(true)}
               className="relative group overflow-hidden
@@ -260,23 +273,16 @@ export default function DashboardContent() {
                 border border-[#00ffff]/20 hover:border-[#00ffff]/40
                 transform hover:scale-105"
             >
-              {/* Animated background effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent
                 translate-x-[-100%] group-hover:translate-x-[100%] 
                 transition-transform duration-1000" 
               />
-              
-              {/* Game controller icon */}
               <div className="relative w-8 h-8 flex items-center justify-center
                 bg-[#003333]/10 rounded-lg border border-[#003333]/10"
               >
                 <SiNintendogamecube className="w-5 h-5" />
               </div>
-
-              {/* Button text */}
               <span className="relative text-base">Add Game</span>
-
-              {/* Small decorative plus icon */}
               <div className="relative w-5 h-5 flex items-center justify-center
                 bg-[#003333]/10 rounded-md border border-[#003333]/10"
               >
@@ -293,7 +299,7 @@ export default function DashboardContent() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {games.map((game) => (
+            {games.map((game: Game) => (
               <button
                 key={game.id}
                 onClick={() => handleGameClick(game)}
@@ -304,7 +310,6 @@ export default function DashboardContent() {
                   hover:[box-shadow:0_0_15px_rgba(127,253,253,0.2)]
                   group text-left"
               >
-                {/* Game Image Container */}
                 <div className="relative aspect-square overflow-hidden">
                   <Image
                     src={game.image}
@@ -317,18 +322,17 @@ export default function DashboardContent() {
                   <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300" />
                 </div>
 
-                {/* Game Info */}
                 <div className="p-3">
                   <h3 className="text-sm font-bold text-white mb-1 truncate">
                     {game.name}
                   </h3>
                   <div className="flex items-center justify-between">
                     <p className="text-[#7ffdfd] font-medium text-sm">
-                      $ {game.balance}
+                      $ {game.balance.toFixed(2)}
                     </p>
                     <div className="flex items-center gap-1">
-                      <div className="w-1.5 h-1.5 bg-[#7ffdfd] rounded-full animate-pulse"></div>
-                      <span className="text-[#7ffdfd] text-xs">Active</span>
+                      <div className={`w-1.5 h-1.5 rounded-full ${game.active ? 'bg-[#7ffdfd] animate-pulse' : 'bg-red-500'}`}></div>
+                      <span className="text-[#7ffdfd] text-xs">{game.active ? 'Active' : 'Inactive'}</span>
                     </div>
                   </div>
                 </div>
@@ -337,8 +341,6 @@ export default function DashboardContent() {
           </div>
         </div>
       </div>
-
-      {/* Footer */}
     </div>
   );
 }

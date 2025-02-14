@@ -7,43 +7,40 @@ export async function POST(request: NextRequest) {
     const token = request.cookies.get('token')?.value;
     
     if (!token) {
-      return NextResponse.json(
-        { error: 'No authentication token found' },
-        { status: 401 }
-      );
+      return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    const response = await fetch('https://serverhub.biz/users/logout', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-    });
-
-    if (!response.ok) {
-      const data = await response.json();
-      return NextResponse.json(
-        { error: data.message || data.detail || 'Logout failed' },
-        { status: response.status }
-      );
+    try {
+      await fetch('https://serverhub.biz/users/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+    } catch (error) {
+      console.error('Server logout error:', error);
+      // Continue with client-side logout even if server logout fails
     }
 
-    // Create response
-    const apiResponse = NextResponse.json({ success: true });
+    // Always clear the cookie and redirect to login, regardless of server response
+    const response = NextResponse.redirect(new URL('/login', request.url));
     
     // Clear the auth cookie by setting it to expire immediately
-    apiResponse.headers.set(
+    response.headers.set(
       'Set-Cookie',
       'token=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0'
     );
 
-    return apiResponse;
+    return response;
   } catch (error) {
     console.error('Logout error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    // Even on error, try to clear the cookie and redirect
+    const response = NextResponse.redirect(new URL('/login', request.url));
+    response.headers.set(
+      'Set-Cookie',
+      'token=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0'
     );
+    return response;
   }
 } 
