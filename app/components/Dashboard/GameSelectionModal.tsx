@@ -3,15 +3,7 @@
 import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import Image from 'next/image';
-
-interface Game {
-  id: number;
-  name: string;
-  image: string;
-  gameId: string;
-  balance: number;
-  active: boolean;
-}
+import type { Game } from '@/lib/store/useGameStore';
 
 interface GameSelectionModalProps {
   isOpen: boolean;

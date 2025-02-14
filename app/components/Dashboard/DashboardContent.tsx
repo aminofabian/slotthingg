@@ -9,92 +9,10 @@ import GameSelectionModal from './GameSelectionModal';
 import { useState, Fragment, useEffect } from 'react';
 import Footer from '../Footer/Footer';
 import { Dialog, Transition } from '@headlessui/react';
-import { useRouter } from 'next/navigation';
 import useGameStore from '@/lib/store/useGameStore';
-import { Game } from '@/lib/store/useGameStore';
+import type { Game } from '@/lib/store/useGameStore';
 
-const games = [
-  {
-    id: 1,
-    name: 'Golden Dragon',
-    image: '/gameimages/4ed5620e-a0c5-4301-ab32-d585dd9c651e-GOLDEN DRAGON.png',
-    gameId: 'M-436-343-056',
-    entries: 0,
-    active: true,
-    balance: 0
-  },
-  {
-    id: 2,
-    name: 'Juwa',
-    image: '/gameimages/0b94c78a-13f8-4819-90b7-5d34a0d1132f-JUWA.png',
-    gameId: 'FK_aminof235',
-    entries: 0,
-    active: true,
-    balance: 0
-  },
-  {
-    id: 3,
-    name: 'Ultra Panda',
-    image: '/gameimages/ba5c4494-869d-4d69-acda-758cf1169c78-ULTRA PANDA.png',
-    gameId: 'aminofabUP777',
-    safe: 0,
-    active: true,
-    balance: 0
-  },
-  {
-    id: 4,
-    name: 'Panda Master',
-    image: '/gameimages/14570bb3-0cc5-4bef-ba1b-1d1a4821e77b-PANDA MASTER.png',
-    gameId: 'PM_aminofa235',
-    safe: 0,
-    active: true,
-    balance: 0
-  },
-  {
-    id: 5,
-    name: 'Golden Treasure',
-    image: '/gameimages/1f246c12-890f-40f9-b7c6-9b1a4e077169-GOLDEN TREASURE.png',
-    gameId: 'GT_aminofa235',
-    safe: 0,
-    active: true,
-    balance: 0
-  },
-  {
-    id: 6,
-    name: 'Orion Star',
-    image: '/gameimages/2a8bd502-d191-48bd-831d-531a4751050a-ORION STAR.png',
-    gameId: 'OS_aminofa235',
-    safe: 0,
-    active: true,
-    balance: 0
-  },
-  {
-    id: 7,
-    name: 'V Blink',
-    image: '/gameimages/9e9a9618-c490-44fa-943d-c2322c00f266-V BLINK.png',
-    gameId: 'VB_aminofa235',
-    safe: 0,
-    active: true,
-    balance: 0
-  },
-  {
-    id: 8,
-    name: 'Milky Way',
-    image: '/gameimages/21ccf352-34a8-44a3-a94d-67b8cccc0959-MILKY WAY.png',
-    gameId: 'MW_aminofa235',
-    safe: 0,
-    active: true,
-    balance: 0
-  }
-];
-
-interface GameActionModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  game: any;
-}
-
-function GameActionModal({ isOpen, onClose, game }: GameActionModalProps) {
+function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: Game }) {
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -211,22 +129,23 @@ function GameActionModal({ isOpen, onClose, game }: GameActionModalProps) {
 }
 
 export default function DashboardContent() {
-  const router = useRouter();
+  const { games, fetchGames } = useGameStore();
   const [isGameSelectionOpen, setIsGameSelectionOpen] = useState(false);
-  const [selectedGame, setSelectedGame] = useState<any>(null);
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
-  
-  const { games, isLoading, error, fetchGames } = useGameStore();
 
   useEffect(() => {
     fetchGames();
+    console.log('Initial games fetch');
   }, [fetchGames]);
 
-  const handleGameSelect = (game: any) => {
+  const handleGameSelect = (game: Game) => {
+    // Handle game selection here
     console.log('Selected game:', game);
+    // Add your logic to handle the selected game
   };
 
-  const handleGameClick = (game: any) => {
+  const handleGameClick = (game: Game) => {
     setSelectedGame(game);
     setIsActionModalOpen(true);
   };
@@ -248,20 +167,15 @@ export default function DashboardContent() {
         />
       )}
 
+      {/* Slider Section */}
       <DashboardSlider />
+      {/* Slider Section End */}
 
+      {/* Updated Games Grid */}
       <div className="w-full px-6">
         <div className="max-w-[1440px] mx-auto">
           <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-4">
-              <h2 className="text-2xl font-bold text-white">Games</h2>
-              {isLoading && (
-                <div className="w-4 h-4 border-2 border-[#7ffdfd] border-t-transparent rounded-full animate-spin" />
-              )}
-              {error && (
-                <p className="text-red-500 text-sm">{error}</p>
-              )}
-            </div>
+            <h2 className="text-2xl font-bold text-white">Games</h2>
             <button 
               onClick={() => setIsGameSelectionOpen(true)}
               className="relative group overflow-hidden
@@ -273,16 +187,23 @@ export default function DashboardContent() {
                 border border-[#00ffff]/20 hover:border-[#00ffff]/40
                 transform hover:scale-105"
             >
+              {/* Animated background effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent
                 translate-x-[-100%] group-hover:translate-x-[100%] 
                 transition-transform duration-1000" 
               />
+              
+              {/* Game controller icon */}
               <div className="relative w-8 h-8 flex items-center justify-center
                 bg-[#003333]/10 rounded-lg border border-[#003333]/10"
               >
                 <SiNintendogamecube className="w-5 h-5" />
               </div>
+
+              {/* Button text */}
               <span className="relative text-base">Add Game</span>
+
+              {/* Small decorative plus icon */}
               <div className="relative w-5 h-5 flex items-center justify-center
                 bg-[#003333]/10 rounded-md border border-[#003333]/10"
               >
@@ -298,49 +219,65 @@ export default function DashboardContent() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {games.map((game: Game) => (
-              <button
-                key={game.id}
-                onClick={() => handleGameClick(game)}
-                className="relative bg-gradient-to-br from-gray-900 via-black to-gray-900 
-                  rounded-xl overflow-hidden shadow-lg border border-[#7ffdfd]/20
-                  hover:border-[#7ffdfd]/40 transition-all duration-300
-                  [box-shadow:0_0_10px_rgba(127,253,253,0.1)]
-                  hover:[box-shadow:0_0_15px_rgba(127,253,253,0.2)]
-                  group text-left"
+          {games.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-white/60 mb-4">No games available</p>
+              <button 
+                onClick={() => setIsGameSelectionOpen(true)}
+                className="bg-[#7ffdfd]/10 text-[#7ffdfd] px-6 py-2 rounded-lg hover:bg-[#7ffdfd]/20 transition"
               >
-                <div className="relative aspect-square overflow-hidden">
-                  <Image
-                    src={game.image}
-                    alt={game.name}
-                    fill
-                    className="object-cover object-center transform group-hover:scale-110 transition-transform duration-300"
-                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16.67vw"
-                    priority
-                  />
-                  <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300" />
-                </div>
+                Add Your First Game
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {games.map((game) => (
+                <button
+                  key={game.id}
+                  onClick={() => handleGameClick(game)}
+                  className="relative bg-gradient-to-br from-gray-900 via-black to-gray-900 
+                    rounded-xl overflow-hidden shadow-lg border border-[#7ffdfd]/20
+                    hover:border-[#7ffdfd]/40 transition-all duration-300
+                    [box-shadow:0_0_10px_rgba(127,253,253,0.1)]
+                    hover:[box-shadow:0_0_15px_rgba(127,253,253,0.2)]
+                    group text-left"
+                >
+                  {/* Game Image Container */}
+                  <div className="relative aspect-square overflow-hidden">
+                    <Image
+                      src={game.image}
+                      alt={game.name}
+                      fill
+                      className="object-cover object-center transform group-hover:scale-110 transition-transform duration-300"
+                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16.67vw"
+                      priority
+                    />
+                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300" />
+                  </div>
 
-                <div className="p-3">
-                  <h3 className="text-sm font-bold text-white mb-1 truncate">
-                    {game.name}
-                  </h3>
-                  <div className="flex items-center justify-between">
-                    <p className="text-[#7ffdfd] font-medium text-sm">
-                      $ {game.balance.toFixed(2)}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      <div className={`w-1.5 h-1.5 rounded-full ${game.active ? 'bg-[#7ffdfd] animate-pulse' : 'bg-red-500'}`}></div>
-                      <span className="text-[#7ffdfd] text-xs">{game.active ? 'Active' : 'Inactive'}</span>
+                  {/* Game Info */}
+                  <div className="p-3">
+                    <h3 className="text-sm font-bold text-white mb-1 truncate">
+                      {game.name}
+                    </h3>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[#7ffdfd] font-medium text-sm">
+                        $ {game.balance}
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 bg-[#7ffdfd] rounded-full animate-pulse"></div>
+                        <span className="text-[#7ffdfd] text-xs">Active</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
-            ))}
-          </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Footer */}
     </div>
   );
 }

@@ -11,8 +11,11 @@ export const metadata: Metadata = {
   description: 'Play your favorite slot games online',
   icons: generateFaviconTags(),
   manifest: '/site.webmanifest',
-  themeColor: '#0f172a',
 };
+
+export const viewport = {
+  themeColor: '#ffffff',
+}
 
 export default function RootLayout({
   children,
