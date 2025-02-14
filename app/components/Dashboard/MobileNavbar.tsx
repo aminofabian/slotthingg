@@ -38,10 +38,9 @@ export default function MobileNavbar() {
         }
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Logout failed');
+        const text = await response.text();
+        console.error('Logout failed:', text);
       }
 
       // Clear local storage

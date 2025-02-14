@@ -42,7 +42,8 @@ const useGameStore = create<GameStore>((set, get) => ({
       const authToken = decodeURIComponent(accessToken || token || '');
 
       if (!authToken) {
-        throw new Error('No authentication token found');
+        set({ games: [], error: null }); // Clear games on logout
+        return; // Exit quietly without error
       }
       
       const response = await fetch('https://serverhub.biz/games/list', {
@@ -56,6 +57,12 @@ const useGameStore = create<GameStore>((set, get) => ({
 
       if (response.status === 401 || response.status === 403) {
         throw new Error('Authentication failed. Please login again.');
+      }
+
+      // Check content type before trying to parse JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Invalid response from server');
       }
 
       const result = await response.json();

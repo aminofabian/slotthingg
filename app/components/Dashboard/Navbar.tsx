@@ -113,12 +113,12 @@ const Navbar = () => {
         }
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Logout failed');
+        const text = await response.text();
+        console.error('Logout failed:', text);
       }
 
+      // Proceed with client-side cleanup regardless of API response
       // Clear local storage
       localStorage.clear();
       

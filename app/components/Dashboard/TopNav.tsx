@@ -41,12 +41,12 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
         }
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || 'Logout failed');
+        const text = await response.text();
+        console.error('Logout failed:', text);
       }
 
+      // Proceed with client-side cleanup
       // Clear local storage
       localStorage.clear();
       
