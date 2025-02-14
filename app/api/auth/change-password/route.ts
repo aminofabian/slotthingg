@@ -7,7 +7,8 @@ export async function POST(request: Request) {
     const { old_password, password } = body;
 
     // Get the auth token from the cookie
-    const token = cookies().get('token')?.value;
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
 
     if (!token) {
       return NextResponse.json(
