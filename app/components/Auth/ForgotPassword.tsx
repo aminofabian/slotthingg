@@ -1,13 +1,46 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Logo from '../Logo/Logo';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 const ForgotPassword = () => {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [whitelabelAdminUuid, setWhitelabelAdminUuid] = useState('');
+
+  // Fetch whitelabel_admin_uuid when component mounts
+  useEffect(() => {
+    const fetchWhitelabelUuid = async () => {
+      try {
+        const dashboardResponse = await fetch('/api/auth/dashboard-games', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            project_domain: "https://serverhub.biz"
+          })
+        });
+
+        const data = await dashboardResponse.json();
+        if (data.data?.whitelabel_admin_uuid) {
+          setWhitelabelAdminUuid(data.data.whitelabel_admin_uuid);
+        } else {
+          throw new Error('Failed to get whitelabel admin UUID');
+        }
+      } catch (error) {
+        console.error('Error fetching whitelabel UUID:', error);
+        setError('Failed to initialize. Please try again.');
+      }
+    };
+
+    fetchWhitelabelUuid();
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -15,67 +48,27 @@ const ForgotPassword = () => {
     setError('');
     
     try {
-      // Always fetch fresh UUID from dashboard-games
-      const dashboardResponse = await fetch('https://serverhub.biz/users/dashboard-games/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          project_domain: "https://serverhub.biz"
-        })
-      });
-
-      const dashboardData = await dashboardResponse.json();
-      const whitelabel_admin_uuid = dashboardData.data.whitelabel_admin_uuid;
-
-      if (!whitelabel_admin_uuid) {
-        throw new Error('Failed to get required authentication data');
+      if (!whitelabelAdminUuid) {
+        throw new Error('Missing required authentication data');
       }
 
-      // Log the forgot password request payload
-      const forgotPasswordPayload = {
-        email,
-        whitelabel_admin_uuid
-      };
-      console.log('Forgot password request payload:', forgotPasswordPayload);
-
-      const response = await fetch('https://serverhub.biz/users/forgot-password/', {
+      // Make the request through our API route
+      const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(forgotPasswordPayload)
+        credentials: 'include',
+        body: JSON.stringify({
+          email,
+          whitelabel_admin_uuid: whitelabelAdminUuid
+        })
       });
 
-      // Log response status and headers
-      console.log('Forgot password response status:', response.status);
-      console.log('Forgot password response headers:', Object.fromEntries(response.headers.entries()));
-
-      // Get the raw text response
-      const responseText = await response.text();
-      console.log('Raw forgot password response:', responseText);
-
-      // Try to parse it as JSON
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse forgot password response as JSON:', responseText);
-        throw new Error('Server returned an invalid response. Please try again later.');
-      }
+      const data = await response.json();
 
       if (!response.ok) {
-        // Check if the error is in a known format
-        if (data.message) {
-          throw new Error(data.message);
-        } else if (data.detail) {
-          throw new Error(data.detail);
-        } else if (typeof data === 'string') {
-          throw new Error(data);
-        } else {
-          throw new Error('Failed to process request. Please try again later.');
-        }
+        throw new Error(data.error || data.message || data.detail || 'Failed to process request');
       }
 
       setIsSubmitted(true);
