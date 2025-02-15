@@ -136,7 +136,6 @@ export default function DashboardContent() {
 
   useEffect(() => {
     fetchGames();
-    console.log('Initial games fetch');
   }, [fetchGames]);
 
   const handleGameSelect = (game: Game) => {
