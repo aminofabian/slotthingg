@@ -9,7 +9,7 @@ import GameSelectionModal from './GameSelectionModal';
 import { useState, Fragment, useEffect } from 'react';
 import Footer from '../Footer/Footer';
 import { Dialog, Transition } from '@headlessui/react';
-import useGameStore from '@/lib/store/useGameStore';
+import useGameStore, { getDefaultGames } from '@/lib/store/useGameStore';
 import type { Game } from '@/lib/store/useGameStore';
 
 function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: Game }) {
@@ -134,16 +134,24 @@ export default function DashboardContent() {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
 
-  // Debug log when component mounts
+  // Initialize games if empty
+  useEffect(() => {
+    if (!games || games.length === 0) {
+      console.log('No games found, initializing with default games');
+      useGameStore.setState({ games: getDefaultGames() });
+    }
+  }, [games]);
+
+  // Fetch games when component mounts
   useEffect(() => {
     console.log('DashboardContent mounted');
     console.log('Initial games state:', games);
     fetchGames();
-  }, [fetchGames, games]);
+  }, [fetchGames]);
 
   // Debug log when games change
   useEffect(() => {
-    console.log('Games updated:', games);
+    console.log('Games updated:', games?.length || 0, 'games');
   }, [games]);
 
   const handleGameSelect = (game: Game) => {

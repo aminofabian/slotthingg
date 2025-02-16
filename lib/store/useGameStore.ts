@@ -185,10 +185,14 @@ const useGameStore = create<GameStore>()(
         // Ensure games are available after rehydration
         if (!state || !state.games || state.games.length === 0) {
           console.log('No games in storage, using initial games');
-          state = {
-            ...state,
-            games: initialGames
-          };
+          useGameStore.setState({
+            games: initialGames,
+            isLoading: false,
+            error: null,
+            currentBalance: 0,
+            selectedGameId: undefined,
+            errorModalOpen: false
+          });
         }
       }
     }
