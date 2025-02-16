@@ -3,21 +3,38 @@
 import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import Image from 'next/image';
-import type { Game } from '@/lib/store/useGameStore';
+import { FaTimes } from 'react-icons/fa';
 
-interface GameSelectionModalProps {
+// Define the Game type
+export interface Game {
+  id: string;
+  name: string;
+  image: string;
+  gameId: string;
+  entries: number;
+  active: boolean;
+  balance: number;
+  safe?: number;
+  fallbackImage: string;
+}
+
+// Define the component props
+export interface GameSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   games: Game[];
   onSelectGame: (game: Game) => void;
 }
 
+// GameSelectionModal component
 export default function GameSelectionModal({ 
   isOpen, 
   onClose, 
   games,
   onSelectGame 
 }: GameSelectionModalProps) {
+  console.log('GameSelectionModal games:', games); // Debug log
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -53,23 +70,27 @@ export default function GameSelectionModal({
                     onClick={onClose}
                     className="text-[#00ffff]/60 hover:text-[#00ffff] transition-colors"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <FaTimes className="h-6 w-6" />
                   </button>
                 </Dialog.Title>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
-                  {games.map((game) => (
+                <div className="text-white mb-4">
+                  Number of games: {games?.length || 0}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 mt-4">
+                  {games?.map((game) => (
                     <button
                       key={game.id}
                       onClick={() => {
+                        console.log('Selecting game:', game);
                         onSelectGame(game);
                         onClose();
                       }}
-                      className="group relative bg-black/40 rounded-lg overflow-hidden 
-                        border border-[#00ffff]/10 hover:border-[#00ffff]/40 
-                        transition-all duration-300"
+                      className="group relative bg-black/40 rounded-xl overflow-hidden 
+                        border-2 border-[#00ffff]/20 hover:border-[#00ffff] 
+                        transition-all duration-300 shadow-lg hover:shadow-[#00ffff]/20
+                        transform hover:-translate-y-1"
                     >
                       <div className="relative aspect-square">
                         <Image
@@ -79,14 +100,14 @@ export default function GameSelectionModal({
                           className="object-cover object-center transform group-hover:scale-110 transition-transform duration-300"
                           sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
                         />
-                        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300" />
+                        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/80 group-hover:opacity-75 transition-opacity duration-300" />
                       </div>
-                      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                        <h3 className="text-sm font-bold text-white truncate">
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                        <h3 className="text-base font-bold text-white text-center truncate mb-1">
                           {game.name}
                         </h3>
-                        <p className="text-[#00ffff] text-xs mt-1">
-                          ID: {game.gameId}
+                        <p className="text-[#00ffff] text-xs text-center opacity-80">
+                          {game.gameId}
                         </p>
                       </div>
                     </button>
@@ -102,18 +123,6 @@ export default function GameSelectionModal({
                   >
                     Cancel
                   </button>
-                  <button
-                    onClick={() => {
-                      // Add your logic for adding selected game
-                      onClose();
-                    }}
-                    className="px-6 py-2 bg-[#00ffff] text-[#003333] font-bold 
-                      rounded-lg transition-all duration-300
-                      hover:bg-[#7ffdfd] shadow-lg 
-                      hover:shadow-[#00ffff]/20"
-                  >
-                    Add Game
-                  </button>
                 </div>
               </Dialog.Panel>
             </Transition.Child>
@@ -122,4 +131,4 @@ export default function GameSelectionModal({
       </Dialog>
     </Transition>
   );
-} 
+}

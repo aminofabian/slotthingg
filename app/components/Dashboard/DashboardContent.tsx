@@ -134,23 +134,52 @@ export default function DashboardContent() {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
 
+  // Debug log when component mounts
   useEffect(() => {
-    fetchGames();
+    console.log('DashboardContent mounted');
+    fetchGames(); // Fetch games when component mounts
   }, [fetchGames]);
 
-  const handleGameSelect = (game: Game) => {
-    // Handle game selection here
-    console.log('Selected game:', game);
-    // Add your logic to handle the selected game
-  };
+  // Debug log when games change
+  useEffect(() => {
+    console.log('Games updated:', games);
+  }, [games]);
 
-  const handleGameClick = (game: Game) => {
+  const handleGameSelect = (game: Game) => {
+    console.log('Selected game:', game);
     setSelectedGame(game);
     setIsActionModalOpen(true);
+    setIsGameSelectionOpen(false); // Close the selection modal
+  };
+
+  const handleOpenGameSelection = () => {
+    console.log('Opening game selection modal. Current games:', games);
+    setIsGameSelectionOpen(true);
   };
 
   return (
     <div className="min-h-screen w-full mx-auto pb-24 md:pb-6">
+      {/* Add Game Button */}
+      <div className="w-full px-6 py-4">
+        <div className="max-w-[1440px] mx-auto">
+          <button
+            onClick={handleOpenGameSelection}
+            className="relative group overflow-hidden
+              bg-gradient-to-r from-[#00ffff]/80 to-[#00ffff] 
+              hover:from-[#00ffff] hover:to-[#7ffdfd]
+              text-[#003333] font-bold py-3 px-5 rounded-xl
+              transition-all duration-300 flex items-center gap-3
+              shadow-lg shadow-[#00ffff]/20 hover:shadow-[#00ffff]/40
+              border border-[#00ffff]/20 hover:border-[#00ffff]/40
+              transform hover:scale-105"
+          >
+            <SiNintendogamecube className="w-6 h-6" />
+            Add Game
+          </button>
+        </div>
+      </div>
+
+      {/* Game Selection Modal */}
       <GameSelectionModal 
         isOpen={isGameSelectionOpen}
         onClose={() => setIsGameSelectionOpen(false)}
@@ -158,6 +187,7 @@ export default function DashboardContent() {
         onSelectGame={handleGameSelect}
       />
 
+      {/* Game Action Modal */}
       {selectedGame && (
         <GameActionModal
           isOpen={isActionModalOpen}
@@ -233,7 +263,7 @@ export default function DashboardContent() {
               {games.map((game) => (
                 <button
                   key={game.id}
-                  onClick={() => handleGameClick(game)}
+                  onClick={() => handleGameSelect(game)}
                   className="relative bg-gradient-to-br from-gray-900 via-black to-gray-900 
                     rounded-xl overflow-hidden shadow-lg border border-[#7ffdfd]/20
                     hover:border-[#7ffdfd]/40 transition-all duration-300

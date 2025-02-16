@@ -29,10 +29,63 @@ interface GameStoreActions {
 
 type GameStore = GameStoreState & GameStoreActions;
 
+const initialGames: Game[] = [
+  {
+    id: '1',
+    name: 'Vblink',
+    image: '/games/vblink.png',
+    gameId: 'vblink_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    fallbackImage: '/games/vblink.png'
+  },
+  {
+    id: '2',
+    name: 'Golden Treasure',
+    image: '/games/golden-treasure.png',
+    gameId: 'golden_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    fallbackImage: '/games/golden-treasure.png'
+  },
+  {
+    id: '3',
+    name: 'Egames',
+    image: '/games/egames.png',
+    gameId: 'egames_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    fallbackImage: '/games/egames.png'
+  },
+  {
+    id: '4',
+    name: 'Milky Way',
+    image: '/games/milky-way.png',
+    gameId: 'milky_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    fallbackImage: '/games/milky-way.png'
+  },
+  {
+    id: '5',
+    name: 'Juwa',
+    image: '/games/juwa.png',
+    gameId: 'juwa_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    fallbackImage: '/games/juwa.png'
+  }
+];
+
 const useGameStore = create<GameStore>()(
   persist(
     (set, get) => ({
-      games: [],
+      games: initialGames, // Initialize with games immediately
       isLoading: false,
       error: null,
       currentBalance: 0,
@@ -58,8 +111,9 @@ const useGameStore = create<GameStore>()(
           console.log('Auth token:', authToken.length > 0 ? '***' : 'empty');
 
           if (!authToken) {
-            set({ games: [], error: null }); // Clear games on logout
-            return; // Exit quietly without error
+            console.log('No auth token, using initial games');
+            set({ isLoading: false, error: null });
+            return;
           }
           
           const response = await fetch('https://serverhub.biz/games/list', {
@@ -70,70 +124,34 @@ const useGameStore = create<GameStore>()(
             },
             credentials: 'include'
           });
-          console.log('API Status:', response.status);
 
-          if (response.status === 401 || response.status === 403) {
-            throw new Error('Authentication failed. Please login again.');
-          }
-
-          // Check content type before trying to parse JSON
-          const contentType = response.headers.get('content-type');
-          if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Invalid response from server');
+          if (!response.ok) {
+            throw new Error('Failed to fetch games from server');
           }
 
           const result = await response.json();
-
-          console.groupCollapsed('[DEBUG] API Response Analysis');
-          console.log('Full response:', JSON.stringify(result, null, 2));
-          console.log('Response data type:', typeof result.data);
-          console.log('Games array:', result.data?.games);
-          console.log('Game balances:', result.data?.game_balance);
-          console.log('User games:', result.data?.user_games);
-          console.groupEnd();
-
-          if (!result.data?.games) {
-            console.error('Critical Error: API response missing games array');
-            set({ games: [], error: 'Server response format invalid' });
-            return;
+          
+          if (result.data?.games) {
+            set({ 
+              games: result.data.games,
+              isLoading: false,
+              error: null
+            });
           }
-
-          if (!response.ok) {
-            throw new Error(result.message || result.error || 'Failed to fetch games');
-          }
-
-          const apiGames = result.data.games.map((name: string, index: number) => {
-            console.log(`Processing game ${index}: ${name}`);
-            const balance = result.data.game_balance[name] ?? 0;
-            if (!result.data.game_balance[name]) {
-              console.warn('Missing balance for game:', name);
-            }
-            return {
-              id: index + 1,
-              name: name.trim(),
-              image: `/gameimages/${name.toLowerCase().replace(/\s+/g, '-')}.png`,
-              gameId: btoa(name).replace(/=/g, ''),
-              entries: result.data.entries?.[name] || 0,
-              active: result.data.user_games.includes(name),
-              balance,
-              fallbackImage: '/gameimages/default.png'
-            };
-          });
-
-          set({ games: apiGames });
         } catch (error) {
-          set({ error: error instanceof Error ? error.message : 'Failed to fetch games' });
-        } finally {
-          set({ isLoading: false });
+          console.error('Error fetching games:', error);
+          // Keep using initial games on error
+          set({ 
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to fetch games'
+          });
         }
       },
 
       updateGameBalance: (gameName: string, balance: number) => {
-        const normalizedName = gameName.trim().toLowerCase();
-        const updatedGames = get().games.map(game => 
-          game.name.trim().toLowerCase() === normalizedName
-            ? { ...game, balance }
-            : game
+        const { games } = get();
+        const updatedGames = games.map(game => 
+          game.name === gameName ? { ...game, balance } : game
         );
         set({ games: updatedGames });
       }
@@ -142,8 +160,8 @@ const useGameStore = create<GameStore>()(
       name: 'game-store',
       partialize: (state) => ({
         games: state.games,
-        isLoading: state.isLoading,
-        error: state.error
+        currentBalance: state.currentBalance,
+        selectedGameId: state.selectedGameId
       })
     }
   )
