@@ -129,30 +129,25 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
 }
 
 export default function DashboardContent() {
-  const { games, fetchGames } = useGameStore();
+  const { games, fetchGames, isLoading } = useGameStore();
   const [isGameSelectionOpen, setIsGameSelectionOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
 
-  // Initialize games if empty
-  useEffect(() => {
-    if (!games || games.length === 0) {
-      console.log('No games found, initializing with default games');
-      useGameStore.setState({ games: getDefaultGames() });
-    }
-  }, [games]);
-
   // Fetch games when component mounts
   useEffect(() => {
-    console.log('DashboardContent mounted');
-    console.log('Initial games state:', games);
+    console.log('DashboardContent mounted, fetching games...');
     fetchGames();
   }, [fetchGames]);
 
   // Debug log when games change
   useEffect(() => {
-    console.log('Games updated:', games?.length || 0, 'games');
+    console.log('Games state updated:', games);
   }, [games]);
+
+  if (isLoading) {
+    return <div className="text-white text-center py-8">Loading games...</div>;
+  }
 
   const handleGameSelect = (game: Game) => {
     console.log('Selected game:', game);

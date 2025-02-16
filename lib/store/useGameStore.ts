@@ -94,72 +94,118 @@ const useGameStore = create<GameStore>()(
 
       fetchGames: async () => {
         try {
+          console.log('Fetching games...');
           set({ isLoading: true, error: null });
           
-          // Client-side only cookie access
-          const accessToken = typeof window !== 'undefined' ? document.cookie
-            .split('; ')
-            .find(row => row.startsWith('access_token='))
-            ?.split('=')[1] : null;
-          
-          const token = typeof window !== 'undefined' ? document.cookie
+          // Simple cookie parsing
+          const token = document.cookie
             .split('; ')
             .find(row => row.startsWith('token='))
-            ?.split('=')[1] : null;
+            ?.split('=')[1];
 
-          const authToken = decodeURIComponent(accessToken || token || '');
-          console.log('Auth token:', authToken.length > 0 ? '***' : 'empty');
-
-          if (!authToken) {
-            console.log('No auth token, using initial games');
+          console.log('Auth check:', {
+            hasCookie: !!token,
+            cookieString: document.cookie
+          });
+          
+          if (!token) {
+            console.error('No token found in cookies. Available cookies:', document.cookie);
             set({ 
               games: initialGames,  
               isLoading: false, 
-              error: null 
+              error: 'Authentication token not found. Please log in again.'
             });
             return;
           }
-          
+
+          console.log('Using auth token:', token.substring(0, 10) + '...');
+
           const response = await fetch('https://serverhub.biz/games/list', {
+            method: 'GET',
             headers: {
-              'Authorization': `Bearer ${authToken}`,
+              'Authorization': `Bearer ${token}`,
               'Accept': 'application/json',
               'Content-Type': 'application/json'
             },
-            credentials: 'include'
+            mode: 'cors',
+            cache: 'no-store'
           });
 
           if (!response.ok) {
-            console.log('API error, using initial games');
-            set({ 
-              games: initialGames,  
-              isLoading: false,
-              error: 'Failed to fetch games from server'
-            });
-            return;
+            throw new Error(`API error: ${response.status} ${response.statusText}`);
           }
 
           const result = await response.json();
-          
-          if (result.data?.games) {
-            set({ 
-              games: result.data.games,
-              isLoading: false,
-              error: null
-            });
-          } else {
-            console.log('No games in API response, using initial games');
-            set({ 
-              games: initialGames,  
-              isLoading: false,
-              error: null
-            });
+          console.log('API Response:', JSON.stringify(result, null, 2));
+
+          if (result.status !== 'success' || !result.data?.games) {
+            throw new Error('Invalid API response format');
           }
+
+          // Log the game balance data specifically
+          console.log('Game balances from API:', {
+            rawBalances: result.data.game_balance,
+            gameNames: Object.keys(result.data.game_balance)
+          });
+
+          type GameName = 'Vblink' | 'Golden Treasure' | 'Egames' | 'Milky Way' | 'Juwa';
+          const gameNameMapping: { [K in GameName]: string } = {
+            'Vblink': 'Vblink',
+            'Golden Treasure': 'Golden Dragon',
+            'Egames': 'E-Game',
+            'Milky Way': 'Milkyway',
+            'Juwa': 'Juwa'
+          };
+
+          const transformedGames = initialGames.map(game => {
+            const apiGameName = gameNameMapping[game.name as GameName];
+            console.log(`Mapping game "${game.name}" to API name "${apiGameName}"`);
+
+            if (!apiGameName) {
+              console.warn(`No API mapping for game: ${game.name}`);
+              return game;
+            }
+
+            const balance = result.data.game_balance[apiGameName];
+            console.log(`Balance for ${apiGameName}:`, {
+              rawBalance: balance,
+              parsed: balance !== undefined ? parseFloat(balance) : 'undefined',
+              availableBalances: Object.keys(result.data.game_balance).join(', ')
+            });
+
+            if (balance === undefined) {
+              console.warn(`No balance found for game: ${apiGameName}. Available games: ${Object.keys(result.data.game_balance).join(', ')}`);
+              return game;
+            }
+
+            const parsedBalance = parseFloat(balance);
+            if (isNaN(parsedBalance)) {
+              console.warn(`Invalid balance value for game ${apiGameName}: ${balance}`);
+              return game;
+            }
+
+            return {
+              ...game,
+              balance: parsedBalance
+            };
+          });
+
+          console.log('Final transformed games:', transformedGames.map(g => ({
+            name: g.name,
+            apiName: gameNameMapping[g.name as GameName],
+            balance: g.balance,
+            rawBalance: result.data.game_balance[gameNameMapping[g.name as GameName]]
+          })));
+
+          set({ 
+            games: transformedGames,
+            isLoading: false,
+            error: null
+          });
         } catch (error) {
           console.error('Error fetching games:', error);
-          // Keep using initial games on error
           set({ 
-            games: initialGames,  
+            games: initialGames,
             isLoading: false,
             error: error instanceof Error ? error.message : 'Failed to fetch games'
           });
@@ -177,22 +223,13 @@ const useGameStore = create<GameStore>()(
     {
       name: 'game-store',
       partialize: (state) => ({
-        games: state.games,
-        currentBalance: state.currentBalance,
         selectedGameId: state.selectedGameId
       }),
       onRehydrateStorage: () => (state) => {
-        // Ensure games are available after rehydration
-        if (!state || !state.games || state.games.length === 0) {
-          console.log('No games in storage, using initial games');
-          useGameStore.setState({
-            games: initialGames,
-            isLoading: false,
-            error: null,
-            currentBalance: 0,
-            selectedGameId: undefined,
-            errorModalOpen: false
-          });
+        // Force fetch games on rehydration
+        if (state) {
+          console.log('Store rehydrated, fetching fresh games...');
+          state.fetchGames();
         }
       }
     }

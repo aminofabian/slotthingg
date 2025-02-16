@@ -28,6 +28,18 @@ export async function POST(request: Request) {
       );
     }
 
+    console.log('Login response data:', {
+      success: true,
+      auth_token: data.auth_token ? {
+        access: data.auth_token.access ? data.auth_token.access.substring(0, 10) + '...' : 'missing',
+        type: typeof data.auth_token
+      } : 'missing',
+      user: {
+        id: data.pk,
+        username: data.username
+      }
+    });
+
     // Create response with user data
     const responseData = {
       success: true,
@@ -42,11 +54,25 @@ export async function POST(request: Request) {
     // Create response object
     const response = NextResponse.json(responseData);
     
-    // Set the auth token in an HTTP-only cookie
-    response.headers.set(
-      'Set-Cookie',
-      `token=${data.auth_token.access}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${7 * 24 * 60 * 60}`
-    );
+    if (!data.auth_token?.access) {
+      console.error('No access token in login response:', data);
+      return NextResponse.json(
+        { error: 'No access token received' },
+        { status: 500 }
+      );
+    }
+
+    // Set the auth token cookie with client-accessible settings
+    const cookieValue = data.auth_token.access;
+    const cookieString = `token=${cookieValue}; Path=/; Max-Age=604800; SameSite=Lax`;
+
+    // Set cookie using headers for better client-side accessibility
+    response.headers.set('Set-Cookie', cookieString);
+
+    console.log('Setting auth token cookie:', {
+      value: cookieValue.substring(0, 10) + '...',
+      header: cookieString.substring(0, 50) + '...'
+    });
 
     return response;
   } catch (error) {
