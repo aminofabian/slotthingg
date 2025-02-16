@@ -26,11 +26,12 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // Protected routes
-    ...PROTECTED_ROUTES.map(route => 
-      route.endsWith('*') ? route : `${route}/:path*`
-    ),
+    '/dashboard/:path*',
+    '/profile/:path*',
+    '/settings/:path*',
+    '/games/:path*',
     // Auth routes
     '/login',
     '/signup'
   ]
-} 
+}

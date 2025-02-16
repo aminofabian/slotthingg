@@ -7,6 +7,7 @@ import { generateUsername } from './utils';
 interface SignupResponse {
   email: string;
   username: string;
+  whitelabel_admin_uuid: string;
 }
 
 interface VerifyOTPResponse {
@@ -14,17 +15,26 @@ interface VerifyOTPResponse {
   message: string;
 }
 
+interface DashboardResponse {
+  data: {
+    logo: string;
+    maintenance_mode: boolean;
+    whitelabel_admin_uuid: string;
+    project_name: string;
+  }
+}
+
 /**
  * Initiates the signup process by requesting an OTP
  */
-export async function signupUser(email: string, username: string): Promise<SignupResponse> {
-  const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
-  
+export async function signupUser(email: string, username: string, whitelabel_admin_uuid: string): Promise<SignupResponse> {
   if (!whitelabel_admin_uuid) {
     throw new Error('Missing whitelabel admin UUID');
   }
 
   try {
+    console.log('Attempting signup with UUID:', whitelabel_admin_uuid);
+    
     const response = await fetch('https://serverhub.biz/users/otp-signup/', {
       method: 'POST',
       headers: {
@@ -33,25 +43,28 @@ export async function signupUser(email: string, username: string): Promise<Signu
       body: JSON.stringify({
         username,
         whitelabel_admin_uuid,
-        email
+        email,
+        project_url: window.location.origin
       })
     });
 
     const data = await response.json();
+    console.log('Signup response:', {
+      status: response.status,
+      statusText: response.statusText,
+      data,
+      sentUUID: whitelabel_admin_uuid
+    });
 
     if (!response.ok) {
-      if (data.email?.[0]?.includes('already exists')) {
-        throw new Error('This email is already registered. Please try logging in instead.');
-      }
-      if (data.username?.[0]?.includes('already exists')) {
-        throw new Error('This username is already taken. Please choose another one.');
-      }
-      throw new Error(data.message || data.detail || 'Failed to send OTP');
+      console.error('Signup failed:', data);
+      throw new Error(JSON.stringify(data));
     }
 
     return {
       email,
-      username
+      username,
+      whitelabel_admin_uuid
     };
   } catch (error) {
     console.error('Error during signup:', error);
@@ -131,4 +144,79 @@ export async function verifyOTP(data: {
     console.error('Full error details:', error);
     throw error;
   }
-} 
+}
+
+/**
+ * Fetches dashboard data including whitelabel admin UUID
+ */
+export async function fetchDashboardData(): Promise<string> {
+  try {
+    console.log('Fetching dashboard data...');
+    const project_url = window.location.origin;
+    
+    const response = await fetch('https://serverhub.biz/users/dashboard-games/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        project_url
+      })
+    });
+
+    const data: DashboardResponse = await response.json();
+    console.log('Dashboard response:', data);
+
+    if (!response.ok) {
+      console.error('Failed to fetch dashboard data:', data);
+      throw new Error('Failed to fetch dashboard data');
+    }
+
+    if (!data.data?.whitelabel_admin_uuid) {
+      throw new Error('No whitelabel admin UUID in response');
+    }
+
+    // Store the UUID in localStorage
+    localStorage.setItem('whitelabel_admin_uuid', data.data.whitelabel_admin_uuid);
+    console.log('Stored UUID in localStorage:', data.data.whitelabel_admin_uuid);
+    return data.data.whitelabel_admin_uuid;
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generates and stores the whitelabel admin UUID
+ */
+export async function generateWhitelabelUUID(project_url: string): Promise<string> {
+  try {
+    console.log('Generating whitelabel UUID for project URL:', project_url);
+    
+    const response = await fetch('https://serverhub.biz/admin/generate-uuid/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        project_url
+      })
+    });
+
+    const data = await response.json();
+    console.log('Generate UUID response:', data);
+
+    if (!response.ok) {
+      console.error('Failed to generate UUID:', data);
+      throw new Error(data.message || data.detail || 'Failed to generate whitelabel admin UUID');
+    }
+
+    // Store the UUID in localStorage
+    localStorage.setItem('whitelabel_admin_uuid', data.whitelabel_admin_uuid);
+    console.log('Stored UUID in localStorage:', data.whitelabel_admin_uuid);
+    return data.whitelabel_admin_uuid;
+  } catch (error) {
+    console.error('Error generating whitelabel UUID:', error);
+    throw error;
+  }
+}

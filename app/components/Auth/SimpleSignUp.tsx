@@ -5,8 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { signupUser } from '@/app/lib/auth';
-import { useState } from 'react';
+import { signupUser, fetchDashboardData } from '@/app/lib/auth';
+import { useState, useEffect } from 'react';
 import OTPSignupModal from './OTPSignupModal';
 import Logo from '../Logo/Logo';
 import { UserCircleIcon, ArrowRightIcon } from 'lucide-react';
@@ -28,7 +28,36 @@ type SignupFormData = z.infer<typeof signupSchema>;
 
 export default function SimpleSignUp() {
   const [isOTPModalOpen, setIsOTPModalOpen] = useState(false);
-  const [signupData, setSignupData] = useState<{ email: string; username: string } | null>(null);
+  const [signupData, setSignupData] = useState<{ email: string; username: string; whitelabel_admin_uuid: string } | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    const initializeWhitelabelUUID = async () => {
+      try {
+        let existingUUID = localStorage.getItem('whitelabel_admin_uuid');
+        console.log('Checking for existing UUID:', existingUUID);
+
+        if (!existingUUID) {
+          console.log('No existing UUID, setting default UUID');
+          existingUUID = 'c0945d59-d796-402d-8bb5-d1b2029b9eea';
+          localStorage.setItem('whitelabel_admin_uuid', existingUUID);
+        }
+
+        if (existingUUID) {
+          console.log('UUID is available:', existingUUID);
+          setIsInitialized(true);
+        } else {
+          console.error('Failed to initialize UUID');
+          toast.error('Failed to initialize application. Please refresh the page.');
+        }
+      } catch (error) {
+        console.error('Error during UUID initialization:', error);
+        toast.error('Failed to initialize application. Please try again.');
+      }
+    };
+
+    initializeWhitelabelUUID();
+  }, []);
 
   const {
     register,
@@ -41,22 +70,34 @@ export default function SimpleSignUp() {
 
   const signupMutation = useMutation({
     mutationFn: async (data: SignupFormData) => {
-      const result = await signupUser(data.email, data.username);
-      console.log('Signup Response:', result);  // Debug log
-      return result;
+      if (!isInitialized) {
+        throw new Error('Application not properly initialized. Please wait.');
+      }
+
+      const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
+      console.log('Retrieved UUID for signup:', whitelabel_admin_uuid);
+      
+      if (!whitelabel_admin_uuid) {
+        throw new Error('Application not properly initialized. Please refresh the page.');
+      }
+
+      const result = await signupUser(data.email, data.username, whitelabel_admin_uuid);
+      return { ...result, whitelabel_admin_uuid };
     },
     onSuccess: (data) => {
       reset();
-      console.log('Setting signup data:', data);  // Debug log
+      console.log('Setting signup data:', data);
       setSignupData({
         email: data.email,
-        username: data.username
+        username: data.username,
+        whitelabel_admin_uuid: data.whitelabel_admin_uuid
       });
       toast.success('OTP has been sent to your email!', { duration: 5000 });
       setIsOTPModalOpen(true);
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to send OTP');
+      console.error('Detailed signup error:', error);
+      toast.error(error.message || 'Failed to send OTP. Please try again.');
     },
   });
 
