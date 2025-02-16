@@ -85,7 +85,7 @@ const initialGames: Game[] = [
 const useGameStore = create<GameStore>()(
   persist(
     (set, get) => ({
-      games: initialGames, // Initialize with games immediately
+      games: initialGames,
       isLoading: false,
       error: null,
       currentBalance: 0,
@@ -112,7 +112,11 @@ const useGameStore = create<GameStore>()(
 
           if (!authToken) {
             console.log('No auth token, using initial games');
-            set({ isLoading: false, error: null });
+            set({ 
+              games: initialGames,  
+              isLoading: false, 
+              error: null 
+            });
             return;
           }
           
@@ -126,7 +130,13 @@ const useGameStore = create<GameStore>()(
           });
 
           if (!response.ok) {
-            throw new Error('Failed to fetch games from server');
+            console.log('API error, using initial games');
+            set({ 
+              games: initialGames,  
+              isLoading: false,
+              error: 'Failed to fetch games from server'
+            });
+            return;
           }
 
           const result = await response.json();
@@ -137,11 +147,19 @@ const useGameStore = create<GameStore>()(
               isLoading: false,
               error: null
             });
+          } else {
+            console.log('No games in API response, using initial games');
+            set({ 
+              games: initialGames,  
+              isLoading: false,
+              error: null
+            });
           }
         } catch (error) {
           console.error('Error fetching games:', error);
           // Keep using initial games on error
           set({ 
+            games: initialGames,  
             isLoading: false,
             error: error instanceof Error ? error.message : 'Failed to fetch games'
           });
@@ -162,9 +180,21 @@ const useGameStore = create<GameStore>()(
         games: state.games,
         currentBalance: state.currentBalance,
         selectedGameId: state.selectedGameId
-      })
+      }),
+      onRehydrateStorage: () => (state) => {
+        // Ensure games are available after rehydration
+        if (!state || !state.games || state.games.length === 0) {
+          console.log('No games in storage, using initial games');
+          state = {
+            ...state,
+            games: initialGames
+          };
+        }
+      }
     }
   )
 );
+
+export const getDefaultGames = () => initialGames;
 
 export default useGameStore;

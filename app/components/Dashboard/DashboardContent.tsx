@@ -137,8 +137,9 @@ export default function DashboardContent() {
   // Debug log when component mounts
   useEffect(() => {
     console.log('DashboardContent mounted');
-    fetchGames(); // Fetch games when component mounts
-  }, [fetchGames]);
+    console.log('Initial games state:', games);
+    fetchGames();
+  }, [fetchGames, games]);
 
   // Debug log when games change
   useEffect(() => {
