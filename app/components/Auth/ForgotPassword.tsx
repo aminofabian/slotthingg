@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Logo from '../Logo/Logo';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import Modal from '../Modal';
 
 const ForgotPassword = () => {
   const router = useRouter();
@@ -11,6 +12,7 @@ const ForgotPassword = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [whitelabelAdminUuid, setWhitelabelAdminUuid] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Fetch whitelabel_admin_uuid when component mounts
   useEffect(() => {
@@ -72,6 +74,7 @@ const ForgotPassword = () => {
       }
 
       setIsSubmitted(true);
+      setShowSuccessModal(true);
     } catch (error) {
       console.error('Error:', error);
       setError(error instanceof Error ? error.message : 'An unexpected error occurred');
@@ -188,26 +191,7 @@ const ForgotPassword = () => {
                     </span>
                   </button>
                 </form>
-              ) : (
-                <motion.div 
-                  className="mt-10 text-center space-y-4"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <div className="w-16 h-16 mx-auto bg-[#00ffff]/10 rounded-full flex items-center justify-center">
-                    <svg className="w-8 h-8 text-[#00ffff]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <p className="text-white/90 tracking-wide">
-                    Check your email for password reset instructions
-                  </p>
-                  <p className="text-white/50 text-sm tracking-wide">
-                    If you don't see the email, check your spam folder
-                  </p>
-                </motion.div>
-              )}
+              ) : null}
 
               <div className="mt-8 text-center">
                 <a href="/login" 
@@ -220,6 +204,36 @@ const ForgotPassword = () => {
           </motion.div>
         </motion.div>
       </div>
+
+      <Modal isOpen={showSuccessModal} onClose={() => setShowSuccessModal(false)}>
+        <div className="p-8 text-center space-y-6">
+          <div className="w-16 h-16 mx-auto bg-[#00ffff]/10 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-[#00ffff]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-[#00ffff] text-xl font-light tracking-[0.2em] uppercase">
+              Check Your Email
+            </h3>
+            <p className="text-white/90 tracking-wide">
+              We've sent password reset instructions to your email
+            </p>
+            <p className="text-white/50 text-sm tracking-wide">
+              If you don't see the email, check your spam folder
+            </p>
+          </div>
+          <button
+            onClick={() => setShowSuccessModal(false)}
+            className="w-full rounded-xl border border-[#00ffff]/20
+              bg-[#00ffff]/10 px-6 py-4 text-[#00ffff] tracking-[0.2em] uppercase
+              hover:bg-[#00ffff]/20 focus:outline-none focus:ring-2 
+              focus:ring-[#00ffff]/50 transition-all duration-300"
+          >
+            Close
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };
