@@ -73,7 +73,7 @@ const Navbar = () => {
         { label: 'Main Balance', value: '$0', icon: BiMoney, type: 'stat' },
         { label: 'In-Game Balance', value: '$0', icon: GiTakeMyMoney, type: 'stat' },
         { label: 'Cashable Balance', value: '$0', icon: BiMoney, type: 'stat' },
-        { label: 'Safe Balance', value: '$0', icon: BiMoney, type: 'stat' },
+        { label: 'Safe Balance', value: '$0', icon: GiDiamonds, type: 'stat' },
       ]
     },
     {
@@ -89,7 +89,6 @@ const Navbar = () => {
       items: [
         { label: 'Profile', icon: BiUser, type: 'link', href: '/dashboard/profile' },
         { label: 'History', icon: BiHistory, type: 'link', href: '/dashboard/history' },
-        { label: 'Marketplace', icon: FaStore, type: 'link', href: '/dashboard/marketplace' },
       ]
     }
   ];
