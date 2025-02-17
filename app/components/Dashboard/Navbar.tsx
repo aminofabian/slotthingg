@@ -19,7 +19,7 @@ type UserInfo = {
 type StatMenuItem = {
   label: string;
   value: string;
-  icon: typeof BiMoney | typeof GiTakeMyMoney | typeof GiDiamonds | typeof GiStarsStack;
+  icon: typeof BiMoney | typeof GiTakeMyMoney;
   type: 'stat';
 };
 
@@ -70,10 +70,10 @@ const Navbar = () => {
     {
       title: 'Stats',
       items: [
-        { label: 'Balance', value: '$0', icon: BiMoney, type: 'stat' },
-        { label: 'In games', value: '$0', icon: GiTakeMyMoney, type: 'stat' },
-        { label: 'Diamonds', value: '0', icon: GiDiamonds, type: 'stat' },
-        { label: 'XP', value: '500', icon: GiStarsStack, type: 'stat' },
+        { label: 'Main Balance', value: '$0', icon: BiMoney, type: 'stat' },
+        { label: 'In-Game Balance', value: '$0', icon: GiTakeMyMoney, type: 'stat' },
+        { label: 'Cashable Balance', value: '$0', icon: BiMoney, type: 'stat' },
+        { label: 'Safe Balance', value: '$0', icon: BiMoney, type: 'stat' },
       ]
     },
     {
