@@ -11,7 +11,7 @@ export async function POST(request: Request) {
 
     console.log('Request payload:', { email, whitelabel_admin_uuid, hasToken: !!token });
 
-    const response = await fetch('https://serverhub.biz/users/forgot-password/', {
+    const response = await fetch('https://serverhub.biz/users/forgot-password', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
