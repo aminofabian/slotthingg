@@ -11,6 +11,8 @@ export interface Game {
   balance: number;
   safe?: number;
   fallbackImage: string;
+  username: string;
+  password: string;
 }
 
 interface GameStoreState {
@@ -39,6 +41,8 @@ const initialGames: Game[] = [
     entries: 0,
     active: true,
     balance: 0,
+    username: 'user_vblink',
+    password: '********',
     fallbackImage: '/games/vblink.png'
   },
   {
@@ -49,6 +53,9 @@ const initialGames: Game[] = [
     entries: 0,
     active: true,
     balance: 0,
+    username: 'user_golden',
+    password: '********',
+    safe: 0,
     fallbackImage: '/games/golden-treasure.png'
   },
   {
@@ -59,6 +66,8 @@ const initialGames: Game[] = [
     entries: 0,
     active: true,
     balance: 0,
+    username: 'user_egames',
+    password: '********',
     fallbackImage: '/games/egames.png'
   },
   {
@@ -69,6 +78,9 @@ const initialGames: Game[] = [
     entries: 0,
     active: true,
     balance: 0,
+    username: 'user_milky',
+    password: '********',
+    safe: 0,
     fallbackImage: '/games/milky-way.png'
   },
   {
@@ -79,6 +91,8 @@ const initialGames: Game[] = [
     entries: 0,
     active: true,
     balance: 0,
+    username: 'user_juwa',
+    password: '********',
     fallbackImage: '/games/juwa.png'
   }
 ];

@@ -4,19 +4,7 @@ import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import Image from 'next/image';
 import { FaTimes } from 'react-icons/fa';
-
-// Define the Game type
-export interface Game {
-  id: string;
-  name: string;
-  image: string;
-  gameId: string;
-  entries: number;
-  active: boolean;
-  balance: number;
-  safe?: number;
-  fallbackImage: string;
-}
+import type { Game } from '@/lib/store/useGameStore';
 
 // Define the component props
 export interface GameSelectionModalProps {
