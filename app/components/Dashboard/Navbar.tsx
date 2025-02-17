@@ -161,11 +161,11 @@ const Navbar = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[#00ffff] font-medium">{userInfo.username}</span>
-                  <span className="text-xs text-white/60 px-2 py-1 rounded-full bg-[#00ffff]/10 capitalize">
+                  <span className="text-[0.7rem] text-white/60 px-2 py-1 rounded-full bg-[#00ffff]/10 capitalize">
                     {userInfo.role}
                   </span>
                 </div>
-                <div className="text-xs text-white/40 space-y-1">
+                <div className="text-[0.6rem] text-white/40 space-y-1">
                   <div className="flex justify-between">
                     <span>ID:</span>
                     <span className="text-white/60">{userInfo.userId}</span>
@@ -183,7 +183,7 @@ const Navbar = () => {
           <div className="p-6 flex-1">
             {menuGroups.map((group, groupIndex) => (
               <div key={groupIndex} className="mb-10">
-                <h3 className={`text-sm font-bold text-white/90 uppercase tracking-widest mb-4 px-2 flex items-center`}>
+                <h3 className={`text-[0.6rem] font-bold text-white/90 uppercase tracking-widest mb-4 px-2 flex items-center`}>
                   <span className="inline-block w-8 h-[1px] bg-gradient-to-r from-[#00ffff] to-transparent mr-2" />
                   {group.title}
                 </h3>
@@ -205,10 +205,10 @@ const Navbar = () => {
                           </div>
                           
                           {/* Label */}
-                          <span className="text-sm text-white/70 mb-1">{item.label}</span>
+                          <span className="text-[0.6rem] text-white/70 mb-1">{item.label}</span>
                           
                           {/* Value */}
-                          <span className="text-lg font-bold text-white group-hover:text-[#00ffff] 
+                          <span className="text-sm font-bold text-white group-hover:text-[#00ffff] 
                             transition-colors duration-300">{item.value}</span>
                         </div>
                       ) : item.type === 'link' && item.href ? (
@@ -229,7 +229,7 @@ const Navbar = () => {
                           }`}>
                             <item.icon className="text-2xl sm:text-3xl" />
                           </div>
-                          <span className="text-lg relative z-10">{item.label}</span>
+                          <span className="text-sm relative z-10">{item.label}</span>
                           {pathname === item.href && (
                             <span className="absolute right-2 top-1/2 -translate-y-1/2 w-1 h-8 
                               bg-gradient-to-b from-[#00ffff] to-[#009999] rounded-full" />
@@ -264,7 +264,7 @@ const Navbar = () => {
                   <BiLogOut className="text-2xl sm:text-3xl" />
                 )}
               </div>
-              <span className="text-lg">
+              <span className="text-sm">
                 {isLoggingOut ? 'Logging out...' : 'Logout'}
               </span>
             </button>
@@ -283,7 +283,7 @@ const Navbar = () => {
                 className={`flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 text-[#7ffdfd]/70 hover:text-[#7ffdfd] transition-colors`}
               >
                 <item.icon className="w-5 h-5" />
-                <span className="text-xs whitespace-nowrap">{item.label}</span>
+                <span className="text-[0.6rem] whitespace-nowrap">{item.label}</span>
               </Link>
             ))}
             {/* Mobile Logout Button */}
@@ -300,7 +300,7 @@ const Navbar = () => {
               ) : (
                 <BiLogOut className="w-5 h-5" />
               )}
-              <span className="text-xs whitespace-nowrap">
+              <span className="text-[0.6rem] whitespace-nowrap">
                 {isLoggingOut ? 'Logging out...' : 'Logout'}
               </span>
             </button>
