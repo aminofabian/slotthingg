@@ -133,6 +133,7 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
     // Fetch the UUID from local storage when the component mounts
     const uuid = localStorage.getItem('whitelabel_admin_uuid');
     if (uuid) {
+      console.log('Retrieved UUID from local storage:', uuid);
       setWhitelabelAdminUUID(uuid);
     } else {
       console.error('Whitelabel Admin UUID not found in local storage');

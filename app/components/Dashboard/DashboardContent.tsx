@@ -13,6 +13,8 @@ import useGameStore, { getDefaultGames } from '@/lib/store/useGameStore';
 import type { Game } from '@/lib/store/useGameStore';
 
 function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: Game }) {
+  const { isRefreshing } = useGameStore();
+  
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -54,7 +56,12 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
                   </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-bold text-white mb-1">{game.name}</h3>
-                    <p className="text-[#7ffdfd] text-sm">Balance: ${game.balance}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[#7ffdfd] text-sm">Balance: ${game.balance}</p>
+                      {isRefreshing && (
+                        <div className="animate-spin w-4 h-4 border-2 border-[#7ffdfd] border-t-transparent rounded-full" />
+                      )}
+                    </div>
                   </div>
                   <button 
                     onClick={onClose}
@@ -68,19 +75,27 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
                 <div className="space-y-4">
                   {/* Add/Take Buttons */}
                   <div className="grid grid-cols-2 gap-4">
-                    <button className="flex items-center justify-center gap-2 p-4
-                      bg-[#6f42c1] text-white rounded-xl text-lg font-medium
-                      hover:bg-[#6f42c1]/80 transition-all duration-300
-                      border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40">
+                    <button 
+                      disabled={isRefreshing}
+                      className="flex items-center justify-center gap-2 p-4
+                        bg-[#6f42c1] text-white rounded-xl text-lg font-medium
+                        hover:bg-[#6f42c1]/80 transition-all duration-300
+                        border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40
+                        disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
                       </svg>
                       Add Funds
                     </button>
-                    <button className="flex items-center justify-center gap-2 p-4
-                      bg-[#fd7e14] text-white rounded-xl text-lg font-medium
-                      hover:bg-[#fd7e14]/80 transition-all duration-300
-                      border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40">
+                    <button 
+                      disabled={isRefreshing}
+                      className="flex items-center justify-center gap-2 p-4
+                        bg-[#fd7e14] text-white rounded-xl text-lg font-medium
+                        hover:bg-[#fd7e14]/80 transition-all duration-300
+                        border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40
+                        disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -89,20 +104,15 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
                   </div>
 
                   {/* Utility Buttons */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <button className="flex items-center justify-center gap-2 p-4
-                      text-[#7ffdfd] text-lg font-medium rounded-xl
-                      border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40
-                      hover:bg-[#7ffdfd]/5 transition-all duration-300">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      Refresh
-                    </button>
-                    <button className="flex items-center justify-center gap-2 p-4
-                      text-[#7ffdfd] text-lg font-medium rounded-xl
-                      border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40
-                      hover:bg-[#7ffdfd]/5 transition-all duration-300">
+                  <div className="grid grid-cols-1 gap-4">
+                    <button 
+                      disabled={isRefreshing}
+                      className="flex items-center justify-center gap-2 p-4
+                        text-[#7ffdfd] text-lg font-medium rounded-xl
+                        border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40
+                        hover:bg-[#7ffdfd]/5 transition-all duration-300
+                        disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
@@ -111,10 +121,14 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
                   </div>
 
                   {/* Play Button */}
-                  <button className="w-full p-4 bg-gradient-to-r from-[#7ffdfd]/20 to-[#7ffdfd]/10
-                    text-[#7ffdfd] rounded-xl text-xl font-bold border border-[#7ffdfd]/30
-                    hover:border-[#7ffdfd]/60 hover:from-[#7ffdfd]/30 hover:to-[#7ffdfd]/20
-                    transition-all duration-300 flex items-center justify-center gap-3">
+                  <button 
+                    disabled={isRefreshing}
+                    className="w-full p-4 bg-gradient-to-r from-[#7ffdfd]/20 to-[#7ffdfd]/10
+                      text-[#7ffdfd] rounded-xl text-xl font-bold border border-[#7ffdfd]/30
+                      hover:border-[#7ffdfd]/60 hover:from-[#7ffdfd]/30 hover:to-[#7ffdfd]/20
+                      transition-all duration-300 flex items-center justify-center gap-3
+                      disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     <SiNintendogamecube className="w-6 h-6" />
                     Play Now
                   </button>
@@ -133,6 +147,7 @@ export default function DashboardContent() {
   const [isGameSelectionOpen, setIsGameSelectionOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Fetch games when component mounts
   useEffect(() => {
@@ -149,11 +164,23 @@ export default function DashboardContent() {
     return <div className="text-white text-center py-8">Loading games...</div>;
   }
 
-  const handleGameSelect = (game: Game) => {
+  const handleGameSelect = async (game: Game) => {
     console.log('Selected game:', game);
+    // Show modal immediately with initial game data
     setSelectedGame(game);
     setIsActionModalOpen(true);
-    setIsGameSelectionOpen(false); // Close the selection modal
+    setIsGameSelectionOpen(false);
+    
+    // Then refresh the data
+    setIsRefreshing(true);
+    try {
+      await fetchGames();
+      // Update the selected game with fresh data
+      const updatedGame = games.find(g => g.id === game.id) || game;
+      setSelectedGame(updatedGame);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const handleOpenGameSelection = () => {

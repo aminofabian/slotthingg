@@ -16,6 +16,7 @@ export interface Game {
 interface GameStoreState {
   games: Game[];
   isLoading: boolean;
+  isRefreshing: boolean;
   error: string | null;
   currentBalance: number;
   selectedGameId?: string;
@@ -87,6 +88,7 @@ const useGameStore = create<GameStore>()(
     (set, get) => ({
       games: initialGames,
       isLoading: false,
+      isRefreshing: false,
       error: null,
       currentBalance: 0,
       selectedGameId: undefined,
@@ -95,7 +97,12 @@ const useGameStore = create<GameStore>()(
       fetchGames: async () => {
         try {
           console.log('Fetching games...');
-          set({ isLoading: true, error: null });
+          const isFirstLoad = get().games === initialGames;
+          set({ 
+            isLoading: isFirstLoad,
+            isRefreshing: !isFirstLoad,
+            error: null 
+          });
           
           // Simple cookie parsing
           const token = document.cookie
@@ -113,6 +120,7 @@ const useGameStore = create<GameStore>()(
             set({ 
               games: initialGames,  
               isLoading: false, 
+              isRefreshing: false,
               error: 'Authentication token not found. Please log in again.'
             });
             return;
@@ -200,6 +208,7 @@ const useGameStore = create<GameStore>()(
           set({ 
             games: transformedGames,
             isLoading: false,
+            isRefreshing: false,
             error: null
           });
         } catch (error) {
@@ -207,6 +216,7 @@ const useGameStore = create<GameStore>()(
           set({ 
             games: initialGames,
             isLoading: false,
+            isRefreshing: false,
             error: error instanceof Error ? error.message : 'Failed to fetch games'
           });
         }
