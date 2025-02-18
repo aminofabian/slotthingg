@@ -52,34 +52,75 @@ const ForgotPassword = () => {
         throw new Error('Missing required authentication data');
       }
 
+      // Log the attempt
+      console.log('Attempting to submit forgot password request...');
+
       // Make the request through our API route
       const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify({
           email,
           whitelabel_admin_uuid: whitelabelAdminUuid
         })
       });
 
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (!response.ok) {
         throw new Error(data.error || data.message || data.detail || 'Failed to process request');
       }
 
-      // Instead of showing modal, redirect to check-email page
-      router.push('/check-email');
+      // Set submitted state
+      setIsSubmitted(true);
+      console.log('Request successful, preparing to redirect...');
+
+      // Use a more direct approach to navigation
+      try {
+        // First try Next.js navigation
+        console.log('Attempting Next.js navigation...');
+        await router.push('/check-email');
+      } catch (navError) {
+        console.log('Next.js navigation failed, falling back to window.location...', navError);
+        // Fallback to direct navigation
+        window.location.href = '/check-email';
+      }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error in forgot password flow:', error);
       setError(error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Add effect to handle successful submission
+  useEffect(() => {
+    if (isSubmitted) {
+      console.log('Component detected successful submission, redirecting...');
+      const navigate = async () => {
+        try {
+          await router.push('/check-email');
+        } catch (err) {
+          console.error('Navigation error in effect:', err);
+          window.location.href = '/check-email';
+        }
+      };
+      navigate();
+    }
+  }, [isSubmitted, router]);
+
+  // Early return if submitted
+  if (isSubmitted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#002222]">
+        <div className="text-[#00ffff] text-xl">Redirecting to check email page...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#002222]">

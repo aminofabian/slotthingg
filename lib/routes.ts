@@ -10,11 +10,14 @@ export const PROTECTED_ROUTES = [
 
 export const AUTH_ROUTES = [
   '/login',
-  '/signup'
+  '/signup',
+  '/forgot-password'
 ] as const;
 
 export const PUBLIC_ROUTES = [
   '/',
+  '/check-email',
+  '/reset-password',
   ...AUTH_ROUTES
 ] as const;
 

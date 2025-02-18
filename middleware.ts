@@ -7,15 +7,29 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
 
+  console.log('Middleware processing path:', pathname);
+
+  // Skip middleware for public routes
+  if (pathname === '/check-email' || 
+      pathname === '/forgot-password' ||
+      pathname.startsWith('/api/auth/forgot-password')) {
+    console.log('Skipping middleware for public route:', pathname);
+    return NextResponse.next();
+  }
+
   // If user is not logged in and trying to access protected routes
   if (!token && isProtectedRoute(pathname)) {
+    console.log('Redirecting to login from protected route:', pathname);
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   // If user is logged in and trying to access auth pages
-  if (token && isAuthRoute(pathname)) {
+  if (token && isAuthRoute(pathname) && 
+      pathname !== '/forgot-password' && 
+      pathname !== '/check-email') {
+    console.log('Redirecting to dashboard from auth route:', pathname);
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
@@ -32,6 +46,11 @@ export const config = {
     '/games/:path*',
     // Auth routes
     '/login',
-    '/signup'
+    '/signup',
+    '/forgot-password',
+    '/reset-password',
+    '/check-email',
+    // API routes
+    '/api/auth/:path*'
   ]
 }
