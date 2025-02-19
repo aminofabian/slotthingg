@@ -3,16 +3,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 const games = [
-  { name: 'Panda Master', image: '/games/panda-master.jpg' },
-  { name: 'Ultra Panda', image: '/games/ultra-panda.jpg' },
-  { name: 'V Blink', image: '/games/v-blink.jpg' },
-  { name: 'Orion Stars', image: '/games/orion-stars.jpg' },
-  { name: 'Golden Dragon', image: '/games/golden-dragon.jpg' },
-  { name: 'Fire Kirin', image: '/games/fire-kirin.jpg' },
-  { name: 'Golden Treasure', image: '/games/golden-treasure.jpg' },
-  { name: 'Egame', image: '/games/egame.jpg' },
-  { name: 'Milkway', image: '/games/milkway.jpg' },
-  { name: 'Juwa', image: '/games/juwa.jpg' },
+  { name: 'V Blink', image: '/games/vblink.png' },
+  { name: 'Golden Treasure', image: '/games/golden-treasure.png' },
+  { name: 'Egame', image: '/games/egames.png' },
+  { name: 'Milky Way', image: '/games/milky-way.png' },
+  { name: 'Juwa', image: '/games/juwa.png' },
 ];
 
 const GamesList = () => {

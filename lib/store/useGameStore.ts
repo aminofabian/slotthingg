@@ -142,15 +142,13 @@ const useGameStore = create<GameStore>()(
 
           console.log('Using auth token:', token.substring(0, 10) + '...');
 
-          const response = await fetch('https://serverhub.biz/games/list', {
+          const response = await fetch('/api/auth/dashboard-games', {
             method: 'GET',
             headers: {
-              'Authorization': `Bearer ${token}`,
               'Accept': 'application/json',
               'Content-Type': 'application/json'
             },
-            mode: 'cors',
-            cache: 'no-store'
+            credentials: 'include'  // This will send cookies automatically
           });
 
           if (!response.ok) {
