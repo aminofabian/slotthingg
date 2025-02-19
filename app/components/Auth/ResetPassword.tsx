@@ -2,21 +2,67 @@
 import React, { useState } from 'react';
 import Logo from '../Logo/Logo';
 import { motion } from 'framer-motion';
+import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 const ResetPassword = () => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [formData, setFormData] = useState({
     password: '',
     confirmPassword: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setError('');
+    
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    const url = window.location.pathname;
+    const matches = url.match(/\/reset-password\/reset-password\/([^\/]+)\/([^\/]+)/);
+    
+    if (!matches) {
+      setError('Invalid reset password URL');
+      return;
+    }
+
+    const [, uid, token] = matches;
+
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    setIsSubmitted(true);
+    try {
+      const response = await fetch('/api/users/reset-password/confirm/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          password: formData.password,
+          uid: uid,
+          token: token
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Password reset failed');
+      }
+
+      setIsSubmitted(true);
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
+    } catch (err: any) {
+      setError(typeof err === 'object' && err?.message ? err.message : 'Failed to reset password');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,6 +128,11 @@ const ResetPassword = () => {
               {!isSubmitted ? (
                 <form className="mt-10 space-y-6" onSubmit={handleSubmit}>
                   <div className="space-y-5">
+                    {error && (
+                      <div className="text-red-500 text-sm text-center">
+                        {error}
+                      </div>
+                    )}
                     <div className="group relative">
                       <label htmlFor="password" className="block text-sm text-[#00ffff]/80 mb-2 ml-1 
                         tracking-wider uppercase">
@@ -106,7 +157,7 @@ const ResetPassword = () => {
                     <div className="group relative">
                       <label htmlFor="confirmPassword" className="block text-sm text-[#00ffff]/80 mb-2 ml-1 
                         tracking-wider uppercase">
-                        Confirm New Password
+                        Confirm Password
                       </label>
                       <input
                         id="confirmPassword"
@@ -120,7 +171,6 @@ const ResetPassword = () => {
                         focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
                         backdrop-blur-sm transition-all duration-300
                         hover:border-[#00ffff]/30 hover:bg-white/[0.04]"
-                        placeholder="Confirm new password"
                       />
                     </div>
 
