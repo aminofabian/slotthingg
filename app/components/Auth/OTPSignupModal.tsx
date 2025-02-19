@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { verifyOTP } from '@/app/lib/auth';
 import Modal from '@/app/components/Modal';
 import { FiUser, FiMail, FiLock, FiCalendar, FiPhone, FiMapPin, FiKey } from 'react-icons/fi';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { format, isValid } from 'date-fns';
 import Select, { SingleValue } from 'react-select';
 import { states } from '@/app/lib/states';
@@ -81,7 +81,6 @@ const months = [
 ];
 
 export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignupModalProps) {
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const router = useRouter();
   const { register, handleSubmit, formState: { errors }, setValue, watch, control } = useForm<OTPSignupFormData>({
     resolver: zodResolver(otpSignupSchema),
@@ -127,23 +126,9 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
     }
   };
 
-  const [whitelabelAdminUUID, setWhitelabelAdminUUID] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Fetch the UUID from local storage when the component mounts
-    const uuid = localStorage.getItem('whitelabel_admin_uuid');
-    if (uuid) {
-      console.log('Retrieved UUID from local storage:', uuid);
-      setWhitelabelAdminUUID(uuid);
-    } else {
-      console.error('Whitelabel Admin UUID not found in local storage');
-    }
-  }, []);
-
   const verifyOTPMutation = useMutation({
     mutationFn: async (data: OTPSignupFormData) => {
-      // Ensure the UUID is fetched from local storage
-      const payload = {
+      return verifyOTP({
         email: data.email,
         username: data.username,
         otp: data.otp,
@@ -152,11 +137,8 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
         dob: data.dob,
         mobile_number: data.mobile_number,
         state: data.state,
-        whitelabel_admin_uuid: whitelabelAdminUUID || ''
-      };
-      console.log('Payload being sent to verifyOTP:', payload);
-
-      return verifyOTP(payload);
+        whitelabel_admin_uuid: data.whitelabel_admin_uuid
+      });
     },
     onSuccess: () => {
       toast.success('Account created successfully! You can now log in.');
@@ -172,13 +154,13 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
     console.log('Form data being submitted:', {
       username: data.username,
       email: data.email,
-      whitelabel_admin_uuid: data.whitelabel_admin_uuid,
-      otp: data.otp,
       password: data.password,
+      otp: data.otp,
       full_name: data.full_name,
       dob: data.dob,
       mobile_number: data.mobile_number,
       state: data.state,
+      whitelabel_admin_uuid: data.whitelabel_admin_uuid
     });
     verifyOTPMutation.mutate(data);
   };
@@ -515,7 +497,7 @@ export default function OTPSignupModal({ isOpen, onClose, signupData }: OTPSignu
                 <input
                   type="hidden"
                   {...register('whitelabel_admin_uuid')}
-                  value={whitelabelAdminUUID || ''}
+                  value={signupData.whitelabel_admin_uuid}
                 />
 
                 <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mt-8 md:mt-10 pt-4 md:pt-6 border-t border-[#00ffff]/20">

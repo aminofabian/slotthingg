@@ -47,10 +47,8 @@ export const config = {
     // Auth routes
     '/login',
     '/signup',
-    '/forgot-password',
     '/reset-password',
-    '/check-email',
-    // API routes
-    '/api/auth/:path*'
+    // API routes - excluding forgot-password
+    '/api/auth/((?!forgot-password).)*'
   ]
 }

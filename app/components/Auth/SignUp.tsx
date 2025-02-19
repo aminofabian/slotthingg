@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useDispatch, useSelector } from 'react-redux';
 import { useMutation } from '@tanstack/react-query';
 import { signupSchema, type SignupFormData } from '@/lib/query';
+import { setFormData, setErrors } from '@/app/store/formSlice';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Logo from '../Logo/Logo';
@@ -490,3 +491,4 @@ const Signup = () => {
   );
 };
 
+export default Signup; 
