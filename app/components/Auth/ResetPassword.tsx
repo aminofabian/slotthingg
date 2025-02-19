@@ -2,11 +2,9 @@
 import React, { useState } from 'react';
 import Logo from '../Logo/Logo';
 import { motion } from 'framer-motion';
-import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 
 const ResetPassword = () => {
-  const searchParams = useSearchParams();
   const router = useRouter();
   const [formData, setFormData] = useState({
     password: '',
