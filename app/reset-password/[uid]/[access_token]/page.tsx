@@ -1,16 +1,14 @@
 'use client';
 
 import React, { Suspense } from 'react';
+import { useParams } from 'next/navigation';
 import ResetPassword from '@/app/components/Auth/ResetPassword';
 
-interface Props {
-  params: {
-    uid: string;
-    access_token: string;
-  };
-}
+export default function ResetPasswordPage() {
+  const params = useParams();
+  const uid = params?.uid as string;
+  const access_token = params?.access_token as string;
 
-export default function ResetPasswordPage({ params }: Props) {
   return (
     <main className="min-h-screen bg-[#002222]">
       <Suspense fallback={
@@ -18,7 +16,7 @@ export default function ResetPasswordPage({ params }: Props) {
           <div className="text-[#00ffff] text-lg">Loading...</div>
         </div>
       }>
-        <ResetPassword userId={params.uid} token={params.access_token} />
+        <ResetPassword userId={uid} token={access_token} />
       </Suspense>
     </main>
   );
