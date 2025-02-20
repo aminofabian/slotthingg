@@ -24,40 +24,40 @@ const ResetPassword = () => {
     }
 
     const url = window.location.pathname;
-    const matches = url.match(/\/reset-password\/reset-password\/([^\/]+)\/([^\/]+)/);
+    const matches = url.match(/\/reset-password\/([^\/]+)\/([^\/]+)/);
     
     if (!matches) {
       setError('Invalid reset password URL');
       return;
     }
 
-    const [, uid, token] = matches;
+    const [, userId, token] = matches;
 
-    setIsLoading(true);
     try {
-      const response = await fetch('/api/users/reset-password/confirm/', {
+      setIsLoading(true);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/reset-password/confirm/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          password: formData.password,
-          uid: uid,
-          token: token
+          user_id: userId,
+          token: token,
+          new_password: formData.password
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Password reset failed');
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to reset password');
       }
 
       setIsSubmitted(true);
-      // Redirect to login after 2 seconds
       setTimeout(() => {
         router.push('/login');
       }, 2000);
-    } catch (err: any) {
-      setError(typeof err === 'object' && err?.message ? err.message : 'Failed to reset password');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset password');
     } finally {
       setIsLoading(false);
     }
