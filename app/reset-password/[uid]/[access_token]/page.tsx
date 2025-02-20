@@ -3,7 +3,12 @@
 import React, { Suspense } from 'react';
 import ResetPassword from '@/app/components/Auth/ResetPassword';
 
-export default function ResetPasswordPage() {
+type PageProps = {
+  params: { uid: string; access_token: string };
+  searchParams: Record<string, string | string[] | undefined>;
+};
+
+const ResetPasswordPage = ({ params }: PageProps) => {
   return (
     <main className="min-h-screen bg-[#002222]">
       <Suspense fallback={
@@ -11,8 +16,10 @@ export default function ResetPasswordPage() {
           <div className="text-[#00ffff] text-lg">Loading...</div>
         </div>
       }>
-        <ResetPassword userId="" token="" />
+        <ResetPassword userId={params.uid} token={params.access_token} />
       </Suspense>
     </main>
   );
-}
+};
+
+export default ResetPasswordPage;
