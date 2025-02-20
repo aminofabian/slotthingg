@@ -1,7 +1,14 @@
 import React, { Suspense } from 'react';
-import ResetPassword from '../components/Auth/ResetPassword';
+import ResetPassword from '@/app/components/Auth/ResetPassword';
 
-export default function ResetPasswordPage() {
+interface ResetPasswordPageProps {
+  params: {
+    userId: string;
+    token: string;
+  };
+}
+
+export default function ResetPasswordPage({ params }: ResetPasswordPageProps) {
   return (
     <main className="min-h-screen bg-[#002222]">
       <Suspense fallback={
@@ -9,7 +16,7 @@ export default function ResetPasswordPage() {
           <div className="text-[#00ffff] text-lg">Loading...</div>
         </div>
       }>
-        <ResetPassword userId="" token="" />
+        <ResetPassword userId={params.userId} token={params.token} />
       </Suspense>
     </main>
   );

@@ -4,7 +4,12 @@ import Logo from '../Logo/Logo';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
-const ResetPassword = () => {
+interface ResetPasswordProps {
+  userId: string;
+  token: string;
+}
+
+const ResetPassword = ({ userId, token }: ResetPasswordProps) => {
   const router = useRouter();
   const [formData, setFormData] = useState({
     password: '',
@@ -22,16 +27,6 @@ const ResetPassword = () => {
       setError('Passwords do not match');
       return;
     }
-
-    const url = window.location.pathname;
-    const matches = url.match(/\/reset-password\/([^\/]+)\/([^\/]+)/);
-    
-    if (!matches) {
-      setError('Invalid reset password URL');
-      return;
-    }
-
-    const [, userId, token] = matches;
 
     try {
       setIsLoading(true);
