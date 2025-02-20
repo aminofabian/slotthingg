@@ -34,12 +34,11 @@ const ResetPassword = ({ userId, token }: ResetPasswordProps) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
+          uidb64: userId,
           password: formData.password,
-          uid: userId,
-          whitelabel_admin_uuid: process.env.NEXT_PUBLIC_WHITELABEL_ADMIN_UUID
+          token: token
         }),
       });
 
