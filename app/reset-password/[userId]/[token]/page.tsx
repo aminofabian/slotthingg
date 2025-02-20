@@ -1,11 +1,14 @@
+'use client';
+
 import React, { Suspense } from 'react';
 import ResetPassword from '@/app/components/Auth/ResetPassword';
 
-export default function ResetPasswordPage({
-  params,
-}: {
+type PageProps = {
   params: { userId: string; token: string };
-}) {
+  searchParams: Record<string, string | string[] | undefined>;
+};
+
+const ResetPasswordPage = ({ params }: PageProps) => {
   return (
     <main className="min-h-screen bg-[#002222]">
       <Suspense fallback={
@@ -17,4 +20,6 @@ export default function ResetPasswordPage({
       </Suspense>
     </main>
   );
-}
+};
+
+export default ResetPasswordPage;
