@@ -30,15 +30,15 @@ const ResetPassword = ({ userId, token }: ResetPasswordProps) => {
 
     try {
       setIsLoading(true);
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/reset-password/confirm/`, {
+      const response = await fetch('https://serverhub.biz/users/reset-password/confirm/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_id: userId,
-          token: token,
-          new_password: formData.password
+          password: formData.password,
+          uidb64: userId,  // Using the uid passed from the URL
+          token: token     // Using the token passed from the URL
         }),
       });
 
