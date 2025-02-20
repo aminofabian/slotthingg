@@ -1,4 +1,4 @@
-'use server';
+'use client';
 
 import React, { Suspense } from 'react';
 import ResetPassword from '@/app/components/Auth/ResetPassword';
