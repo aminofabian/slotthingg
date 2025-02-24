@@ -188,22 +188,40 @@ const Navbar = () => {
           {/* User Info Section */}
           {userInfo && (
             <div className="px-6 py-4 border-y border-[#00ffff]/10 backdrop-blur-sm bg-white/[0.02]">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[#00ffff] font-medium">
-                    {profileData?.full_name || userInfo.username}
-                  </span>
-                  <span className="text-[0.7rem] text-white/60 px-2 py-1 rounded-full bg-[#00ffff]/10 capitalize">
-                    {userInfo.role}
-                  </span>
+              <div className="space-y-3">
+                {/* Welcome Message */}
+                <div className="text-sm text-[#00ffff]/70">
+                  Welcome aboard,
                 </div>
-                <div className="text-[0.6rem] text-white/40 space-y-1">
-                  <div className="flex justify-between">
-                    <span>ID:</span>
-                    <span className="text-white/60">{userInfo.userId}</span>
+                
+                {/* User Name and Role */}
+                <div className="space-y-1">
+                  <div className="flex flex-col">
+                    <span className="text-lg font-medium text-[#00ffff]">
+                      {profileData?.full_name || 'Player'}
+                    </span>
+                    <span className="text-[0.7rem] text-white/60">
+                      @{userInfo.username}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Last Login:</span>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-[0.7rem] px-2 py-1 rounded-full bg-[#00ffff]/10 text-[#00ffff] capitalize">
+                      {userInfo.role}
+                    </span>
+                    <span className="text-[0.7rem] px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400">
+                      Online
+                    </span>
+                  </div>
+                </div>
+
+                {/* User Details */}
+                <div className="text-[0.65rem] text-white/40 space-y-1.5 bg-white/[0.02] rounded-lg p-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[#00ffff]/50">Player ID:</span>
+                    <span className="text-white/60 font-mono">{userInfo.userId}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[#00ffff]/50">Last Seen:</span>
                     <span className="text-white/60">{userInfo.lastLogin}</span>
                   </div>
                 </div>
