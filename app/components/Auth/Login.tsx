@@ -232,7 +232,7 @@ const Login = () => {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div>
                 <label className="block text-sm text-[#00ffff]/80 mb-2 tracking-wider uppercase">
-                  Username
+                  Username or Email
                 </label>
                 <input
                   {...register('username')}
