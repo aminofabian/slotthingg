@@ -8,10 +8,12 @@ import DashboardContent from '../components/Dashboard/DashboardContent';
 import MobileNavbar from '../components/Dashboard/MobileNavbar';
 import { BiMoney } from 'react-icons/bi';
 import { GiDiamonds } from 'react-icons/gi';
-import ChatWidget from '../components/Chat/ChatWidget';
+import ChatModal from '../components/Chat/ChatModal';
+import useChatStore from '../store/useChatStore';
 
 export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { isOpen: isChatOpen, close: closeChat } = useChatStore();
 
   return (
     <div className="min-h-screen bg-[#0f172a]">
@@ -67,7 +69,6 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-            <ChatWidget />
           </main>
 
           {/* Mobile Navigation - Visible only on mobile */}
@@ -82,6 +83,9 @@ export default function DashboardPage() {
           onClick={() => setSidebarOpen(false)}
         />
       )}
+
+      {/* Chat Modal */}
+      <ChatModal isOpen={isChatOpen} onClose={closeChat} />
     </div>
   );
 }

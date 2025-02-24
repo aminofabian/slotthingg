@@ -4,10 +4,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import { BiMoney, BiHistory, BiUser, BiLogOut } from 'react-icons/bi';
 import { FaGamepad, FaStore, FaDice } from 'react-icons/fa';
 import { GiDiamonds, GiStarsStack, GiTakeMyMoney } from 'react-icons/gi';
-import { IoTicketOutline } from 'react-icons/io5';
+import { IoTicketOutline, IoChatbubbleEllipses } from 'react-icons/io5';
 import { useEffect, useState } from 'react';
 import Logo from '../Logo/Logo';
 import toast from 'react-hot-toast';
+import useChatStore from '@/app/store/useChatStore';
 
 type UserInfo = {
   username: string;
@@ -48,6 +49,7 @@ const Navbar = () => {
     bonus_balance: string;
     full_name: string;
   } | null>(null);
+  const openChat = useChatStore((state) => state.open);
 
   useEffect(() => {
     // Get user info from localStorage
@@ -293,6 +295,23 @@ const Navbar = () => {
             ))}
           </div>
 
+          {/* Chat Button */}
+          <div className="px-6">
+            <button
+              onClick={openChat}
+              className="w-full flex items-center gap-4 p-3 rounded-xl 
+                bg-gradient-to-r from-[#00ffff]/10 to-transparent
+                hover:from-[#00ffff]/20 hover:to-[#00ffff]/5
+                text-[#00ffff] transition-all duration-300 group"
+            >
+              <div className="p-2.5 rounded-lg bg-[#00ffff]/10 
+                group-hover:bg-[#00ffff]/20 transition-all duration-300">
+                <IoChatbubbleEllipses className="text-2xl sm:text-3xl" />
+              </div>
+              <span className="text-sm">Support Chat</span>
+            </button>
+          </div>
+
           {/* Logout Button */}
           <div className="p-6 border-t border-[#00ffff]/10">
             <button
@@ -336,6 +355,14 @@ const Navbar = () => {
                 <span className="text-[0.6rem] whitespace-nowrap">{item.label}</span>
               </Link>
             ))}
+            {/* Mobile Chat Button */}
+            <button
+              onClick={openChat}
+              className="flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 text-[#00ffff]/70 hover:text-[#00ffff] transition-colors"
+            >
+              <IoChatbubbleEllipses className="w-5 h-5" />
+              <span className="text-[0.6rem] whitespace-nowrap">Chat</span>
+            </button>
             {/* Mobile Logout Button */}
             <button
               onClick={handleLogout}
