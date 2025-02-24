@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FiEdit2, FiLock } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChangePassword from '../Auth/ChangePassword';
@@ -12,18 +12,80 @@ interface ProfileField {
   editable?: boolean;
 }
 
+interface ProfileData {
+  username: string;
+  email: string;
+  full_name: string;
+  dob: string | null;
+  mobile_number: string | null;
+  state: string | null;
+  address: string | null;
+  profile_pic: string | null;
+  balance: string;
+  cashable_balance: string;
+  bonus_balance: string;
+}
+
 const ProfileForm = () => {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        const response = await fetch('/api/auth/profile', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include' // This will send the token cookie
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile data');
+        }
+
+        const data = await response.json();
+        setProfileData(data);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load profile data. Please try again later.');
+        console.error('Error fetching profile data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-[#00ffff] animate-pulse">Loading profile data...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+        <p className="text-red-400 text-center">{error}</p>
+      </div>
+    );
+  }
 
   const fields: ProfileField[] = [
-    { label: 'Username', value: 'aminofabian', type: 'text' },
-    { label: 'Name', value: 'Fabian', type: 'text' },
-    { label: 'Last Name', value: 'Amino', type: 'text' },
-    { label: 'Email', value: 'aminofabian@gmail.com', type: 'email' },
-    { label: 'Phone Number', value: '0714282874', type: 'tel' },
-    { label: 'Birthday', value: '06/27/1998', type: 'date' },
-    { label: 'Address', value: '', type: 'text' },
+    { label: 'Username', value: profileData?.username || '', type: 'text' },
+    { label: 'Full Name', value: profileData?.full_name || '', type: 'text' },
+    { label: 'Email', value: profileData?.email || '', type: 'email' },
+    { label: 'Phone Number', value: profileData?.mobile_number || '', type: 'tel' },
+    { label: 'Birthday', value: profileData?.dob || '', type: 'date' },
+    { label: 'State', value: profileData?.state || '', type: 'text' },
+    { label: 'Address', value: profileData?.address || '', type: 'text' },
   ];
 
   return (

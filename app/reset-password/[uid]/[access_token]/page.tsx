@@ -21,3 +21,5 @@ export default function ResetPasswordPage() {
     </main>
   );
 }
+
+
