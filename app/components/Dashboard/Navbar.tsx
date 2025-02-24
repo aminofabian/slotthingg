@@ -42,6 +42,12 @@ const Navbar = () => {
   const router = useRouter();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [profileData, setProfileData] = useState<{
+    balance: string;
+    cashable_balance: string;
+    bonus_balance: string;
+    full_name: string;
+  } | null>(null);
 
   useEffect(() => {
     // Get user info from localStorage
@@ -66,13 +72,38 @@ const Navbar = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        const response = await fetch('/api/auth/profile', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile data');
+        }
+
+        const data = await response.json();
+        setProfileData(data);
+      } catch (err) {
+        console.error('Error fetching profile data:', err);
+      }
+    };
+
+    fetchProfileData();
+  }, []);
+
   const menuGroups: MenuGroup[] = [
     {
       title: 'Stats',
       items: [
-        { label: 'Main Balance', value: '$0', icon: BiMoney, type: 'stat' },
-        { label: 'In-Game Balance', value: '$0', icon: GiTakeMyMoney, type: 'stat' },
-        { label: 'Cashable Balance', value: '$0', icon: BiMoney, type: 'stat' },
+        { label: 'Main Balance', value: profileData ? `$${profileData.balance}` : '$0', icon: BiMoney, type: 'stat' },
+        { label: 'Cashable Balance', value: profileData ? `$${profileData.cashable_balance}` : '$0', icon: GiTakeMyMoney, type: 'stat' },
+        { label: 'Bonus Balance', value: profileData ? `$${profileData.bonus_balance}` : '$0', icon: BiMoney, type: 'stat' },
         { label: 'Safe Balance', value: '$0', icon: GiDiamonds, type: 'stat' },
       ]
     },
@@ -159,7 +190,9 @@ const Navbar = () => {
             <div className="px-6 py-4 border-y border-[#00ffff]/10 backdrop-blur-sm bg-white/[0.02]">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[#00ffff] font-medium">{userInfo.username}</span>
+                  <span className="text-[#00ffff] font-medium">
+                    {profileData?.full_name || userInfo.username}
+                  </span>
                   <span className="text-[0.7rem] text-white/60 px-2 py-1 rounded-full bg-[#00ffff]/10 capitalize">
                     {userInfo.role}
                   </span>
