@@ -21,7 +21,7 @@ export default function DashboardPage() {
       <div className="flex h-screen overflow-hidden">
         {/* Sidebar - Hidden on mobile, visible on desktop */}
         <div className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 border-r border-gray-800
+          fixed inset-y-0 left-0 z-50 w-72 bg-gray-900 border-r border-gray-800
           transform transition-transform duration-300 ease-in-out
           hidden lg:block lg:relative
         `}>
@@ -29,7 +29,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col w-full lg:pl-64">
+        <div className="flex-1 flex flex-col w-full lg:pl-72">
           {/* Top Navigation */}
           <div className="sticky top-0 z-40">
             {/* Desktop Top Nav */}
@@ -43,7 +43,7 @@ export default function DashboardPage() {
           {/* Main Content */}
           <main className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-900 to-[#0f172a] pb-16 lg:pb-0">
             {/* Slider Section */}
-            <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
+            <div className="max-w-[1400px] mx-auto w-full px-4 sm:px-6 lg:px-8">
               <DashboardContent />
             </div>
             
