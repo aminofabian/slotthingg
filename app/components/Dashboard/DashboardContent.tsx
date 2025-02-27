@@ -227,20 +227,7 @@ export default function DashboardContent() {
       {/* Add Game Button */}
       <div className="w-full px-6 py-4">
         <div className="max-w-[1440px] mx-auto">
-          <button
-            onClick={handleOpenGameSelection}
-            className="relative group overflow-hidden
-              bg-gradient-to-r from-[#00ffff]/80 to-[#00ffff] 
-              hover:from-[#00ffff] hover:to-[#7ffdfd]
-              text-[#003333] font-bold py-3 px-5 rounded-xl
-              transition-all duration-300 flex items-center gap-3
-              shadow-lg shadow-[#00ffff]/20 hover:shadow-[#00ffff]/40
-              border border-[#00ffff]/20 hover:border-[#00ffff]/40
-              transform hover:scale-105"
-          >
-            <SiNintendogamecube className="w-6 h-6" />
-            Add Game
-          </button>
+          
         </div>
       </div>
 
