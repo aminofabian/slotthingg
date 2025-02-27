@@ -29,7 +29,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col w-full">
+        <div className="flex-1 flex flex-col w-full lg:pl-64">
           {/* Top Navigation */}
           <div className="sticky top-0 z-40">
             {/* Desktop Top Nav */}
@@ -41,9 +41,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Main Content */}
-          <main className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-900 to-[#0f172a] pb-16 lg:pb-0 lg:ml-6">
+          <main className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-900 to-[#0f172a] pb-16 lg:pb-0">
             {/* Slider Section */}
-            <div className="container relative w-full overflow-hidden">
+            <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
               <DashboardContent />
             </div>
             
