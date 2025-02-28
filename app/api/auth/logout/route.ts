@@ -20,7 +20,6 @@ export async function POST(request: NextRequest) {
       });
     } catch (error) {
       console.error('Server logout error:', error);
-      // Continue with client-side logout even if server logout fails
     }
 
     // Always clear the cookie and redirect to login, regardless of server response
