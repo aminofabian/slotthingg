@@ -51,7 +51,7 @@ const menuGroups = [
     title: 'Gaming',
     items: [
       { 
-        href: '/dashboard/games', 
+        href: '/dashboard', 
         label: 'Games', 
         icon: FaGamepad,
         color: 'from-yellow-500/20 via-yellow-400/10 to-yellow-600/5',
