@@ -58,7 +58,9 @@ export default function ProfilePage() {
               }
             }
 
-            // If refresh failed or retry failed, redirect to login
+            // If refresh failed or retry failed, clear storage and redirect to login
+            localStorage.clear();
+            document.cookie = 'token=; Path=/; Max-Age=0';
             router.push('/login');
             return;
           }
