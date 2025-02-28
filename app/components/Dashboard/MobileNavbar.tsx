@@ -13,7 +13,7 @@ import { BsCash } from 'react-icons/bs';
 import { GiCash, GiMoneyStack } from 'react-icons/gi';
 import toast from 'react-hot-toast';
 import ChatModal from '../Chat/ChatModal';
-import PurchaseModal from '../Chat/PurchaseModal';
+import PurchaseModal from '../Dashboard/PurchaseModal';
 import CashoutModal from '../Chat/CashoutModal';
 
 const navItems = [
