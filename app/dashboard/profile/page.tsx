@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import ProfileHeader from '@/app/components/Profile/ProfileHeader';
 import StatsGrid from '@/app/components/Profile/StatsGrid';
 import ProfileForm from '@/app/components/Profile/ProfileForm';
+import { useRouter } from 'next/navigation';
 
 interface ProfileData {
   username: string;
@@ -17,10 +19,12 @@ interface ProfileData {
 export default function ProfilePage() {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
+        setIsLoading(true);
         const response = await fetch('/api/auth/profile', {
           method: 'GET',
           headers: {
@@ -30,6 +34,34 @@ export default function ProfilePage() {
         });
 
         if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            // Try to refresh the token
+            const refreshResponse = await fetch('/api/auth/refresh', {
+              method: 'POST',
+              credentials: 'include'
+            });
+
+            if (refreshResponse.ok) {
+              // Retry the original request
+              const retryResponse = await fetch('/api/auth/profile', {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                credentials: 'include'
+              });
+
+              if (retryResponse.ok) {
+                const data = await retryResponse.json();
+                setProfileData(data);
+                return;
+              }
+            }
+
+            // If refresh failed or retry failed, redirect to login
+            router.push('/login');
+            return;
+          }
           throw new Error('Failed to fetch profile data');
         }
 
@@ -43,7 +75,7 @@ export default function ProfilePage() {
     };
 
     fetchProfileData();
-  }, []);
+  }, [router]);
 
   const profileStats = {
     balance: profileData ? `$${profileData.balance}` : '$0',
@@ -63,6 +95,9 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-[#002222] pt-20 pb-24">
       <div className="max-w-4xl mx-auto px-4 space-y-6">
+        <Link href="/dashboard" className="inline-block text-[#00ffff] hover:text-[#00ffff]/80 mb-4">
+          ← Back to Dashboard
+        </Link>
         <ProfileHeader 
           username={profileData?.username || 'User'}
           xpLevel={500}
