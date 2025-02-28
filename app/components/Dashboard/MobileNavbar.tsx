@@ -7,23 +7,25 @@ import { IoWallet } from 'react-icons/io5';
 import { useState } from 'react';
 import MoreDrawer from './MoreDrawer';
 import { SiMarketo, SiMoneygram, SiWebmoney } from 'react-icons/si';
-import { BiMoney, BiMoneyWithdraw, BiPurchaseTag, BiLogOut } from 'react-icons/bi';
+import { BiMoney, BiMoneyWithdraw, BiPurchaseTag, BiLogOut, BiSupport } from 'react-icons/bi';
 import { FaMoneyBill, FaMoneyBill1 } from 'react-icons/fa6';
 import { BsCash } from 'react-icons/bs';
 import { GiCash, GiMoneyStack } from 'react-icons/gi';
 import toast from 'react-hot-toast';
+import ChatModal from '../Chat/ChatModal';
 
 const navItems = [
   { href: '/dashboard/purchase', label: 'Purchase', icon: BiMoney },
   { href: '/dashboard/cashout', label: 'Cashout', icon: GiCash },
   { href: '/dashboard', label: 'Home', icon: FaHome, isHome: true },
-  { href: '/dashboard/withdrawal', label: 'Withdrawal', icon: GiMoneyStack },
+  { label: 'Support', icon: BiSupport, isChat: true },
   { href: '/dashboard/more', label: 'More', icon: FaEllipsisH },
 ];
 
 export default function MobileNavbar() {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -74,6 +76,10 @@ export default function MobileNavbar() {
         onLogout={handleLogout}
         isLoggingOut={isLoggingOut}
       />
+      <ChatModal 
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+      />
       
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40">
         {/* Enhanced floating effect and background blur */}
@@ -90,7 +96,7 @@ export default function MobileNavbar() {
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    href={item.href || ''}
                     className="relative -mt-10 flex flex-col items-center transform transition-transform active:scale-95"
                   >
                     <div className="relative">
@@ -114,6 +120,44 @@ export default function MobileNavbar() {
                       {item.label}
                     </span>
                   </Link>
+                );
+              }
+
+              if (item.isChat) {
+                return (
+                  <button
+                    key="support-chat"
+                    onClick={() => setIsChatOpen(true)}
+                    className="flex flex-col items-center relative group py-2 px-3 transform transition-transform active:scale-95"
+                  >
+                    {/* Enhanced active indicator line */}
+                    {isChatOpen && (
+                      <div className="absolute -top-[2px] left-1/2 -translate-x-1/2 w-12 h-[2px]
+                        bg-[#00ffff] rounded-full shadow-[0_0_12px_#00ffff] animate-pulse" />
+                    )}
+
+                    <div className="relative p-2">
+                      <item.icon className={`w-6 h-6 transition-all duration-300 ease-out
+                        ${isChatOpen 
+                          ? 'text-[#00ffff] scale-110' 
+                          : 'text-gray-400 group-hover:text-[#00ffff]/90 group-hover:scale-105'}`} 
+                      />
+                      
+                      {/* Enhanced active indicator dot */}
+                      {isChatOpen && (
+                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 
+                          rounded-full bg-[#00ffff] shadow-[0_0_8px_#00ffff] animate-pulse" />
+                      )}
+                    </div>
+
+                    <span className={`text-xs font-medium transition-colors duration-300 ease-out
+                      ${isChatOpen 
+                        ? 'text-[#00ffff]' 
+                        : 'text-gray-400 group-hover:text-[#00ffff]/90'}`}
+                    >
+                      {item.label}
+                    </span>
+                  </button>
                 );
               }
 
@@ -158,7 +202,7 @@ export default function MobileNavbar() {
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={item.href || ''}
                   className="flex flex-col items-center relative group py-2 px-3 transform transition-transform active:scale-95"
                 >
                   {/* Enhanced active indicator line */}
