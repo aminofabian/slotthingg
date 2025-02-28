@@ -102,10 +102,11 @@ const Login = () => {
       
       toast.success('Login successful!');
       
-      // Add a small delay to ensure the toast is visible
+      // Add a small delay to ensure the toast is visible and localStorage is updated
       setTimeout(() => {
-        router.push(redirectPath);
-        console.log('Router.push called with path:', redirectPath);
+        // Use window.location.href for a full page reload
+        window.location.href = redirectPath;
+        console.log('Redirecting with page reload to:', redirectPath);
       }, 100);
     },
     onError: (error: Error) => {
