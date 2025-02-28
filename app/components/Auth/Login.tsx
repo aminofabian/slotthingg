@@ -97,8 +97,16 @@ const Login = () => {
       localStorage.setItem('username', data.user.username);
       localStorage.setItem('last_login', data.user.last_login);
       
+      console.log('Stored user data in localStorage');
+      console.log('Attempting to redirect to:', redirectPath);
+      
       toast.success('Login successful!');
-      router.push(redirectPath);
+      
+      // Add a small delay to ensure the toast is visible
+      setTimeout(() => {
+        router.push(redirectPath);
+        console.log('Router.push called with path:', redirectPath);
+      }, 100);
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Login failed');
