@@ -58,15 +58,15 @@ export default function MobileNavbar() {
       // Close the more drawer if it's open
       setIsMoreOpen(false);
       
-      // Redirect to login page
-      router.push('/login');
+      // Redirect to login page with page reload
+      window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to logout. Please try again.');
       
       // If there's an error, clear storage and redirect anyway
       localStorage.clear();
-      router.push('/login');
+      window.location.href = '/login';
     } finally {
       setIsLoggingOut(false);
     }
