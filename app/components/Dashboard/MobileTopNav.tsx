@@ -7,38 +7,22 @@ import { motion } from 'framer-motion';
 
 const stats = [
   { 
-    label: 'Balance', 
+    label: 'Credits', 
     value: '$20', 
     icon: BiMoney,
     symbol: '$',
     color: 'emerald'
   },
   { 
-    label: 'In Games', 
+    label: 'Winnings', 
     value: '$10', 
     icon: BiWallet,
     symbol: '$',
     color: 'purple'
   },
-  { 
-    label: 'Diamonds', 
-    value: '0', 
-    icon: GiDiamonds,
-    symbol: '💎',
-    color: 'blue'
-  },
-  { 
-    label: 'XP', 
-    value: '500', 
-    icon: GiStarsStack,
-    symbol: '⭐',
-    color: 'amber'
-  },
 ];
 
 const MobileTopNav = () => {
-  const [expandedStat, setExpandedStat] = useState<number | null>(null);
-
   const getColorClasses = (color: string) => {
     switch (color) {
       case 'emerald':
@@ -66,69 +50,44 @@ const MobileTopNav = () => {
               >
                 {stats.map((stat, index) => {
                   const Icon = stat.icon;
-                  const isExpanded = expandedStat === index;
                   const colorClasses = getColorClasses(stat.color);
 
                   return (
-                    <motion.button
+                    <motion.div
                       key={stat.label}
-                      onClick={() => {
-                        if (isExpanded) {
-                          setExpandedStat(null);
-                        } else {
-                          setExpandedStat(index);
-                          // Auto-collapse after 2 seconds
-                          setTimeout(() => setExpandedStat(null), 2000);
-                        }
-                      }}
-                      className={`
-                        flex-1 min-w-0 transition-all duration-300
-                        ${isExpanded ? 'flex-grow-[2]' : 'flex-grow-1'}
-                      `}
+                      className="flex-1 min-w-0"
                       layout
                     >
                       <motion.div 
                         className={`
-                          flex items-center justify-between gap-1.5 p-2 rounded-xl
-                          border transition-all duration-200
-                          ${isExpanded ? colorClasses : 'bg-gray-800/50 border-gray-700/50 hover:bg-gray-800'}
+                          flex flex-col items-center justify-center gap-1 p-2 rounded-xl
+                          border transition-all duration-200 ${colorClasses}
                         `}
                         layout
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <div className={`
                             flex items-center justify-center w-6 h-6 rounded-lg shrink-0
-                            ${isExpanded ? `${colorClasses} bg-opacity-20` : 'bg-gray-700/50'}
+                            ${colorClasses} bg-opacity-20
                           `}>
-                            {isExpanded ? (
-                              <span className="text-xs">{stat.symbol}</span>
-                            ) : (
-                              <Icon className={`w-3.5 h-3.5 ${isExpanded ? '' : 'text-gray-400'}`} />
-                            )}
+                            <Icon className="w-3.5 h-3.5" />
                           </div>
                           
                           <motion.p
                             layout
-                            className={`
-                              text-xs font-bold truncate
-                              ${isExpanded ? '' : 'text-white'}
-                            `}
+                            className="text-xs font-bold truncate"
                           >
                             {stat.value}
                           </motion.p>
                         </div>
 
-                        {isExpanded && (
-                          <motion.span
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="text-[10px] opacity-70 truncate"
-                          >
-                            {stat.label}
-                          </motion.span>
-                        )}
+                        <motion.span
+                          className="text-[10px] opacity-70 truncate text-center"
+                        >
+                          {stat.label}
+                        </motion.span>
                       </motion.div>
-                    </motion.button>
+                    </motion.div>
                   );
                 })}
               </motion.div>
