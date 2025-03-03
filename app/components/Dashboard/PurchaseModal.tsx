@@ -2,9 +2,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaBitcoin, FaCreditCard, FaApplePay, FaGooglePay } from 'react-icons/fa';
-import { SiCashapp } from 'react-icons/si';
+import { SiCashapp, SiLitecoin } from 'react-icons/si';
 import { IoClose } from 'react-icons/io5';
 import { HiSparkles } from 'react-icons/hi';
+import { TbBolt } from 'react-icons/tb';
 
 interface PurchaseModalProps {
   isOpen: boolean;
@@ -23,28 +24,39 @@ type PaymentMethod = {
 
 const paymentMethods: PaymentMethod[] = [
   {
-    id: 'card',
-    title: 'VISA / Mastercard',
+    id: 'stripe',
+    title: 'Stripe',
     icon: <FaCreditCard className="w-6 h-6" />,
+    icons: [
+      <FaCreditCard key="card" className="w-6 h-6" />,
+      <FaApplePay key="apple" className="w-6 h-6" />,
+      <FaGooglePay key="google" className="w-6 h-6" />
+    ],
     minAmount: 10,
     maxAmount: 4000
   },
   {
-    id: 'digital-wallet',
-    title: 'Apple Pay / Google Pay',
-    icon: <FaCreditCard className="w-6 h-6" />,
+    id: 'bitcoin-lightning',
+    title: 'Bitcoin Lightning',
+    icon: <TbBolt className="w-6 h-6" />,
     icons: [
-      <FaApplePay key="apple" className="w-8 h-8" />,
-      <FaGooglePay key="google" className="w-8 h-8" />
+      <FaBitcoin key="btc" className="w-6 h-6" />,
+      <TbBolt key="lightning" className="w-6 h-6" />
     ],
-    minAmount: 10,
-    maxAmount: 4000
+    minAmount: 5,
+    maxAmount: 1000
   },
   {
     id: 'bitcoin',
     title: 'Bitcoin',
     icon: <FaBitcoin className="w-6 h-6" />,
     minAmount: 20
+  },
+  {
+    id: 'litecoin',
+    title: 'Litecoin',
+    icon: <SiLitecoin className="w-6 h-6" />,
+    minAmount: 10
   },
   {
     id: 'cashapp',
