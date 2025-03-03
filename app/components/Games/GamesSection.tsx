@@ -3,16 +3,16 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 const games = [
-  { name: 'Ultra Panda', image: '/games/ultra-panda.png' },
-  { name: 'V Blink', image: '/games/vblink.png' },
-  { name: 'Orion Stars', image: '/games/orion-stars.png' },
-  { name: 'Golden Dragon', image: '/games/golden-dragon.png' },
-  { name: 'Fire Kirin', image: '/games/fire-kirin.png' },
-  { name: 'Golden Treasure', image: '/games/golden-treasure.png' },
-  { name: 'Egames', image: '/games/egames.png' },
-  { name: 'Milky Way', image: '/games/milky-way.png' },
-  { name: 'Juwa', image: '/games/juwa.png' },
-  { name: 'Master Panda', image: '/games/master-panda.png' },
+  { name: 'Ultra Panda', image: '/Game%20Logos/Ultrapanda.webp' },
+  { name: 'V Blink', image: '/Game%20Logos/Vblink.webp' },
+  { name: 'Orion Stars', image: '/Game%20Logos/Orionstars.png' },
+  { name: 'Fire Kirin', image: '/Game%20Logos/Firekirin.png' },
+  { name: 'Game Vault', image: '/Game%20Logos/Gamevault.png' },
+  { name: 'Game Room', image: '/Game%20Logos/Gameroom.png' },
+  { name: 'Milky Way', image: '/Game%20Logos/Mikyway.png' },
+  { name: 'Juwa', image: '/Game%20Logos/Juwa.png' },
+  { name: 'Panda Master', image: '/Game%20Logos/Pandamaster.png' },
+  { name: 'Cash Frenzy', image: '/Game%20Logos/Cashfrenzy.png' },
 ];
 
 const GamesSection = () => {
