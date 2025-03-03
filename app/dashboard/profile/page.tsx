@@ -6,11 +6,15 @@ import ProfileHeader from '@/app/components/Profile/ProfileHeader';
 import StatsGrid from '@/app/components/Profile/StatsGrid';
 import ProfileForm from '@/app/components/Profile/ProfileForm';
 import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 
 interface ProfileData {
   username: string;
   email: string;
   full_name: string;
+  mobile_number: string;
+  dob: string;
+  state: string;
   balance: string;
   cashable_balance: string;
   bonus_balance: string;
@@ -25,6 +29,13 @@ export default function ProfilePage() {
     const fetchProfileData = async () => {
       try {
         setIsLoading(true);
+        
+        // Try to refresh the token first
+        await fetch('/api/auth/refresh', {
+          method: 'POST',
+          credentials: 'include'
+        });
+
         const response = await fetch('/api/auth/profile', {
           method: 'GET',
           headers: {
@@ -35,30 +46,7 @@ export default function ProfilePage() {
 
         if (!response.ok) {
           if (response.status === 401 || response.status === 403) {
-            // Try to refresh the token
-            const refreshResponse = await fetch('/api/auth/refresh', {
-              method: 'POST',
-              credentials: 'include'
-            });
-
-            if (refreshResponse.ok) {
-              // Retry the original request
-              const retryResponse = await fetch('/api/auth/profile', {
-                method: 'GET',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                credentials: 'include'
-              });
-
-              if (retryResponse.ok) {
-                const data = await retryResponse.json();
-                setProfileData(data);
-                return;
-              }
-            }
-
-            // If refresh failed or retry failed, clear storage and redirect to login
+            // Clear storage and redirect to login
             localStorage.clear();
             document.cookie = 'token=; Path=/; Max-Age=0';
             router.push('/login');
@@ -71,6 +59,7 @@ export default function ProfilePage() {
         setProfileData(data);
       } catch (err) {
         console.error('Error fetching profile data:', err);
+        toast.error('Failed to load profile data');
       } finally {
         setIsLoading(false);
       }

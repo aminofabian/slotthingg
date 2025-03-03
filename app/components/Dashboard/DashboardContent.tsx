@@ -6,11 +6,13 @@ import { SiNintendogamecube } from 'react-icons/si';
 import { FaTwitter, FaDiscord, FaTelegram, FaInstagram, FaTimes } from 'react-icons/fa';
 import Logo from '../Logo/Logo';
 import GameSelectionModal from './GameSelectionModal';
-import { useState, Fragment, useEffect } from 'react';
+import { useState, Fragment, useEffect, useRef } from 'react';
 import Footer from '../Footer/Footer';
 import { Dialog, Transition } from '@headlessui/react';
 import useGameStore, { getDefaultGames } from '@/lib/store/useGameStore';
 import type { Game } from '@/lib/store/useGameStore';
+
+const initialGames = getDefaultGames();
 
 function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: Game }) {
   const { isRefreshing } = useGameStore();
@@ -177,43 +179,39 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
 }
 
 export default function DashboardContent() {
-  const { games, fetchGames, isLoading } = useGameStore();
+  const { games, fetchGames, isLoading, error } = useGameStore();
   const [isGameSelectionOpen, setIsGameSelectionOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const initialFetchRef = useRef(false);
 
-  // Fetch games when component mounts
+  // Fetch games only on first mount
   useEffect(() => {
-    console.log('DashboardContent mounted, fetching games...');
-    fetchGames();
-  }, [fetchGames]);
-
-  // Debug log when games change
-  useEffect(() => {
-    console.log('Games state updated:', games);
-  }, [games]);
-
-  if (isLoading) {
-    return <div className="text-white text-center py-8">Loading games...</div>;
-  }
+    if (!initialFetchRef.current) {
+      initialFetchRef.current = true;
+      console.log('Initial games fetch...');
+      fetchGames();
+    }
+  }, []); // Empty dependency array
 
   const handleGameSelect = async (game: Game) => {
     console.log('Selected game:', game);
-    // Show modal immediately with initial game data
     setSelectedGame(game);
     setIsActionModalOpen(true);
     setIsGameSelectionOpen(false);
     
-    // Then refresh the data
-    setIsRefreshing(true);
-    try {
-      await fetchGames();
-      // Update the selected game with fresh data
-      const updatedGame = games.find(g => g.id === game.id) || game;
-      setSelectedGame(updatedGame);
-    } finally {
-      setIsRefreshing(false);
+    // Only refresh if not already refreshing
+    if (!isRefreshing) {
+      setIsRefreshing(true);
+      try {
+        await fetchGames();
+        // Update the selected game with fresh data
+        const updatedGame = games.find(g => g.id === game.id) || game;
+        setSelectedGame(updatedGame);
+      } finally {
+        setIsRefreshing(false);
+      }
     }
   };
 
@@ -222,12 +220,21 @@ export default function DashboardContent() {
     setIsGameSelectionOpen(true);
   };
 
+  // Show loading state only on initial load
+  if (isLoading && games === initialGames) {
+    return <div className="text-white text-center py-8">Loading games...</div>;
+  }
+
   return (
     <div className="min-h-screen w-full mx-auto pb-24 md:pb-6">
       {/* Add Game Button */}
       <div className="w-full px-6 py-4">
         <div className="max-w-[1440px] mx-auto">
-          
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-4">
+              <p className="text-red-400">{error}</p>
+            </div>
+          )}
         </div>
       </div>
 

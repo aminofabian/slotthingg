@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 export interface Game {
   id: string;
@@ -215,176 +214,150 @@ const initialGames: Game[] = [
   }
 ];
 
-const useGameStore = create<GameStore>()(
-  persist(
-    (set, get) => ({
-      games: initialGames,
-      isLoading: false,
-      isRefreshing: false,
-      error: null,
-      currentBalance: 0,
-      selectedGameId: undefined,
-      errorModalOpen: false,
+// Create a timestamp to track the last fetch
+let lastFetchTimestamp = 0;
+let isCurrentlyFetching = false;
 
-      fetchGames: async () => {
-        try {
-          console.log('Fetching games...');
-          const isFirstLoad = get().games === initialGames;
-          set({ 
-            isLoading: isFirstLoad,
-            isRefreshing: !isFirstLoad,
-            error: null 
-          });
-          
-          // Simple cookie parsing
-          const token = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('token='))
-            ?.split('=')[1];
+const useGameStore = create<GameStore>((set, get) => ({
+  games: initialGames,
+  isLoading: false,
+  isRefreshing: false,
+  error: null,
+  currentBalance: 0,
+  selectedGameId: undefined,
+  errorModalOpen: false,
 
-          console.log('Auth check:', {
-            hasCookie: !!token,
-            cookieString: document.cookie
-          });
-          
-          if (!token) {
-            console.error('No token found in cookies. Available cookies:', document.cookie);
-            set({ 
-              games: initialGames,  
-              isLoading: false, 
-              isRefreshing: false,
-              error: 'Authentication token not found. Please log in again.'
-            });
-            return;
-          }
-
-          console.log('Using auth token:', token.substring(0, 10) + '...');
-
-          const response = await fetch('/api/auth/dashboard-games', {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            },
-            credentials: 'include'  // This will send cookies automatically
-          });
-
-          if (!response.ok) {
-            throw new Error(`API error: ${response.status} ${response.statusText}`);
-          }
-
-          const result = await response.json();
-          console.log('API Response:', JSON.stringify(result, null, 2));
-
-          if (result.status !== 'success' || !result.data?.games) {
-            throw new Error('Invalid API response format');
-          }
-
-          // Log the game balance data specifically
-          console.log('Game balances from API:', {
-            rawBalances: result.data.game_balance,
-            gameNames: Object.keys(result.data.game_balance)
-          });
-
-          type GameName = 'Cash Frenzy' | 'Cash Machine' | 'Fire Kirin' | 'Game Room' | 'Game Vault' | 'Juwa' | 'Mafia' | 'Milky Way' | 'Mr All In One' | 'Orion Stars' | 'Panda Master' | 'River Sweeps' | 'Ultra Panda' | 'VB Link' | 'Vegas Sweeps';
-          const gameNameMapping: { [K in GameName]: string } = {
-            'Cash Frenzy': 'Cash Frenzy',
-            'Cash Machine': 'Cash Machine',
-            'Fire Kirin': 'Fire Kirin',
-            'Game Room': 'Game Room',
-            'Game Vault': 'Game Vault',
-            'Juwa': 'Juwa',
-            'Mafia': 'Mafia',
-            'Milky Way': 'Milky Way',
-            'Mr All In One': 'Mr All In One',
-            'Orion Stars': 'Orion Stars',
-            'Panda Master': 'Panda Master',
-            'River Sweeps': 'River Sweeps',
-            'Ultra Panda': 'Ultra Panda',
-            'VB Link': 'VB Link',
-            'Vegas Sweeps': 'Vegas Sweeps'
-          };
-
-          const transformedGames = initialGames.map(game => {
-            const apiGameName = gameNameMapping[game.name as GameName];
-            console.log(`Mapping game "${game.name}" to API name "${apiGameName}"`);
-
-            if (!apiGameName) {
-              console.warn(`No API mapping for game: ${game.name}`);
-              return game;
-            }
-
-            const balance = result.data.game_balance[apiGameName];
-            console.log(`Balance for ${apiGameName}:`, {
-              rawBalance: balance,
-              parsed: balance !== undefined ? parseFloat(balance) : 'undefined',
-              availableBalances: Object.keys(result.data.game_balance).join(', ')
-            });
-
-            if (balance === undefined) {
-              console.warn(`No balance found for game: ${apiGameName}. Available games: ${Object.keys(result.data.game_balance).join(', ')}`);
-              return game;
-            }
-
-            const parsedBalance = parseFloat(balance);
-            if (isNaN(parsedBalance)) {
-              console.warn(`Invalid balance value for game ${apiGameName}: ${balance}`);
-              return game;
-            }
-
-            return {
-              ...game,
-              balance: parsedBalance
-            };
-          });
-
-          console.log('Final transformed games:', transformedGames.map(g => ({
-            name: g.name,
-            apiName: gameNameMapping[g.name as GameName],
-            balance: g.balance,
-            rawBalance: result.data.game_balance[gameNameMapping[g.name as GameName]]
-          })));
-
-          set({ 
-            games: transformedGames,
-            isLoading: false,
-            isRefreshing: false,
-            error: null
-          });
-        } catch (error) {
-          console.error('Error fetching games:', error);
-          set({ 
-            games: initialGames,
-            isLoading: false,
-            isRefreshing: false,
-            error: error instanceof Error ? error.message : 'Failed to fetch games'
-          });
-        }
-      },
-
-      updateGameBalance: (gameName: string, balance: number) => {
-        const { games } = get();
-        const updatedGames = games.map(game => 
-          game.name === gameName ? { ...game, balance } : game
-        );
-        set({ games: updatedGames });
-      }
-    }),
-    {
-      name: 'game-store',
-      partialize: (state) => ({
-        selectedGameId: state.selectedGameId
-      }),
-      onRehydrateStorage: () => (state) => {
-        // Force fetch games on rehydration
-        if (state) {
-          console.log('Store rehydrated, fetching fresh games...');
-          state.fetchGames();
-        }
-      }
+  fetchGames: async () => {
+    // Prevent concurrent fetches
+    if (isCurrentlyFetching) {
+      console.log('Already fetching games, skipping...');
+      return;
     }
-  )
-);
+
+    try {
+      // Prevent fetching more often than every 30 seconds
+      const now = Date.now();
+      if (now - lastFetchTimestamp < 30000) {
+        console.log('Skipping fetch, too soon since last fetch');
+        return;
+      }
+
+      isCurrentlyFetching = true;
+      console.log('Fetching games...');
+      const isFirstLoad = get().games === initialGames;
+      
+      // Don't set loading state if we already have games
+      if (isFirstLoad) {
+        set({ isLoading: true, error: null });
+      } else {
+        set({ isRefreshing: true, error: null });
+      }
+      
+      // Try to refresh token
+      try {
+        const refreshResponse = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          credentials: 'include'
+        });
+
+        // Only redirect on 401 (unauthorized)
+        if (refreshResponse.status === 401) {
+          console.log('Token refresh failed with 401, redirecting to login...');
+          window.location.href = '/login';
+          return;
+        }
+
+        // For other errors, continue with games fetch
+        if (!refreshResponse.ok) {
+          console.warn('Token refresh failed, continuing with existing token...');
+        }
+      } catch (error) {
+        console.error('Token refresh failed:', error);
+        // Continue with games fetch on network errors
+      }
+
+      const response = await fetch('/api/auth/dashboard-games', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      // Handle different response statuses
+      if (response.status === 401) {
+        console.log('Games fetch failed with 401, redirecting to login...');
+        window.location.href = '/login';
+        return;
+      }
+
+      // For 403 or other errors, keep showing existing games
+      if (!response.ok) {
+        console.error('Failed to fetch games:', response.status);
+        set({ 
+          isLoading: false,
+          isRefreshing: false,
+          // Keep existing games, just update loading state
+          error: response.status === 403 ? 'Access denied' : 'Failed to fetch games'
+        });
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (!data.games) {
+        console.error('Invalid response format:', data);
+        set({ 
+          isLoading: false,
+          isRefreshing: false,
+          // Keep existing games on invalid response
+          error: 'Invalid response format'
+        });
+        return;
+      }
+
+      // Only update state if the data has actually changed
+      const currentGames = get().games;
+      const hasChanged = JSON.stringify(currentGames) !== JSON.stringify(data.games);
+      
+      if (hasChanged) {
+        set({ 
+          games: data.games,
+          isLoading: false,
+          isRefreshing: false,
+          error: null
+        });
+      } else {
+        set({ 
+          isLoading: false,
+          isRefreshing: false,
+          error: null
+        });
+      }
+
+      lastFetchTimestamp = now;
+    } catch (error: any) {
+      console.error('Error fetching games:', error);
+      set({ 
+        isLoading: false,
+        isRefreshing: false,
+        // Keep existing games on error
+        error: error.message || 'Failed to fetch games'
+      });
+    } finally {
+      isCurrentlyFetching = false;
+    }
+  },
+
+  updateGameBalance: (gameName: string, balance: number) => {
+    const { games } = get();
+    const updatedGames = games.map(game => 
+      game.name === gameName ? { ...game, balance } : game
+    );
+    set({ games: updatedGames });
+  }
+}));
 
 export const getDefaultGames = () => initialGames;
 
