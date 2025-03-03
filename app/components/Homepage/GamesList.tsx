@@ -3,11 +3,21 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 const games = [
-  { name: 'V Blink', image: '/games/vblink.png' },
-  { name: 'Golden Treasure', image: '/games/golden-treasure.png' },
-  { name: 'Egame', image: '/games/egames.png' },
-  { name: 'Milky Way', image: '/games/milky-way.png' },
-  { name: 'Juwa', image: '/games/juwa.png' },
+  { name: 'Cash Frenzy', image: '/Game%20Logos/Cashfrenzy.png' },
+  { name: 'Cash Machine', image: '/Game%20Logos/Cashmachine.webp' },
+  { name: 'Fire Kirin', image: '/Game%20Logos/Firekirin.png' },
+  { name: 'Game Room', image: '/Game%20Logos/Gameroom.png' },
+  { name: 'Game Vault', image: '/Game%20Logos/Gamevault.png' },
+  { name: 'Juwa', image: '/Game%20Logos/Juwa.png' },
+  { name: 'Mafia', image: '/Game%20Logos/Mafia.png' },
+  { name: 'Milky Way', image: '/Game%20Logos/Mikyway.png' },
+  { name: 'Mr All In One', image: '/Game%20Logos/Mrallinone.png' },
+  { name: 'Orion Stars', image: '/Game%20Logos/Orionstars.png' },
+  { name: 'Panda Master', image: '/Game%20Logos/Pandamaster.png' },
+  { name: 'River Sweeps', image: '/Game%20Logos/Riversweeps.png' },
+  { name: 'Ultra Panda', image: '/Game%20Logos/Ultrapanda.webp' },
+  { name: 'V Blink', image: '/Game%20Logos/Vblink.webp' },
+  { name: 'Vegas Sweeps', image: '/Game%20Logos/Vegassweeps.png' },
 ];
 
 const GamesList = () => {

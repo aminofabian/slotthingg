@@ -35,65 +35,183 @@ type GameStore = GameStoreState & GameStoreActions;
 const initialGames: Game[] = [
   {
     id: '1',
-    name: 'Vblink',
-    image: '/games/vblink.png',
-    gameId: 'vblink_001',
+    name: 'Cash Frenzy',
+    image: '/Game Logos/Cashfrenzy.png',
+    gameId: 'cashfrenzy_001',
     entries: 0,
     active: true,
     balance: 0,
-    username: 'user_vblink',
+    username: 'user_cashfrenzy',
     password: '********',
-    fallbackImage: '/games/vblink.png'
+    fallbackImage: '/Game Logos/Cashfrenzy.png'
   },
   {
     id: '2',
-    name: 'Golden Treasure',
-    image: '/games/golden-treasure.png',
-    gameId: 'golden_001',
+    name: 'Cash Machine',
+    image: '/Game Logos/Cashmachine.webp',
+    gameId: 'cashmachine_001',
     entries: 0,
     active: true,
     balance: 0,
-    username: 'user_golden',
+    username: 'user_cashmachine',
     password: '********',
-    safe: 0,
-    fallbackImage: '/games/golden-treasure.png'
+    fallbackImage: '/Game Logos/Cashmachine.webp'
   },
   {
     id: '3',
-    name: 'Egames',
-    image: '/games/egames.png',
-    gameId: 'egames_001',
+    name: 'Fire Kirin',
+    image: '/Game Logos/Firekirin.png',
+    gameId: 'firekirin_001',
     entries: 0,
     active: true,
     balance: 0,
-    username: 'user_egames',
+    username: 'user_firekirin',
     password: '********',
-    fallbackImage: '/games/egames.png'
+    fallbackImage: '/Game Logos/Firekirin.png'
   },
   {
     id: '4',
-    name: 'Milky Way',
-    image: '/games/milky-way.png',
-    gameId: 'milky_001',
+    name: 'Game Room',
+    image: '/Game Logos/Gameroom.png',
+    gameId: 'gameroom_001',
     entries: 0,
     active: true,
     balance: 0,
-    username: 'user_milky',
+    username: 'user_gameroom',
     password: '********',
-    safe: 0,
-    fallbackImage: '/games/milky-way.png'
+    fallbackImage: '/Game Logos/Gameroom.png'
   },
   {
     id: '5',
+    name: 'Game Vault',
+    image: '/Game Logos/Gamevault.png',
+    gameId: 'gamevault_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    username: 'user_gamevault',
+    password: '********',
+    fallbackImage: '/Game Logos/Gamevault.png'
+  },
+  {
+    id: '6',
     name: 'Juwa',
-    image: '/games/juwa.png',
+    image: '/Game Logos/Juwa.png',
     gameId: 'juwa_001',
     entries: 0,
     active: true,
     balance: 0,
     username: 'user_juwa',
     password: '********',
-    fallbackImage: '/games/juwa.png'
+    fallbackImage: '/Game Logos/Juwa.png'
+  },
+  {
+    id: '7',
+    name: 'Mafia',
+    image: '/Game Logos/Mafia.png',
+    gameId: 'mafia_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    username: 'user_mafia',
+    password: '********',
+    fallbackImage: '/Game Logos/Mafia.png'
+  },
+  {
+    id: '8',
+    name: 'Milky Way',
+    image: '/Game Logos/Mikyway.png',
+    gameId: 'milkyway_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    username: 'user_milkyway',
+    password: '********',
+    fallbackImage: '/Game Logos/Mikyway.png'
+  },
+  {
+    id: '9',
+    name: 'Mr All In One',
+    image: '/Game Logos/Mrallinone.png',
+    gameId: 'mrallinone_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    username: 'user_mrallinone',
+    password: '********',
+    fallbackImage: '/Game Logos/Mrallinone.png'
+  },
+  {
+    id: '10',
+    name: 'Orion Stars',
+    image: '/Game Logos/Orionstars.png',
+    gameId: 'orionstars_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    username: 'user_orionstars',
+    password: '********',
+    fallbackImage: '/Game Logos/Orionstars.png'
+  },
+  {
+    id: '11',
+    name: 'Panda Master',
+    image: '/Game Logos/Pandamaster.png',
+    gameId: 'pandamaster_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    username: 'user_pandamaster',
+    password: '********',
+    fallbackImage: '/Game Logos/Pandamaster.png'
+  },
+  {
+    id: '12',
+    name: 'River Sweeps',
+    image: '/Game Logos/Riversweeps.png',
+    gameId: 'riversweeps_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    username: 'user_riversweeps',
+    password: '********',
+    fallbackImage: '/Game Logos/Riversweeps.png'
+  },
+  {
+    id: '13',
+    name: 'Ultra Panda',
+    image: '/Game Logos/Ultrapanda.webp',
+    gameId: 'ultrapanda_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    username: 'user_ultrapanda',
+    password: '********',
+    fallbackImage: '/Game Logos/Ultrapanda.webp'
+  },
+  {
+    id: '14',
+    name: 'VB Link',
+    image: '/Game Logos/Vblink.webp',
+    gameId: 'vblink_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    username: 'user_vblink',
+    password: '********',
+    fallbackImage: '/Game Logos/Vblink.webp'
+  },
+  {
+    id: '15',
+    name: 'Vegas Sweeps',
+    image: '/Game Logos/Vegassweeps.png',
+    gameId: 'vegassweeps_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    username: 'user_vegassweeps',
+    password: '********',
+    fallbackImage: '/Game Logos/Vegassweeps.png'
   }
 ];
 
@@ -168,13 +286,23 @@ const useGameStore = create<GameStore>()(
             gameNames: Object.keys(result.data.game_balance)
           });
 
-          type GameName = 'Vblink' | 'Golden Treasure' | 'Egames' | 'Milky Way' | 'Juwa';
+          type GameName = 'Cash Frenzy' | 'Cash Machine' | 'Fire Kirin' | 'Game Room' | 'Game Vault' | 'Juwa' | 'Mafia' | 'Milky Way' | 'Mr All In One' | 'Orion Stars' | 'Panda Master' | 'River Sweeps' | 'Ultra Panda' | 'VB Link' | 'Vegas Sweeps';
           const gameNameMapping: { [K in GameName]: string } = {
-            'Vblink': 'Vblink',
-            'Golden Treasure': 'Golden Dragon',
-            'Egames': 'E-Game',
-            'Milky Way': 'Milkyway',
-            'Juwa': 'Juwa'
+            'Cash Frenzy': 'Cash Frenzy',
+            'Cash Machine': 'Cash Machine',
+            'Fire Kirin': 'Fire Kirin',
+            'Game Room': 'Game Room',
+            'Game Vault': 'Game Vault',
+            'Juwa': 'Juwa',
+            'Mafia': 'Mafia',
+            'Milky Way': 'Milky Way',
+            'Mr All In One': 'Mr All In One',
+            'Orion Stars': 'Orion Stars',
+            'Panda Master': 'Panda Master',
+            'River Sweeps': 'River Sweeps',
+            'Ultra Panda': 'Ultra Panda',
+            'VB Link': 'VB Link',
+            'Vegas Sweeps': 'Vegas Sweeps'
           };
 
           const transformedGames = initialGames.map(game => {
