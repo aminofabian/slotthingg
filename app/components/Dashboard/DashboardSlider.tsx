@@ -3,7 +3,7 @@
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Navigation, Pagination, EffectFade } from 'swiper/modules';
 import { Righteous } from 'next/font/google';
-import { FaGamepad } from 'react-icons/fa';
+import { FaGamepad, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { GiTakeMyMoney, GiStarsStack } from 'react-icons/gi';
 import { motion } from 'framer-motion';
 import 'swiper/css';
@@ -61,15 +61,43 @@ export default function DashboardSlider() {
         }}
         pagination={{
           clickable: true,
-          renderBullet: (index, className) => {
-            return `<span class="${className} w-2 h-2 bg-white/30 hover:bg-white/50"></span>`;
-          },
+          renderBullet: function(index: number, className: string) {
+            return `<span class="${className} !w-3 !h-3 !bg-white/20 hover:!bg-[#00ffff]/50 !opacity-100 !mx-2 transition-all duration-300 hover:!scale-125 hover:!shadow-[0_0_10px_rgba(0,255,255,0.5)]"></span>`;
+          }
         }}
-        navigation={true}
+        navigation={{
+          nextEl: '.custom-swiper-next',
+          prevEl: '.custom-swiper-prev',
+        }}
         modules={[Autoplay, Pagination, Navigation, EffectFade]}
         effect="fade"
-        className="w-full h-[200px] sm:h-[300px] md:h-[350px] lg:h-[400px] xl:h-[450px] rounded-2xl"
+        className="w-full h-[200px] sm:h-[300px] md:h-[350px] lg:h-[400px] xl:h-[450px] rounded-2xl
+          [&_.swiper-pagination]:!bottom-6
+          [&_.swiper-pagination-bullet-active]:!bg-[#00ffff]
+          [&_.swiper-pagination-bullet-active]:!scale-125
+          [&_.swiper-pagination-bullet-active]:!shadow-[0_0_10px_rgba(0,255,255,0.5)]
+          shadow-[0_0_30px_rgba(0,255,255,0.1)]
+          before:content-[''] before:absolute before:inset-0 before:z-[-1]
+          before:bg-gradient-to-r before:from-[#00ffff]/5 before:via-transparent before:to-[#00ffff]/5"
       >
+        {/* Custom Navigation Buttons */}
+        <button className="custom-swiper-prev absolute left-4 top-1/2 -translate-y-1/2 z-10
+          w-12 h-12 bg-black/30 rounded-full backdrop-blur-sm
+          border border-white/10 text-white/70 hover:text-[#00ffff] hover:border-[#00ffff]/30
+          hover:bg-black/50 transition-all duration-300 flex items-center justify-center group">
+          <FaChevronLeft className="w-5 h-5" />
+          <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100
+            transition-opacity duration-300 bg-[#00ffff]/10" />
+        </button>
+        <button className="custom-swiper-next absolute right-4 top-1/2 -translate-y-1/2 z-10
+          w-12 h-12 bg-black/30 rounded-full backdrop-blur-sm
+          border border-white/10 text-white/70 hover:text-[#00ffff] hover:border-[#00ffff]/30
+          hover:bg-black/50 transition-all duration-300 flex items-center justify-center group">
+          <FaChevronRight className="w-5 h-5" />
+          <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100
+            transition-opacity duration-300 bg-[#00ffff]/10" />
+        </button>
+
         {slides.map((slide) => (
           <SwiperSlide key={slide.id} className="relative">
             <div className="relative w-full h-full group">
