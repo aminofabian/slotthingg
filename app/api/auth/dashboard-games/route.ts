@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { getDefaultGames } from '@/lib/store/useGameStore';
 
 // Helper function to check if the error is a network error
 function isNetworkError(error: any) {
@@ -35,12 +36,15 @@ export async function GET() {
     let lastError = null;
 
     while (retryCount < maxRetries) {
+      let timeoutId: NodeJS.Timeout | null = null;
+      
       try {
         // Add timeout to the fetch request
         const controller = new AbortController();
-        let timeoutId: NodeJS.Timeout | null = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-        response = await fetch('https://serverhub.biz/games/list', {
+        // Updated API endpoint
+        response = await fetch('https://serverhub.biz/api/v1/games', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${authToken}`,
@@ -74,6 +78,11 @@ export async function GET() {
           await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount))); // Exponential backoff
         }
       } catch (fetchError: any) {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        
         console.error('Fetch error:', fetchError);
         
         // Store the error for better reporting
@@ -132,13 +141,10 @@ export async function GET() {
 
     const data = await response.json();
     
-    // Validate the response data
+    // Return initial games if the response is invalid
     if (!data || !Array.isArray(data.games)) {
       console.error('Invalid API response format:', data);
-      return NextResponse.json(
-        { error: 'Invalid response from game service' },
-        { status: 502 }
-      );
+      return NextResponse.json({ games: getDefaultGames() });
     }
 
     return NextResponse.json(data);
@@ -153,9 +159,7 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(
-      { error: 'Internal server error - Please try again later' },
-      { status: 500 }
-    );
+    // Return initial games on error
+    return NextResponse.json({ games: getDefaultGames() });
   }
 } 
