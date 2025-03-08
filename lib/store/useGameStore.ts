@@ -257,7 +257,11 @@ const useGameStore = create<GameStore>((set, get) => ({
       try {
         const refreshResponse = await fetch('/api/auth/refresh', {
           method: 'POST',
-          credentials: 'include'
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
         });
 
         // Only redirect on 401 (unauthorized)
@@ -267,13 +271,19 @@ const useGameStore = create<GameStore>((set, get) => ({
           return;
         }
 
-        // For other errors, continue with games fetch
+        // For other errors, continue with games fetch but log the status
         if (!refreshResponse.ok) {
-          console.warn('Token refresh failed, continuing with existing token...');
+          console.warn(`Token refresh failed with status ${refreshResponse.status}`);
         }
       } catch (error) {
-        console.error('Token refresh failed:', error);
-        // Continue with games fetch on network errors
+        console.error('Token refresh network error:', error);
+        set({ 
+          isLoading: false,
+          isRefreshing: false,
+          error: 'Network error - Please check your connection'
+        });
+        isCurrentlyFetching = false;
+        return;
       }
 
       const response = await fetch('/api/auth/dashboard-games', {
@@ -294,12 +304,19 @@ const useGameStore = create<GameStore>((set, get) => ({
 
       // For 403 or other errors, keep showing existing games
       if (!response.ok) {
+        const errorMessage = response.status === 403 
+          ? 'Access denied - Please log in again'
+          : response.status === 404
+          ? 'Game service unavailable'
+          : response.status === 500
+          ? 'Server error - Please try again later'
+          : `Error ${response.status} - Please try again`;
+
         console.error('Failed to fetch games:', response.status);
         set({ 
           isLoading: false,
           isRefreshing: false,
-          // Keep existing games, just update loading state
-          error: response.status === 403 ? 'Access denied' : 'Failed to fetch games'
+          error: errorMessage
         });
         return;
       }
@@ -339,11 +356,14 @@ const useGameStore = create<GameStore>((set, get) => ({
       lastFetchTimestamp = now;
     } catch (error: any) {
       console.error('Error fetching games:', error);
+      const errorMessage = error instanceof TypeError && error.message.includes('fetch')
+        ? 'Network error - Please check your connection'
+        : error.message || 'Failed to fetch games';
+        
       set({ 
         isLoading: false,
         isRefreshing: false,
-        // Keep existing games on error
-        error: error.message || 'Failed to fetch games'
+        error: errorMessage
       });
     } finally {
       isCurrentlyFetching = false;
