@@ -6,7 +6,7 @@ import { SiNintendogamecube } from 'react-icons/si';
 import { FaTwitter, FaDiscord, FaTelegram, FaInstagram, FaTimes } from 'react-icons/fa';
 import Logo from '../Logo/Logo';
 import GameSelectionModal from './GameSelectionModal';
-import { useState, Fragment, useEffect, useRef } from 'react';
+import { useState, Fragment, useEffect, useRef, useCallback } from 'react';
 import Footer from '../Footer/Footer';
 import { Dialog, Transition } from '@headlessui/react';
 import useGameStore, { getDefaultGames } from '@/lib/store/useGameStore';
@@ -185,6 +185,13 @@ export default function DashboardContent() {
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const initialFetchRef = useRef(false);
+  const [imagesLoaded, setImagesLoaded] = useState(0);
+  const totalImages = games.length;
+
+  // Track image loading progress
+  const handleImageLoad = useCallback(() => {
+    setImagesLoaded(prev => prev + 1);
+  }, []);
 
   // Fetch games only on first mount
   useEffect(() => {
@@ -220,10 +227,37 @@ export default function DashboardContent() {
     setIsGameSelectionOpen(true);
   };
 
-  // Show loading state only on initial load
+  // Show loading state only on initial load with loading skeleton
   if (isLoading && games === initialGames) {
-    return <div className="text-white text-center py-8">Loading games...</div>;
+    return (
+      <div className="min-h-screen w-full mx-auto pb-24 md:pb-6">
+        <div className="w-full px-6">
+          <div className="max-w-[1440px] mx-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div 
+                  key={i}
+                  className="relative bg-gradient-to-br from-gray-900 via-black to-gray-900 
+                    rounded-xl overflow-hidden shadow-lg border border-[#7ffdfd]/20
+                    animate-pulse"
+                >
+                  <div className="aspect-square bg-gray-800" />
+                  <div className="p-3 space-y-2">
+                    <div className="h-4 bg-gray-800 rounded w-2/3" />
+                    <div className="h-4 bg-gray-800 rounded w-1/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
+
+  // Calculate loading progress
+  const loadingProgress = Math.round((imagesLoaded / totalImages) * 100);
+  const isInitialLoading = imagesLoaded < totalImages;
 
   return (
     <div className="min-h-screen w-full mx-auto pb-24 md:pb-6">
@@ -253,6 +287,18 @@ export default function DashboardContent() {
           onClose={() => setIsActionModalOpen(false)}
           game={selectedGame}
         />
+      )}
+
+      {/* Loading Progress Indicator */}
+      {isInitialLoading && (
+        <div className="fixed inset-x-0 top-0 z-50">
+          <div className="bg-[#7ffdfd]/10 h-1">
+            <div 
+              className="bg-[#7ffdfd] h-full transition-all duration-300 ease-out"
+              style={{ width: `${loadingProgress}%` }}
+            />
+          </div>
+        </div>
       )}
 
       {/* Slider Section */}
@@ -331,14 +377,16 @@ export default function DashboardContent() {
                     group text-left"
                 >
                   {/* Game Image Container */}
-                  <div className="relative aspect-square overflow-hidden">
+                  <div className="relative aspect-square overflow-hidden bg-gray-900">
                     <Image
                       src={game.image}
                       alt={game.name}
                       fill
                       className="object-cover object-center transform group-hover:scale-110 transition-transform duration-300"
                       sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16.67vw"
-                      priority
+                      priority={game.id <= '6'} // Only prioritize first 6 images
+                      onLoad={handleImageLoad}
+                      onError={handleImageLoad} // Count failed loads too
                     />
                     <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300" />
                   </div>
