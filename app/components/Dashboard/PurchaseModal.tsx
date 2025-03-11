@@ -95,6 +95,13 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
+  const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(true);
+  const [profileData, setProfileData] = useState<{
+    balance: string;
+    cashable_balance: string;
+    bonus_balance: string;
+    full_name: string;
+  } | null>(null);
 
   // Get the selected payment method object
   const selectedPaymentMethod = paymentMethods.find(method => method.id === selectedMethod);
@@ -104,8 +111,42 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
     amount >= (selectedPaymentMethod?.minAmount || 0) && 
     (selectedPaymentMethod?.maxAmount ? amount <= selectedPaymentMethod.maxAmount : true);
 
-  // Check authentication status on component mount
+  // Fetch user profile data including balance
   useEffect(() => {
+    const fetchProfileData = async () => {
+      if (!isOpen) return;
+      
+      setIsLoadingBalance(true);
+      try {
+        const response = await fetch('/api/auth/profile', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile data');
+        }
+
+        const data = await response.json();
+        setProfileData(data);
+        setIsAuthenticated(true);
+      } catch (err) {
+        console.error('Error fetching profile data:', err);
+        // If we can't fetch profile data, we'll check authentication status separately
+        checkAuthentication();
+      } finally {
+        setIsLoadingBalance(false);
+      }
+    };
+
+    fetchProfileData();
+  }, [isOpen]);
+
+  // Check authentication status on component mount
+  const checkAuthentication = () => {
     // Check for token in cookies
     const token = getCookie('token');
     
@@ -122,7 +163,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
     if (!tokenToUse && userId) {
       setIsAuthenticated(true);
     }
-  }, []);
+  };
 
   // Handle amount change
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -239,7 +280,15 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
               {/* Current Balance */}
               <div className="mb-4 sm:mb-6 text-center">
                 <p className="text-sm sm:text-base text-white/60 mb-1">Current balance:</p>
-                <p className="text-xl sm:text-2xl font-bold text-[#00ffff]">$0</p>
+                {isLoadingBalance ? (
+                  <div className="flex justify-center items-center h-8">
+                    <div className="w-5 h-5 border-2 border-[#00ffff]/30 border-t-[#00ffff] rounded-full animate-spin"></div>
+                  </div>
+                ) : (
+                  <p className="text-xl sm:text-2xl font-bold text-[#00ffff]">
+                    ${profileData?.balance || '0'}
+                  </p>
+                )}
               </div>
 
               {!isAuthenticated ? (
