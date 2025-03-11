@@ -213,69 +213,98 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 overflow-y-auto"
           onClick={(e) => e.target === e.currentTarget && handleClose()}
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="w-full max-w-md bg-[#0a0a0a] rounded-2xl overflow-hidden"
+            className="w-full max-w-md mx-auto my-4 bg-[#0a0a0a] rounded-2xl overflow-hidden"
           >
             {/* Header */}
-            <div className="relative p-6 border-b border-white/10">
-              <h2 className="text-2xl font-bold text-white text-center">PURCHASE</h2>
+            <div className="relative p-4 sm:p-6 border-b border-white/10">
+              <h2 className="text-xl sm:text-2xl font-bold text-white text-center">PURCHASE</h2>
               <button
                 onClick={handleClose}
-                className="absolute right-4 top-4 p-2 text-white/60 hover:text-white
+                className="absolute right-3 sm:right-4 top-3 sm:top-4 p-2 text-white/60 hover:text-white
                   rounded-lg hover:bg-white/5 transition-colors"
               >
-                <IoClose className="w-6 h-6" />
+                <IoClose className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
 
             {/* Content */}
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {/* Current Balance */}
-              <div className="mb-6 text-center">
-                <p className="text-white/60 mb-1">Current balance:</p>
-                <p className="text-2xl font-bold text-[#00ffff]">$0</p>
+              <div className="mb-4 sm:mb-6 text-center">
+                <p className="text-sm sm:text-base text-white/60 mb-1">Current balance:</p>
+                <p className="text-xl sm:text-2xl font-bold text-[#00ffff]">$0</p>
               </div>
 
               {!isAuthenticated ? (
                 // Authentication required message
-                <div className="text-center space-y-4 py-6">
-                  <div className="flex justify-center mb-4">
-                    <div className="p-4 rounded-full bg-white/5 text-[#00ffff]">
-                      <FiLock className="w-8 h-8" />
+                <div className="text-center space-y-3 sm:space-y-4 py-4 sm:py-6">
+                  <div className="flex justify-center mb-3 sm:mb-4">
+                    <div className="p-3 sm:p-4 rounded-full bg-white/5 text-[#00ffff]">
+                      <FiLock className="w-6 h-6 sm:w-8 sm:h-8" />
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold text-white">Authentication Required</h3>
-                  <p className="text-white/60">
+                  <h3 className="text-lg sm:text-xl font-bold text-white">Authentication Required</h3>
+                  <p className="text-sm sm:text-base text-white/60">
                     You need to be logged in to make a purchase.
                   </p>
                   <button
                     onClick={handleLoginRedirect}
-                    className="mt-4 w-full py-3 px-6 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
-                      hover:bg-[#00ffff]/20 border border-[#00ffff]/30 transition-all duration-200"
+                    className="mt-3 sm:mt-4 w-full py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
+                      hover:bg-[#00ffff]/20 border border-[#00ffff]/30 transition-all duration-200 text-sm sm:text-base"
                   >
                     Log In
                   </button>
                 </div>
               ) : paymentUrl ? (
                 // Payment URL display
-                <div className="text-center space-y-4">
-                  <p className="text-white font-medium">Your payment is ready!</p>
+                <div className="text-center space-y-3 sm:space-y-4">
+                  <div className="bg-[#0f1520] border border-[#00ffff]/20 rounded-xl p-4 sm:p-5 shadow-lg shadow-[#00ffff]/5 mb-4">
+                    <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Your payment is ready!</h3>
+                    
+                    <div className="flex flex-col items-center justify-center mb-3">
+                      <div className="flex items-center justify-center w-16 h-16 rounded-full bg-[#00ffff]/10 text-[#00ffff] mb-3">
+                        {selectedPaymentMethod?.icon || <FaBitcoin className="w-8 h-8" />}
+                      </div>
+                      
+                      <div className="text-center">
+                        <p className="text-white/60 text-xs sm:text-sm mb-1">Payment amount:</p>
+                        <p className="text-xl sm:text-2xl font-bold text-[#00ffff]">
+                          ${amount}
+                        </p>
+                        
+                        {selectedPaymentMethod?.bonus && (
+                          <div className="mt-1 flex items-center justify-center gap-1 text-[#00ffff]">
+                            <HiSparkles className="w-4 h-4" />
+                            <span className="text-xs sm:text-sm">
+                              +${(Number(amount) * selectedPaymentMethod.bonus / 100).toFixed(2)} bonus
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="text-xs sm:text-sm text-white/60 mb-2 bg-black/20 p-2 rounded-lg">
+                      <p>Payment method: <span className="text-white">{selectedPaymentMethod?.title || 'Cryptocurrency'}</span></p>
+                    </div>
+                  </div>
+                  
                   <a 
                     href={paymentUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="block w-full py-3 px-6 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
-                      hover:bg-[#00ffff]/20 border border-[#00ffff]/30 transition-all duration-200"
+                    className="block w-full py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
+                      hover:bg-[#00ffff]/20 border border-[#00ffff]/30 transition-all duration-200 text-sm sm:text-base"
                   >
                     Complete Payment
                   </a>
-                  <p className="text-white/40 text-sm">
+                  <p className="text-xs sm:text-sm text-white/40">
                     Click the button above to complete your payment
                   </p>
                 </div>
@@ -283,14 +312,14 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                 <>
                   {/* Amount Input - Show only when payment method is selected */}
                   {selectedMethod && (
-                    <div className="mb-8">
-                      <div className="bg-[#0f1520] border border-[#00ffff]/20 rounded-xl p-5 shadow-lg shadow-[#00ffff]/5">
-                        <label htmlFor="amount" className="block text-white/90 text-center font-medium mb-3 text-lg">
+                    <div className="mb-6 sm:mb-8">
+                      <div className="bg-[#0f1520] border border-[#00ffff]/20 rounded-xl p-4 sm:p-5 shadow-lg shadow-[#00ffff]/5">
+                        <label htmlFor="amount" className="block text-white/90 text-center font-medium mb-2 sm:mb-3 text-base sm:text-lg">
                           Enter Amount
                         </label>
                         
                         <div className="relative mb-2">
-                          <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full bg-[#00ffff]/10 text-[#00ffff] font-bold">
+                          <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#00ffff]/10 text-[#00ffff] font-bold text-sm sm:text-base">
                             $
                           </div>
                           <input
@@ -300,17 +329,17 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                             onChange={handleAmountChange}
                             min={selectedPaymentMethod?.minAmount}
                             max={selectedPaymentMethod?.maxAmount}
-                            className="w-full bg-black/40 border-2 border-[#00ffff]/20 rounded-xl py-4 px-14
-                              text-white text-center text-xl font-bold focus:outline-none focus:border-[#00ffff]/50
+                            className="w-full bg-black/40 border-2 border-[#00ffff]/20 rounded-xl py-3 sm:py-4 px-10 sm:px-14
+                              text-white text-center text-lg sm:text-xl font-bold focus:outline-none focus:border-[#00ffff]/50
                               transition-all duration-200 hover:border-[#00ffff]/30"
                             placeholder={`${selectedPaymentMethod?.minAmount}`}
                           />
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 text-sm">
+                          <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-white/60 text-xs sm:text-sm">
                             USD
                           </div>
                         </div>
                         
-                        <div className="flex justify-between items-center text-sm text-white/60 px-2 mb-3">
+                        <div className="flex justify-between items-center text-xs sm:text-sm text-white/60 px-2 mb-2 sm:mb-3">
                           <span>Min: ${selectedPaymentMethod?.minAmount}</span>
                           {selectedPaymentMethod?.maxAmount && (
                             <span>Max: ${selectedPaymentMethod?.maxAmount}</span>
@@ -318,8 +347,8 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                         </div>
                         
                         {selectedPaymentMethod?.bonus && (
-                          <div className="mt-3 text-center flex items-center justify-center gap-2 text-[#00ffff] bg-[#00ffff]/5 py-2 px-4 rounded-lg">
-                            <HiSparkles className="w-5 h-5" />
+                          <div className="mt-2 sm:mt-3 text-center flex items-center justify-center gap-1 sm:gap-2 text-[#00ffff] bg-[#00ffff]/5 py-1.5 sm:py-2 px-3 sm:px-4 rounded-lg text-xs sm:text-sm">
+                            <HiSparkles className="w-4 h-4 sm:w-5 sm:h-5" />
                             <span className="font-medium">
                               +{selectedPaymentMethod.bonus}% bonus will be applied
                             </span>
@@ -327,9 +356,9 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                         )}
                         
                         {typeof amount === 'number' && amount > 0 && (
-                          <div className="mt-4 p-3 bg-[#00ffff]/5 rounded-lg text-center">
-                            <p className="text-white/70 text-sm mb-1">You will receive:</p>
-                            <p className="text-[#00ffff] text-xl font-bold">
+                          <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-[#00ffff]/5 rounded-lg text-center">
+                            <p className="text-xs sm:text-sm text-white/70 mb-0.5 sm:mb-1">You will receive:</p>
+                            <p className="text-[#00ffff] text-lg sm:text-xl font-bold">
                               ${amount}{selectedPaymentMethod?.bonus ? ` + ${(amount * selectedPaymentMethod.bonus / 100).toFixed(2)} bonus` : ''}
                             </p>
                           </div>
@@ -339,21 +368,21 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                   )}
 
                   {/* Payment Methods */}
-                  <div className="space-y-4">
-                    <p className="text-white/80 text-center font-medium">
+                  <div className="space-y-3 sm:space-y-4">
+                    <p className="text-sm sm:text-base text-white/80 text-center font-medium">
                       {selectedMethod ? 'Selected Payment Method:' : 'Choose your payment method:'}
                     </p>
-                    <p className="text-white/40 text-sm text-center">
+                    <p className="text-xs sm:text-sm text-white/40 text-center">
                       All purchases are processed automatically
                     </p>
 
-                    <div className="space-y-3 mt-6">
+                    <div className="space-y-2 sm:space-y-3 mt-4 sm:mt-6">
                       {paymentMethods.map((method) => (
                         <button
                           key={method.id}
                           onClick={() => setSelectedMethod(method.id)}
-                          className={`w-full p-4 rounded-xl border transition-all duration-200
-                            flex items-center gap-4 group relative
+                          className={`w-full p-3 sm:p-4 rounded-xl border transition-all duration-200
+                            flex items-center gap-3 sm:gap-4 group relative
                             ${selectedMethod === method.id
                               ? 'bg-[#00ffff]/10 border-[#00ffff]/30'
                               : 'bg-black/40 border-white/10 hover:bg-white/5 hover:border-white/20'
@@ -362,20 +391,20 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                           {/* Icon */}
                           <div className="text-[#00ffff]">
                             {method.icons ? (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1 sm:gap-2">
                                 {method.icons.map((icon, index) => (
-                                  <div key={index}>{icon}</div>
+                                  <div key={index} className="text-base sm:text-xl">{icon}</div>
                                 ))}
                               </div>
                             ) : (
-                              method.icon
+                              <div className="text-base sm:text-xl">{method.icon}</div>
                             )}
                           </div>
 
                           {/* Info */}
                           <div className="flex-1 text-left">
-                            <p className="text-white font-medium">{method.title}</p>
-                            <p className="text-white/40 text-sm">
+                            <p className="text-sm sm:text-base text-white font-medium">{method.title}</p>
+                            <p className="text-xs sm:text-sm text-white/40">
                               Min.${method.minAmount}
                               {method.maxAmount ? ` - Max. $${method.maxAmount}` : ''}
                             </p>
@@ -383,9 +412,9 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
 
                           {/* Bonus Badge */}
                           {method.bonus && (
-                            <div className="absolute top-2 right-2 bg-[#00ffff]/10 px-3 py-1 
-                              rounded-full flex items-center gap-1.5">
-                              <span className="text-[#00ffff] text-sm font-medium">
+                            <div className="absolute top-1 sm:top-2 right-1 sm:right-2 bg-[#00ffff]/10 px-2 sm:px-3 py-0.5 sm:py-1 
+                              rounded-full flex items-center gap-1 sm:gap-1.5">
+                              <span className="text-[#00ffff] text-xs sm:text-sm font-medium">
                                 +{method.bonus}% BONUS
                               </span>
                             </div>
@@ -399,18 +428,18 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
 
               {/* Error message */}
               {error && (
-                <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm text-center">
+                <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs sm:text-sm text-center">
                   {error}
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="p-6 border-t border-white/10 flex gap-3">
+            <div className="p-4 sm:p-6 border-t border-white/10 flex gap-2 sm:gap-3">
               <button
                 onClick={handleClose}
-                className="flex-1 py-3 px-6 rounded-xl border border-white/10 
-                  text-white hover:bg-white/5 transition-colors"
+                className="flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl border border-white/10 
+                  text-white hover:bg-white/5 transition-colors text-sm sm:text-base"
               >
                 {paymentUrl ? 'Close' : 'Cancel'}
               </button>
@@ -419,16 +448,16 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                 <button
                   onClick={handlePayment}
                   disabled={!selectedMethod || !isAmountValid || isProcessing}
-                  className={`flex-1 py-3 px-6 rounded-xl flex items-center justify-center
+                  className={`flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl flex items-center justify-center
                     ${selectedMethod && isAmountValid && !isProcessing
                       ? 'bg-[#00ffff]/10 text-[#00ffff] hover:bg-[#00ffff]/20'
                       : 'bg-white/5 text-white/40 cursor-not-allowed'
                     }
                     border border-[#00ffff]/30
-                    transition-all duration-200`}
+                    transition-all duration-200 text-sm sm:text-base`}
                 >
                   {isProcessing ? (
-                    <span className="inline-block w-5 h-5 border-2 border-[#00ffff]/30 border-t-[#00ffff] rounded-full animate-spin"></span>
+                    <span className="inline-block w-4 h-4 sm:w-5 sm:h-5 border-2 border-[#00ffff]/30 border-t-[#00ffff] rounded-full animate-spin"></span>
                   ) : (
                     'Process Payment'
                   )}
