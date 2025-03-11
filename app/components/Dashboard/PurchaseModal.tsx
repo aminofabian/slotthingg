@@ -339,8 +339,27 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                       </div>
                     </div>
                     
-                    <div className="text-xs sm:text-sm text-white/60 mb-2 bg-black/20 p-2 rounded-lg">
+                    <div className="text-xs sm:text-sm text-white/60 mb-3 bg-black/20 p-2 rounded-lg">
                       <p>Payment method: <span className="text-white">{selectedPaymentMethod?.title || 'Cryptocurrency'}</span></p>
+                    </div>
+
+                    {/* Balance Information */}
+                    <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
+                      <div className="bg-black/20 p-2 rounded-lg">
+                        <p className="text-white/60 mb-1">Current Balance:</p>
+                        <p className="text-white font-medium">${profileData?.balance || '0'}</p>
+                      </div>
+                      <div className="bg-[#00ffff]/5 p-2 rounded-lg">
+                        <p className="text-white/60 mb-1">After Purchase:</p>
+                        <p className="text-[#00ffff] font-medium">
+                          ${typeof amount === 'number' && profileData?.balance 
+                            ? (Number(profileData.balance) + amount + (selectedPaymentMethod?.bonus 
+                                ? (amount * selectedPaymentMethod.bonus / 100) 
+                                : 0)).toFixed(2)
+                            : (Number(profileData?.balance || 0) + (typeof amount === 'number' ? amount : 0)).toFixed(2)
+                          }
+                        </p>
+                      </div>
                     </div>
                   </div>
                   
