@@ -47,6 +47,8 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [userStatus, setUserStatus] = useState<UserStatus[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [userId, setUserId] = useState<string>('14'); // Default fallback
+  const [playerId, setPlayerId] = useState<string>('9'); // Default fallback
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -75,11 +77,31 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         ws.current.close();
       }
     };
-  }, [isOpen]);
+  }, [isOpen, playerId]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Load user and player IDs from localStorage
+  useEffect(() => {
+    // Check if localStorage is available (for SSR compatibility)
+    const isLocalStorageAvailable = typeof window !== 'undefined' && window.localStorage;
+    
+    if (isLocalStorageAvailable) {
+      // Get user ID from localStorage
+      const storedUserId = localStorage.getItem('user_id');
+      if (storedUserId) {
+        setUserId(storedUserId);
+      }
+      
+      // Get player ID from localStorage (fallback to user_id if player_id doesn't exist)
+      const storedPlayerId = localStorage.getItem('player_id') || localStorage.getItem('user_id');
+      if (storedPlayerId) {
+        setPlayerId(storedPlayerId);
+      }
+    }
+  }, []);
 
   const fetchChatHistory = async () => {
     try {
@@ -103,37 +125,70 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
   };
 
   const initializeWebSocket = () => {
-    const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
-    ws.current = new WebSocket(`wss://your-websocket-url/ws?whitelabel_admin_uuid=${whitelabel_admin_uuid}`);
+    // Use the state variable for player ID
+    ws.current = new WebSocket(`wss://serverhub.biz/ws/cschat/P9Chat/?player_id=${playerId}`);
+
+    ws.current.onopen = () => {
+      console.log('WebSocket connection established');
+    };
 
     ws.current.onmessage = (event) => {
       const data = JSON.parse(event.data);
       
-      if (data.type === 'status_update') {
-        setUserStatus(prevStatus => {
-          const newStatus = [...prevStatus];
-          const index = newStatus.findIndex(status => status.id === data.userId);
-          if (index !== -1) {
-            newStatus[index] = { ...newStatus[index], ...data.status };
-          } else {
-            newStatus.push({ id: data.userId, ...data.status });
-          }
-          return newStatus;
-        });
-      } else if (data.type === 'message_status') {
-        setMessages(prevMessages => {
-          return prevMessages.map(msg => 
-            msg.id === data.messageId ? { ...msg, status: data.status } : msg
-          );
-        });
-      } else if (data.type === 'new_message') {
-        setMessages(prevMessages => [...prevMessages, data.message]);
+      if (data.type === 'live_status') {
+        // Handle live status updates
+        if (data.player_id) {
+          setUserStatus(prevStatus => {
+            const newStatus = [...prevStatus];
+            const index = newStatus.findIndex(status => status.id === parseInt(data.player_id));
+            if (index !== -1) {
+              newStatus[index] = { 
+                ...newStatus[index], 
+                isOnline: data.is_active,
+                lastSeen: data.sent_time
+              };
+            } else {
+              newStatus.push({ 
+                id: parseInt(data.player_id), 
+                isOnline: data.is_active,
+                lastSeen: data.sent_time
+              });
+            }
+            return newStatus;
+          });
+        }
+      } else if (data.type === 'message') {
+        // Handle incoming messages
+        const newMsg: ChatMessage = {
+          id: Date.now(),
+          type: 'message',
+          message: data.message || '',
+          sender: parseInt(data.sender_id),
+          sent_time: data.sent_time || new Date().toISOString(),
+          is_file: data.is_file || false,
+          file: data.file || null,
+          is_player_sender: data.is_player_sender || false,
+          is_tip: data.is_tip || false,
+          is_comment: data.is_comment || false,
+          status: 'delivered',
+          attachments: data.attachments || []
+        };
+        
+        setMessages(prev => [...prev, newMsg]);
+        scrollToBottom();
       }
     };
 
+    ws.current.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
     ws.current.onclose = () => {
+      console.log('WebSocket connection closed');
       // Attempt to reconnect after a delay
-      setTimeout(initializeWebSocket, 3000);
+      setTimeout(() => {
+        if (isOpen) initializeWebSocket();
+      }, 3000);
     };
   };
 
@@ -176,10 +231,15 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
     if (!newMessage.trim() && !selectedFile) return;
 
     try {
+      let isFile = false;
+      let fileUrl = null;
       let attachments: Attachment[] = [];
       
+      // Use the state variable for user ID
+      
       if (selectedFile) {
-        const fileUrl = await uploadFile(selectedFile);
+        fileUrl = await uploadFile(selectedFile);
+        isFile = true;
         attachments.push({
           id: Date.now().toString(),
           type: selectedFile.type.startsWith('image/') ? 'image' : 'file',
@@ -189,25 +249,39 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         });
       }
 
-      const message = {
+      // Create a message object for the local state
+      const localMessage: ChatMessage = {
+        id: Date.now(),
         type: 'message',
         message: newMessage.trim(),
+        sender: parseInt(userId), // Use the state variable
         sent_time: new Date().toISOString(),
+        is_file: isFile,
+        file: fileUrl,
         is_player_sender: true,
+        is_tip: false,
+        is_comment: false,
         status: 'sent',
         attachments
       };
 
+      // Add the message to the local state
+      setMessages(prev => [...prev, localMessage]);
+      setNewMessage('');
+      setSelectedFile(null);
+      scrollToBottom();
+
+      // Send the message via WebSocket in the expected format
       if (ws.current?.readyState === WebSocket.OPEN) {
         ws.current.send(JSON.stringify({
-          type: 'new_message',
-          message
+          type: "message",
+          message: newMessage.trim(),
+          sender_id: userId, // Use the state variable
+          is_player_sender: true,
+          is_file: isFile,
+          file: fileUrl
         }));
       }
-
-      setMessages(prev => [...prev, message as ChatMessage]);
-    setNewMessage('');
-      setSelectedFile(null);
     } catch (error) {
       console.error('Error sending message:', error);
     }
