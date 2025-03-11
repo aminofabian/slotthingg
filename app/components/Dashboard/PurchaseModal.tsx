@@ -283,41 +283,65 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                 <>
                   {/* Amount Input - Show only when payment method is selected */}
                   {selectedMethod && (
-                    <div className="mb-6">
-                      <label htmlFor="amount" className="block text-white/80 text-center font-medium mb-2">
-                        Enter amount:
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/60">$</span>
-                        <input
-                          id="amount"
-                          type="number"
-                          value={amount}
-                          onChange={handleAmountChange}
-                          min={selectedPaymentMethod?.minAmount}
-                          max={selectedPaymentMethod?.maxAmount}
-                          className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-8
-                            text-white text-center focus:outline-none focus:border-[#00ffff]/30"
-                          placeholder={`Min $${selectedPaymentMethod?.minAmount}${
-                            selectedPaymentMethod?.maxAmount ? ` - Max $${selectedPaymentMethod.maxAmount}` : ''
-                          }`}
-                        />
-                      </div>
-                      {selectedPaymentMethod?.bonus && (
-                        <div className="mt-2 text-center flex items-center justify-center gap-1 text-[#00ffff]">
-                          <HiSparkles className="w-4 h-4" />
-                          <span className="text-sm">
-                            +{selectedPaymentMethod.bonus}% bonus applied
-                          </span>
+                    <div className="mb-8">
+                      <div className="bg-[#0f1520] border border-[#00ffff]/20 rounded-xl p-5 shadow-lg shadow-[#00ffff]/5">
+                        <label htmlFor="amount" className="block text-white/90 text-center font-medium mb-3 text-lg">
+                          Enter Amount
+                        </label>
+                        
+                        <div className="relative mb-2">
+                          <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full bg-[#00ffff]/10 text-[#00ffff] font-bold">
+                            $
+                          </div>
+                          <input
+                            id="amount"
+                            type="number"
+                            value={amount}
+                            onChange={handleAmountChange}
+                            min={selectedPaymentMethod?.minAmount}
+                            max={selectedPaymentMethod?.maxAmount}
+                            className="w-full bg-black/40 border-2 border-[#00ffff]/20 rounded-xl py-4 px-14
+                              text-white text-center text-xl font-bold focus:outline-none focus:border-[#00ffff]/50
+                              transition-all duration-200 hover:border-[#00ffff]/30"
+                            placeholder={`${selectedPaymentMethod?.minAmount}`}
+                          />
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 text-sm">
+                            USD
+                          </div>
                         </div>
-                      )}
+                        
+                        <div className="flex justify-between items-center text-sm text-white/60 px-2 mb-3">
+                          <span>Min: ${selectedPaymentMethod?.minAmount}</span>
+                          {selectedPaymentMethod?.maxAmount && (
+                            <span>Max: ${selectedPaymentMethod?.maxAmount}</span>
+                          )}
+                        </div>
+                        
+                        {selectedPaymentMethod?.bonus && (
+                          <div className="mt-3 text-center flex items-center justify-center gap-2 text-[#00ffff] bg-[#00ffff]/5 py-2 px-4 rounded-lg">
+                            <HiSparkles className="w-5 h-5" />
+                            <span className="font-medium">
+                              +{selectedPaymentMethod.bonus}% bonus will be applied
+                            </span>
+                          </div>
+                        )}
+                        
+                        {typeof amount === 'number' && amount > 0 && (
+                          <div className="mt-4 p-3 bg-[#00ffff]/5 rounded-lg text-center">
+                            <p className="text-white/70 text-sm mb-1">You will receive:</p>
+                            <p className="text-[#00ffff] text-xl font-bold">
+                              ${amount}{selectedPaymentMethod?.bonus ? ` + ${(amount * selectedPaymentMethod.bonus / 100).toFixed(2)} bonus` : ''}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {/* Payment Methods */}
                   <div className="space-y-4">
                     <p className="text-white/80 text-center font-medium">
-                      Choose your payment method:
+                      {selectedMethod ? 'Selected Payment Method:' : 'Choose your payment method:'}
                     </p>
                     <p className="text-white/40 text-sm text-center">
                       All purchases are processed automatically
