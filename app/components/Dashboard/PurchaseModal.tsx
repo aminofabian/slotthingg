@@ -1,11 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaBitcoin, FaCreditCard, FaApplePay, FaGooglePay } from 'react-icons/fa';
 import { SiCashapp, SiLitecoin } from 'react-icons/si';
 import { IoClose } from 'react-icons/io5';
 import { HiSparkles } from 'react-icons/hi';
 import { TbBolt } from 'react-icons/tb';
+import { FiLock } from 'react-icons/fi';
 
 interface PurchaseModalProps {
   isOpen: boolean;
@@ -14,12 +15,27 @@ interface PurchaseModalProps {
 
 type PaymentMethod = {
   id: string;
+  apiValue?: string;
   title: string;
   icon: React.ReactNode;
   minAmount: number;
   maxAmount?: number;
   bonus?: number;
   icons?: React.ReactNode[];
+};
+
+// Helper function to get cookie by name
+const getCookie = (name: string): string | null => {
+  if (typeof document === 'undefined') return null;
+  
+  const cookies = document.cookie.split(';');
+  for (let i = 0; i < cookies.length; i++) {
+    const cookie = cookies[i].trim();
+    if (cookie.startsWith(name + '=')) {
+      return cookie.substring(name.length + 1);
+    }
+  }
+  return null;
 };
 
 const paymentMethods: PaymentMethod[] = [
@@ -37,6 +53,7 @@ const paymentMethods: PaymentMethod[] = [
   },
   {
     id: 'bitcoin-lightning',
+    apiValue: 'BTC-LN',
     title: 'Bitcoin Lightning',
     icon: <TbBolt className="w-6 h-6" />,
     icons: [
@@ -48,12 +65,14 @@ const paymentMethods: PaymentMethod[] = [
   },
   {
     id: 'bitcoin',
+    apiValue: 'BTC-CHAIN',
     title: 'Bitcoin',
     icon: <FaBitcoin className="w-6 h-6" />,
     minAmount: 20
   },
   {
     id: 'litecoin',
+    apiValue: 'LTC-CHAIN',
     title: 'Litecoin',
     icon: <SiLitecoin className="w-6 h-6" />,
     minAmount: 10
@@ -70,6 +89,122 @@ const paymentMethods: PaymentMethod[] = [
 
 const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+  const [amount, setAmount] = useState<number | ''>('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+
+  // Get the selected payment method object
+  const selectedPaymentMethod = paymentMethods.find(method => method.id === selectedMethod);
+  
+  // Check if amount is valid
+  const isAmountValid = typeof amount === 'number' && 
+    amount >= (selectedPaymentMethod?.minAmount || 0) && 
+    (selectedPaymentMethod?.maxAmount ? amount <= selectedPaymentMethod.maxAmount : true);
+
+  // Check authentication status on component mount
+  useEffect(() => {
+    // Check for token in cookies
+    const token = getCookie('token');
+    
+    // If no token in cookies, try localStorage as fallback
+    const localStorageToken = localStorage.getItem('token');
+    
+    const tokenToUse = token || localStorageToken;
+    
+    setAuthToken(tokenToUse);
+    setIsAuthenticated(!!tokenToUse);
+    
+    // Also check if user_id exists in localStorage as additional auth check
+    const userId = localStorage.getItem('user_id');
+    if (!tokenToUse && userId) {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  // Handle amount change
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === '') {
+      setAmount('');
+    } else {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        setAmount(numValue);
+      }
+    }
+  };
+
+  // Process payment
+  const handlePayment = async () => {
+    if (!isAuthenticated) {
+      setError('You must be logged in to make a purchase');
+      return;
+    }
+
+    if (!selectedPaymentMethod || !selectedPaymentMethod.apiValue || !isAmountValid) return;
+    
+    setIsProcessing(true);
+    setError(null);
+    
+    try {
+      // Prepare headers with authentication
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add auth token if available
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      
+      const response = await fetch('https://serverhub.biz/payments/btcpay-payment/', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          amount: amount,
+          currency: 'USD',
+          payment_method: selectedPaymentMethod.apiValue
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || 'Payment request failed');
+      }
+      
+      const data = await response.json();
+      setPaymentUrl(data.payment_url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Reset the modal state
+  const resetModal = () => {
+    setSelectedMethod(null);
+    setAmount('');
+    setPaymentUrl(null);
+    setError(null);
+  };
+
+  // Close modal and reset state
+  const handleClose = () => {
+    resetModal();
+    onClose();
+  };
+
+  // Handle login redirect
+  const handleLoginRedirect = () => {
+    // Close the modal
+    handleClose();
+    // Redirect to login page
+    window.location.href = '/login';
+  };
 
   return (
     <AnimatePresence>
@@ -79,7 +214,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
-          onClick={(e) => e.target === e.currentTarget && onClose()}
+          onClick={(e) => e.target === e.currentTarget && handleClose()}
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
@@ -91,7 +226,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
             <div className="relative p-6 border-b border-white/10">
               <h2 className="text-2xl font-bold text-white text-center">PURCHASE</h2>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="absolute right-4 top-4 p-2 text-white/60 hover:text-white
                   rounded-lg hover:bg-white/5 transition-colors"
               >
@@ -107,85 +242,174 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                 <p className="text-2xl font-bold text-[#00ffff]">$0</p>
               </div>
 
-              {/* Payment Methods */}
-              <div className="space-y-4">
-                <p className="text-white/80 text-center font-medium">
-                  Choose your payment method:
-                </p>
-                <p className="text-white/40 text-sm text-center">
-                  All purchases are processed automatically
-                </p>
-
-                <div className="space-y-3 mt-6">
-                  {paymentMethods.map((method) => (
-                    <button
-                      key={method.id}
-                      onClick={() => setSelectedMethod(method.id)}
-                      className={`w-full p-4 rounded-xl border transition-all duration-200
-                        flex items-center gap-4 group relative
-                        ${selectedMethod === method.id
-                          ? 'bg-[#00ffff]/10 border-[#00ffff]/30'
-                          : 'bg-black/40 border-white/10 hover:bg-white/5 hover:border-white/20'
-                        }`}
-                    >
-                      {/* Icon */}
-                      <div className="text-[#00ffff]">
-                        {method.icons ? (
-                          <div className="flex items-center gap-2">
-                            {method.icons.map((icon, index) => (
-                              <div key={index}>{icon}</div>
-                            ))}
-                          </div>
-                        ) : (
-                          method.icon
-                        )}
+              {!isAuthenticated ? (
+                // Authentication required message
+                <div className="text-center space-y-4 py-6">
+                  <div className="flex justify-center mb-4">
+                    <div className="p-4 rounded-full bg-white/5 text-[#00ffff]">
+                      <FiLock className="w-8 h-8" />
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold text-white">Authentication Required</h3>
+                  <p className="text-white/60">
+                    You need to be logged in to make a purchase.
+                  </p>
+                  <button
+                    onClick={handleLoginRedirect}
+                    className="mt-4 w-full py-3 px-6 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
+                      hover:bg-[#00ffff]/20 border border-[#00ffff]/30 transition-all duration-200"
+                  >
+                    Log In
+                  </button>
+                </div>
+              ) : paymentUrl ? (
+                // Payment URL display
+                <div className="text-center space-y-4">
+                  <p className="text-white font-medium">Your payment is ready!</p>
+                  <a 
+                    href={paymentUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block w-full py-3 px-6 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
+                      hover:bg-[#00ffff]/20 border border-[#00ffff]/30 transition-all duration-200"
+                  >
+                    Complete Payment
+                  </a>
+                  <p className="text-white/40 text-sm">
+                    Click the button above to complete your payment
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Amount Input - Show only when payment method is selected */}
+                  {selectedMethod && (
+                    <div className="mb-6">
+                      <label htmlFor="amount" className="block text-white/80 text-center font-medium mb-2">
+                        Enter amount:
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/60">$</span>
+                        <input
+                          id="amount"
+                          type="number"
+                          value={amount}
+                          onChange={handleAmountChange}
+                          min={selectedPaymentMethod?.minAmount}
+                          max={selectedPaymentMethod?.maxAmount}
+                          className="w-full bg-black/40 border border-white/10 rounded-xl py-3 px-8
+                            text-white text-center focus:outline-none focus:border-[#00ffff]/30"
+                          placeholder={`Min $${selectedPaymentMethod?.minAmount}${
+                            selectedPaymentMethod?.maxAmount ? ` - Max $${selectedPaymentMethod.maxAmount}` : ''
+                          }`}
+                        />
                       </div>
-
-                      {/* Info */}
-                      <div className="flex-1 text-left">
-                        <p className="text-white font-medium">{method.title}</p>
-                        <p className="text-white/40 text-sm">
-                          Min.${method.minAmount}
-                          {method.maxAmount ? ` - Max. $${method.maxAmount}` : ''}
-                        </p>
-                      </div>
-
-                      {/* Bonus Badge */}
-                      {method.bonus && (
-                        <div className="absolute top-2 right-2 bg-[#00ffff]/10 px-3 py-1 
-                          rounded-full flex items-center gap-1.5">
-                          <span className="text-[#00ffff] text-sm font-medium">
-                            +{method.bonus}% BONUS
+                      {selectedPaymentMethod?.bonus && (
+                        <div className="mt-2 text-center flex items-center justify-center gap-1 text-[#00ffff]">
+                          <HiSparkles className="w-4 h-4" />
+                          <span className="text-sm">
+                            +{selectedPaymentMethod.bonus}% bonus applied
                           </span>
                         </div>
                       )}
-                    </button>
-                  ))}
+                    </div>
+                  )}
+
+                  {/* Payment Methods */}
+                  <div className="space-y-4">
+                    <p className="text-white/80 text-center font-medium">
+                      Choose your payment method:
+                    </p>
+                    <p className="text-white/40 text-sm text-center">
+                      All purchases are processed automatically
+                    </p>
+
+                    <div className="space-y-3 mt-6">
+                      {paymentMethods.map((method) => (
+                        <button
+                          key={method.id}
+                          onClick={() => setSelectedMethod(method.id)}
+                          className={`w-full p-4 rounded-xl border transition-all duration-200
+                            flex items-center gap-4 group relative
+                            ${selectedMethod === method.id
+                              ? 'bg-[#00ffff]/10 border-[#00ffff]/30'
+                              : 'bg-black/40 border-white/10 hover:bg-white/5 hover:border-white/20'
+                            }`}
+                        >
+                          {/* Icon */}
+                          <div className="text-[#00ffff]">
+                            {method.icons ? (
+                              <div className="flex items-center gap-2">
+                                {method.icons.map((icon, index) => (
+                                  <div key={index}>{icon}</div>
+                                ))}
+                              </div>
+                            ) : (
+                              method.icon
+                            )}
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 text-left">
+                            <p className="text-white font-medium">{method.title}</p>
+                            <p className="text-white/40 text-sm">
+                              Min.${method.minAmount}
+                              {method.maxAmount ? ` - Max. $${method.maxAmount}` : ''}
+                            </p>
+                          </div>
+
+                          {/* Bonus Badge */}
+                          {method.bonus && (
+                            <div className="absolute top-2 right-2 bg-[#00ffff]/10 px-3 py-1 
+                              rounded-full flex items-center gap-1.5">
+                              <span className="text-[#00ffff] text-sm font-medium">
+                                +{method.bonus}% BONUS
+                              </span>
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Error message */}
+              {error && (
+                <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm text-center">
+                  {error}
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Footer */}
             <div className="p-6 border-t border-white/10 flex gap-3">
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="flex-1 py-3 px-6 rounded-xl border border-white/10 
                   text-white hover:bg-white/5 transition-colors"
               >
-                Cancel
+                {paymentUrl ? 'Close' : 'Cancel'}
               </button>
-              <button
-                disabled={!selectedMethod}
-                className={`flex-1 py-3 px-6 rounded-xl
-                  ${selectedMethod
-                    ? 'bg-[#00ffff]/10 text-[#00ffff] hover:bg-[#00ffff]/20'
-                    : 'bg-white/5 text-white/40 cursor-not-allowed'
-                  }
-                  border border-[#00ffff]/30
-                  transition-all duration-200`}
-              >
-                Next
-              </button>
+              
+              {isAuthenticated && !paymentUrl && (
+                <button
+                  onClick={handlePayment}
+                  disabled={!selectedMethod || !isAmountValid || isProcessing}
+                  className={`flex-1 py-3 px-6 rounded-xl flex items-center justify-center
+                    ${selectedMethod && isAmountValid && !isProcessing
+                      ? 'bg-[#00ffff]/10 text-[#00ffff] hover:bg-[#00ffff]/20'
+                      : 'bg-white/5 text-white/40 cursor-not-allowed'
+                    }
+                    border border-[#00ffff]/30
+                    transition-all duration-200`}
+                >
+                  {isProcessing ? (
+                    <span className="inline-block w-5 h-5 border-2 border-[#00ffff]/30 border-t-[#00ffff] rounded-full animate-spin"></span>
+                  ) : (
+                    'Process Payment'
+                  )}
+                </button>
+              )}
             </div>
           </motion.div>
         </motion.div>
