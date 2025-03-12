@@ -4,11 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const FETCH_TIMEOUT = 25000; // 25 seconds
 const MAX_RETRIES = 2; // Maximum number of retry attempts
 
-// IMPORTANT: Set this to false to use the real payment API
-// Set to true for testing without making real payment requests
-const USE_FALLBACK = true;
-
-// Payment API endpoint - The real endpoint to use when USE_FALLBACK is false
+// Payment API endpoint
 const PAYMENT_API_ENDPOINT = 'https://serverhub.biz/payments/btcpay-payment/';
 
 // Helper function to add timeout to fetch with retry logic
@@ -51,37 +47,6 @@ const fetchWithTimeoutAndRetry = async (url: string, options: RequestInit, timeo
   throw lastError || new Error('Failed to fetch after multiple attempts');
 };
 
-// Fallback payment method for testing
-const generateFallbackPayment = (amount: number, currency: string, paymentMethod: string) => {
-  console.log('Using fallback payment method for testing');
-  
-  // Generate a random payment ID that looks like the real one (21 characters)
-  const generatePaymentId = () => {
-    // Create a random string of letters and numbers, similar to the sample "4mQWfK8MknnyP9h4KnZKGX"
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < 21; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-  
-  const paymentId = generatePaymentId();
-  
-  // Create a mock payment URL that matches the expected format from the real API
-  const paymentUrl = `https://btcpay.serverhub.biz/i/${paymentId}`;
-  
-  // Simulate network delay
-  return new Promise<{ payment_id: string; payment_url: string }>(resolve => {
-    setTimeout(() => {
-      resolve({
-        payment_id: paymentId,
-        payment_url: paymentUrl
-      });
-    }, 2000); // 2 second delay to simulate network
-  });
-};
-
 export async function POST(request: NextRequest) {
   console.log('Payment process request received');
   
@@ -119,44 +84,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Payment request validation passed, preparing to call external API');
+    console.log('Payment request validation passed, processing payment');
     console.log('Payment details:', {
       amount: body.amount,
       currency: body.currency,
       payment_method: body.payment_method
     });
 
-    // PAYMENT PROCESSING LOGIC
-    // There are two paths here:
-    // 1. If USE_FALLBACK is true, we generate a mock payment response for testing
-    // 2. If USE_FALLBACK is false, we call the real payment API endpoint
-    // Both paths return the same response format: { payment_id: string, payment_url: string }
-    
-    // Use fallback payment method if enabled
-    if (USE_FALLBACK) {
-      try {
-        const fallbackResponse = await generateFallbackPayment(
-          body.amount,
-          body.currency,
-          body.payment_method
-        );
-        
-        console.log('Fallback payment processed successfully:', fallbackResponse);
-        return NextResponse.json(fallbackResponse);
-      } catch (fallbackError) {
-        console.error('Fallback payment error:', fallbackError);
-        return NextResponse.json(
-          { error: 'Fallback payment processing failed' },
-          { status: 500 }
-        );
-      }
-    }
-
-    // Try a direct fetch first with a shorter timeout
     try {
-      console.log('Attempting direct payment API call to:', PAYMENT_API_ENDPOINT);
+      console.log('Calling payment API at:', PAYMENT_API_ENDPOINT);
       
-      // Forward the request to the external API with retry logic
+      // Forward the request to the payment API with retry logic
       const response = await fetchWithTimeoutAndRetry(
         PAYMENT_API_ENDPOINT,
         {

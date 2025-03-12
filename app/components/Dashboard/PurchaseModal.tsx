@@ -41,18 +41,6 @@ const getCookie = (name: string): string | null => {
 
 const paymentMethods: PaymentMethod[] = [
   {
-    id: 'stripe',
-    title: 'Stripe',
-    icon: <FaCreditCard className="w-6 h-6" />,
-    icons: [
-      <FaCreditCard key="card" className="w-6 h-6" />,
-      <FaApplePay key="apple" className="w-6 h-6" />,
-      <FaGooglePay key="google" className="w-6 h-6" />
-    ],
-    minAmount: 10,
-    maxAmount: 4000
-  },
-  {
     id: 'bitcoin-lightning',
     apiValue: 'BTC-LN',
     title: 'Bitcoin Lightning',
@@ -77,14 +65,6 @@ const paymentMethods: PaymentMethod[] = [
     title: 'Litecoin',
     icon: <SiLitecoin className="w-6 h-6" />,
     minAmount: 10
-  },
-  {
-    id: 'cashapp',
-    title: 'CASHAPP',
-    icon: <SiCashapp className="w-6 h-6" />,
-    minAmount: 10,
-    maxAmount: 4000,
-    bonus: 50
   }
 ];
 
@@ -314,6 +294,12 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
       
       setPaymentUrl(data.payment_url);
       toast.success('Payment initiated successfully!');
+      
+      // Store payment ID if available for reference
+      if (data.payment_id) {
+        console.log('Payment ID:', data.payment_id);
+        // You can store this in state if needed for tracking
+      }
       
       // Refresh profile data after successful payment initiation
       fetchProfileData();
@@ -696,4 +682,4 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
   );
 };
 
-export default PurchaseModal; 
+export default PurchaseModal;
