@@ -6,6 +6,8 @@ const MAX_RETRIES = 2; // Maximum number of retry attempts
 
 // Payment API endpoint
 const PAYMENT_API_ENDPOINT = 'https://serverhub.biz/payments/btcpay-payment/';
+// Token refresh endpoint
+const TOKEN_REFRESH_ENDPOINT = 'https://serverhub.biz/auth/refresh-token/';
 
 // Helper function to add timeout to fetch with retry logic
 const fetchWithTimeoutAndRetry = async (url: string, options: RequestInit, timeout: number, maxRetries: number) => {
@@ -16,7 +18,7 @@ const fetchWithTimeoutAndRetry = async (url: string, options: RequestInit, timeo
     const timeoutId = setTimeout(() => controller.abort(), timeout);
     
     try {
-      console.log(`Payment API request attempt ${attempt + 1}/${maxRetries + 1}`);
+      console.log(`API request attempt ${attempt + 1}/${maxRetries + 1} to ${url}`);
       
       const response = await fetch(url, {
         ...options,
@@ -54,6 +56,46 @@ const isValidTokenFormat = (token: string): boolean => {
   return typeof token === 'string' && token.length > 10 && token.length < 2000;
 };
 
+// Helper function to attempt token refresh
+const refreshToken = async (currentToken: string): Promise<string | null> => {
+  try {
+    console.log('Attempting to refresh authentication token');
+    
+    const response = await fetchWithTimeoutAndRetry(
+      TOKEN_REFRESH_ENDPOINT,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${currentToken}`,
+        },
+        body: JSON.stringify({ token: currentToken }),
+      },
+      10000, // 10 second timeout for refresh
+      1      // Only retry once
+    );
+    
+    if (!response.ok) {
+      console.error('Token refresh failed with status:', response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    if (!data.token) {
+      console.error('Token refresh response missing token field');
+      return null;
+    }
+    
+    console.log('Token refreshed successfully');
+    return data.token;
+  } catch (error) {
+    console.error('Error refreshing token:', error);
+    return null;
+  }
+};
+
 export async function POST(request: NextRequest) {
   console.log('Payment process request received');
   
@@ -86,6 +128,36 @@ export async function POST(request: NextRequest) {
         { error: 'Invalid authentication token. Please log in again.' },
         { status: 401 }
       );
+    }
+
+    // Check if token refresh is requested
+    const shouldRefreshToken = request.headers.get('X-Refresh-Token') === 'true';
+    
+    // Try to refresh the token if requested
+    if (shouldRefreshToken) {
+      console.log('Token refresh requested by client');
+      const refreshedToken = await refreshToken(token);
+      
+      if (refreshedToken) {
+        // Use the refreshed token
+        token = refreshedToken;
+        console.log('Using refreshed token for payment request');
+        
+        // Return the new token in a cookie and response header
+        const response = NextResponse.json({ refreshed: true, message: 'Token refreshed successfully' });
+        response.cookies.set('token', refreshedToken, { 
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          path: '/',
+          maxAge: 60 * 60 * 24 * 7 // 7 days
+        });
+        response.headers.set('X-New-Token', refreshedToken);
+        
+        return response;
+      } else {
+        console.warn('Token refresh failed, proceeding with original token');
+      }
     }
 
     console.log('Authentication token found, proceeding with payment request');
@@ -161,6 +233,29 @@ export async function POST(request: NextRequest) {
           if (token) {
             console.log(`Token length: ${token.length}, first 4 chars: ${token.substring(0, 4)}...`);
           }
+          
+          // Try to refresh the token as a last resort
+          if (!shouldRefreshToken) {
+            const refreshedToken = await refreshToken(token);
+            if (refreshedToken) {
+              // Return a special response indicating the client should retry with the new token
+              const retryResponse = NextResponse.json(
+                { error: 'Token expired but refreshed. Please retry the payment.', refreshed: true },
+                { status: 401 }
+              );
+              retryResponse.cookies.set('token', refreshedToken, { 
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                path: '/',
+                maxAge: 60 * 60 * 24 * 7 // 7 days
+              });
+              retryResponse.headers.set('X-New-Token', refreshedToken);
+              
+              return retryResponse;
+            }
+          }
+          
           return NextResponse.json(
             { error: 'Authentication failed with payment provider. Please log out and log in again.' },
             { status: 401 }

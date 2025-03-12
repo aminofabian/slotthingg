@@ -98,10 +98,28 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
     
     const checkAuthAndFetchProfile = async () => {
       // First check if we have authentication tokens
-      checkAuthentication();
+      const isAuth = checkAuthentication();
       
-      // Then try to fetch profile data if authenticated
-      if (isAuthenticated) {
+      if (isAuth) {
+        // Check if token might be stale and needs refreshing
+        const tokenLastRefreshed = localStorage.getItem('token_refreshed_at');
+        const tokenMightBeStale = !tokenLastRefreshed || 
+          (Date.now() - parseInt(tokenLastRefreshed)) > 1000 * 60 * 60 * 12; // 12 hours
+        
+        if (tokenMightBeStale) {
+          console.log('Token might be stale, attempting refresh on modal open');
+          try {
+            const refreshed = await refreshAuthToken();
+            if (refreshed) {
+              console.log('Token refreshed successfully on modal open');
+              localStorage.setItem('token_refreshed_at', Date.now().toString());
+            }
+          } catch (error) {
+            console.error('Error refreshing token on modal open:', error);
+          }
+        }
+        
+        // Then try to fetch profile data
         await fetchProfileData();
       } else {
         setIsLoadingBalance(false);
@@ -121,6 +139,12 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
     
     const tokenToUse = token || localStorageToken;
     
+    // If we have a token and it's different from the current one, update the refresh timestamp
+    if (tokenToUse && tokenToUse !== authToken) {
+      console.log('New token detected, updating refresh timestamp');
+      localStorage.setItem('token_refreshed_at', Date.now().toString());
+    }
+    
     setAuthToken(tokenToUse);
     setIsAuthenticated(!!tokenToUse);
     
@@ -131,6 +155,68 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
     }
     
     return !!tokenToUse || !!userId;
+  };
+
+  // Helper function to refresh the authentication token
+  const refreshAuthToken = async (): Promise<boolean> => {
+    try {
+      setIsProcessing(true);
+      console.log('Attempting to refresh authentication token before payment');
+      
+      // Get current token
+      const currentToken = authToken || getCookie('token') || localStorage.getItem('token');
+      if (!currentToken) {
+        console.error('No token available to refresh');
+        return false;
+      }
+      
+      // Call the token refresh endpoint
+      const response = await fetch('/api/payments/process', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${currentToken}`,
+          'X-Refresh-Token': 'true'
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        console.error('Token refresh failed with status:', response.status);
+        return false;
+      }
+      
+      const data = await response.json();
+      
+      if (data.refreshed) {
+        console.log('Token refreshed successfully');
+        
+        // Check for new token in response header
+        const newToken = response.headers.get('X-New-Token');
+        if (newToken) {
+          // Update token in localStorage
+          localStorage.setItem('token', newToken);
+          setAuthToken(newToken);
+        } else {
+          // If no header, the token should be in the cookies already
+          const cookieToken = getCookie('token');
+          if (cookieToken && cookieToken !== currentToken) {
+            localStorage.setItem('token', cookieToken);
+            setAuthToken(cookieToken);
+          }
+        }
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      return false;
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // Fetch user profile data including balance
@@ -211,6 +297,24 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
     }, 45000); // 45 seconds timeout (longer than server timeout to allow for retries)
     
     try {
+      // Try to refresh the token first if the user has been logged in for a while
+      // We can determine this by checking when the token was last refreshed
+      const tokenLastRefreshed = localStorage.getItem('token_refreshed_at');
+      const shouldRefreshToken = !tokenLastRefreshed || 
+        (Date.now() - parseInt(tokenLastRefreshed)) > 1000 * 60 * 60; // 1 hour
+      
+      if (shouldRefreshToken) {
+        console.log('Token might be stale, attempting refresh before payment');
+        const refreshed = await refreshAuthToken();
+        if (refreshed) {
+          // Update the refresh timestamp
+          localStorage.setItem('token_refreshed_at', Date.now().toString());
+          console.log('Token refreshed successfully, proceeding with payment');
+        } else {
+          console.warn('Token refresh failed, proceeding with original token');
+        }
+      }
+      
       // Prepare headers with authentication
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -257,6 +361,33 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
           console.log('Payment error response:', errorData);
           errorMessage = errorData.error || errorData.message || errorMessage;
           
+          // Check if token was refreshed and we should retry
+          if (errorData.refreshed) {
+            console.log('Token was refreshed during payment attempt, retrying...');
+            
+            // Update token from response if available
+            const newToken = response.headers.get('X-New-Token');
+            if (newToken) {
+              localStorage.setItem('token', newToken);
+              setAuthToken(newToken);
+            }
+            
+            // Update the refresh timestamp
+            localStorage.setItem('token_refreshed_at', Date.now().toString());
+            
+            // Retry the payment with the new token
+            toast.loading('Retrying payment with refreshed authentication...', { id: 'payment-processing' });
+            
+            // Small delay to ensure token is properly set
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Retry the payment (recursive call)
+            clearTimeout(paymentTimeout);
+            setIsProcessing(false);
+            handlePayment();
+            return;
+          }
+          
           // Handle authentication errors
           if (errorData.error === "User not authenticated" || 
               errorData.error?.includes("Authentication required") || 
@@ -265,6 +396,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
             setIsAuthenticated(false);
             // Clear any stored tokens that might be invalid
             localStorage.removeItem('token');
+            localStorage.removeItem('token_refreshed_at');
             document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
             throw new Error('Authentication failed. Please log in again to refresh your session.');
           }
@@ -324,12 +456,28 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
       setError(err instanceof Error ? err.message : 'An error occurred');
       
       // If authentication error, show login prompt
-      if ((err as Error).message.includes('Authentication required')) {
+      if ((err as Error).message.includes('Authentication required') || 
+          (err as Error).message.includes('Authentication failed')) {
         setIsAuthenticated(false);
+        
+        // Clear token data
+        localStorage.removeItem('token');
+        localStorage.removeItem('token_refreshed_at');
+        document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        
+        // Show specific message for authentication errors
+        toast.error('Your session has expired. Please log in again.', { id: 'payment-processing' });
+        
+        // Offer to redirect to login page after a short delay
+        setTimeout(() => {
+          if (confirm('Your session has expired. Would you like to log in again?')) {
+            window.location.href = '/login';
+          }
+        }, 1500);
+      } else {
+        // Show toast for other errors
+        toast.error(err instanceof Error ? err.message : 'Payment failed. Please try again.', { id: 'payment-processing' });
       }
-      
-      // Show toast for error
-      toast.error(err instanceof Error ? err.message : 'Payment failed. Please try again.', { id: 'payment-processing' });
     } finally {
       clearTimeout(paymentTimeout);
       setIsProcessing(false);
