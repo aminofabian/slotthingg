@@ -218,14 +218,17 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
     setIsProcessing(true);
     setError(null);
     
+    // Show processing message
+    toast.loading('Processing payment...', { id: 'payment-processing' });
+    
     // Set a timeout for the entire payment process
     const paymentTimeout = setTimeout(() => {
       if (isProcessing) {
         setIsProcessing(false);
         setError('Payment request timed out. Please try again.');
-        toast.error('Payment request timed out. Please try again later.');
+        toast.error('Payment request timed out. Please try again later.', { id: 'payment-processing' });
       }
-    }, 30000); // 30 seconds timeout
+    }, 45000); // 45 seconds timeout (longer than server timeout to allow for retries)
     
     try {
       // Prepare headers with authentication
@@ -252,6 +255,9 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
         }),
         credentials: 'include'
       });
+      
+      // Dismiss the loading toast
+      toast.dismiss('payment-processing');
       
       if (!response.ok) {
         // Try to parse error response
@@ -321,7 +327,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
       }
       
       // Show toast for error
-      toast.error(err instanceof Error ? err.message : 'Payment failed. Please try again.');
+      toast.error(err instanceof Error ? err.message : 'Payment failed. Please try again.', { id: 'payment-processing' });
     } finally {
       clearTimeout(paymentTimeout);
       setIsProcessing(false);
