@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { IoClose, IoSend, IoChatbubbleEllipses, IoAttach, IoHappy, IoCheckmarkDone, IoAlert } from 'react-icons/io5';
+import { IoClose, IoSend, IoChatbubbleEllipses, IoAttach, IoHappy, IoCheckmarkDone, IoAlert, IoRefresh } from 'react-icons/io5';
 import { format } from 'date-fns';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 
@@ -59,6 +59,12 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ws = useRef<WebSocket | null>(null);
+  const [isWebSocketConnected, setIsWebSocketConnected] = useState<boolean>(false);
+  const [isUsingMockWebSocket, setIsUsingMockWebSocket] = useState<boolean>(false);
+  const reconnectAttempts = useRef<number>(0);
+  const maxReconnectAttempts = 3;
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
+  const [showConnectionToast, setShowConnectionToast] = useState<boolean>(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -183,11 +189,30 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         ws.current.close();
       }
       
+      // Reset connection status
+      setIsWebSocketConnected(false);
+      setConnectionStatus('connecting');
+      
       // Create new WebSocket connection
+      console.log('Attempting to connect to WebSocket server...');
       ws.current = new WebSocket(wsUrl);
+
+      // Set connection timeout
+      const connectionTimeout = setTimeout(() => {
+        if (ws.current && ws.current.readyState !== WebSocket.OPEN) {
+          console.log('WebSocket connection timeout. Falling back to mock WebSocket.');
+          ws.current.close();
+          initializeMockWebSocket();
+        }
+      }, 5000); // 5 second timeout
 
       ws.current.onopen = () => {
         console.log('WebSocket connection established');
+        clearTimeout(connectionTimeout);
+        setIsWebSocketConnected(true);
+        setIsUsingMockWebSocket(false);
+        setConnectionStatus('connected');
+        reconnectAttempts.current = 0;
         
         // If an admin is selected, send a connection notification
         if (selectedAdmin && ws.current?.readyState === WebSocket.OPEN) {
@@ -312,25 +337,144 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
 
       ws.current.onerror = (error) => {
         console.error('WebSocket error:', error);
+        clearTimeout(connectionTimeout);
+        setConnectionStatus('disconnected');
+        
+        // Show connection toast
+        setShowConnectionToast(true);
+        
+        // If we've tried to connect multiple times and failed, use mock WebSocket
+        if (reconnectAttempts.current >= maxReconnectAttempts) {
+          console.log('Max reconnect attempts reached. Falling back to mock WebSocket.');
+          initializeMockWebSocket();
+        }
       };
 
       ws.current.onclose = (event) => {
         console.log(`WebSocket connection closed: ${event.code} ${event.reason}`);
-        // Attempt to reconnect after a delay if the component is still open
-        if (isOpen) {
-          console.log('Attempting to reconnect in 3 seconds...');
+        clearTimeout(connectionTimeout);
+        setIsWebSocketConnected(false);
+        setConnectionStatus('disconnected');
+        
+        // Show connection toast
+        setShowConnectionToast(true);
+        
+        // Only attempt to reconnect if not using mock WebSocket and not exceeding max attempts
+        if (!isUsingMockWebSocket && reconnectAttempts.current < maxReconnectAttempts) {
+          reconnectAttempts.current += 1;
+          console.log(`Attempting to reconnect (${reconnectAttempts.current}/${maxReconnectAttempts})...`);
+          
           setTimeout(() => {
             if (isOpen) initializeWebSocket();
           }, 3000);
+        } else if (reconnectAttempts.current >= maxReconnectAttempts && !isUsingMockWebSocket) {
+          console.log('Max reconnect attempts reached. Falling back to mock WebSocket.');
+          initializeMockWebSocket();
         }
       };
     } catch (error) {
       console.error('Error initializing WebSocket:', error);
-      // Attempt to reconnect after a delay
-      setTimeout(() => {
-        if (isOpen) initializeWebSocket();
-      }, 5000);
+      setConnectionStatus('disconnected');
+      setShowConnectionToast(true);
+      initializeMockWebSocket();
     }
+  };
+
+  // Initialize a mock WebSocket for development/fallback
+  const initializeMockWebSocket = () => {
+    console.log('Initializing mock WebSocket...');
+    setIsUsingMockWebSocket(true);
+    setConnectionStatus('connected');
+    
+    // Create a mock WebSocket object
+    const mockWs = {
+      readyState: WebSocket.OPEN,
+      send: (data: string) => {
+        console.log('Mock WebSocket sending:', data);
+        
+        // Simulate server response
+        setTimeout(() => {
+          try {
+            const parsedData = JSON.parse(data);
+            
+            if (parsedData.type === 'message') {
+              // Echo the message back as if it came from the server
+              const messageResponse = {
+                ...parsedData,
+                status: 'delivered'
+              };
+              
+              // Skip if this is a duplicate message
+              if (!isDuplicateMessage(
+                messageResponse.id, 
+                messageResponse.message, 
+                messageResponse.sent_time
+              )) {
+                // Process the message as if it came from the server
+                const newMsg: ChatMessage = {
+                  id: messageResponse.id,
+                  type: 'message',
+                  message: messageResponse.message,
+                  sender: parseInt(messageResponse.sender_id),
+                  sent_time: messageResponse.sent_time,
+                  is_file: messageResponse.is_file || false,
+                  file: messageResponse.file || null,
+                  is_player_sender: messageResponse.is_player_sender || false,
+                  is_tip: messageResponse.is_tip || false,
+                  is_comment: messageResponse.is_comment || false,
+                  status: 'delivered',
+                  attachments: messageResponse.attachments || [],
+                  recipient_id: messageResponse.recipient_id ? parseInt(messageResponse.recipient_id) : undefined,
+                  is_admin_recipient: messageResponse.is_admin_recipient || false
+                };
+                
+                // Update message status
+                setMessages(prev => 
+                  prev.map(msg => 
+                    msg.id === newMsg.id 
+                      ? { ...msg, status: 'delivered' } 
+                      : msg
+                  )
+                );
+                
+                // Simulate admin response after a delay
+                if (selectedAdmin) {
+                  setTimeout(() => {
+                    const adminResponse: ChatMessage = {
+                      id: Date.now(),
+                      type: 'message',
+                      message: `This is an automated response from ${availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin'}.`,
+                      sender: parseInt(selectedAdmin),
+                      sent_time: new Date().toISOString(),
+                      is_file: false,
+                      file: null,
+                      is_player_sender: false,
+                      is_tip: false,
+                      is_comment: false,
+                      status: 'delivered',
+                      attachments: []
+                    };
+                    
+                    // Add admin response to messages
+                    setMessages(prev => [...prev, adminResponse]);
+                    scrollToBottom();
+                  }, 2000);
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error processing mock message:', error);
+          }
+        }, 500);
+      },
+      close: () => {
+        console.log('Mock WebSocket closed');
+      }
+    };
+    
+    // Set the mock WebSocket
+    ws.current = mockWs as unknown as WebSocket;
+    setIsWebSocketConnected(true);
   };
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
@@ -403,7 +547,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         } catch (error) {
           console.error('Error uploading file:', error);
           // Show an error message to the user
-          alert('Failed to upload file. Please try again.');
+          setShowConnectionToast(true);
           return;
         }
       }
@@ -441,9 +585,9 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
       scrollToBottom();
 
       // Send the message via WebSocket in the expected format
-      if (ws.current?.readyState === WebSocket.OPEN) {
+      if (ws.current?.readyState === WebSocket.OPEN || isUsingMockWebSocket) {
         try {
-          ws.current.send(JSON.stringify({
+          ws.current?.send(JSON.stringify({
             type: "message",
             id: messageId, // Include the message ID to help with deduplication
             message: messageText,
@@ -467,14 +611,18 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
             )
           );
           
-          // Show an error message to the user
-          alert('Failed to send message. Please check your connection and try again.');
+          // Show connection toast
+          setShowConnectionToast(true);
         }
       } else {
         console.error('WebSocket is not connected');
         
         // Try to reconnect the WebSocket
-        initializeWebSocket();
+        if (!isUsingMockWebSocket) {
+          initializeWebSocket();
+        } else {
+          initializeMockWebSocket();
+        }
         
         // Update the message status to indicate failure
         setMessages(prev => 
@@ -485,12 +633,12 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
           )
         );
         
-        // Show an error message to the user
-        alert('Connection lost. Attempting to reconnect...');
+        // Show connection toast
+        setShowConnectionToast(true);
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('An error occurred while sending your message. Please try again.');
+      setShowConnectionToast(true);
     }
   };
 
@@ -555,6 +703,72 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
     setSentMessageIds(prev => new Set(prev).add(messageKey));
   };
 
+  // Add a function to retry sending a failed message
+  const retryMessage = (messageId: number) => {
+    // Find the failed message
+    const failedMessage = messages.find(msg => msg.id === messageId);
+    if (!failedMessage) return;
+    
+    // Update the message status to 'sending'
+    setMessages(prev => 
+      prev.map(msg => 
+        msg.id === messageId 
+          ? { ...msg, status: 'sent' as any } 
+          : msg
+      )
+    );
+    
+    // Try to send the message again
+    if (ws.current?.readyState === WebSocket.OPEN || isUsingMockWebSocket) {
+      try {
+        ws.current?.send(JSON.stringify({
+          type: "message",
+          id: failedMessage.id,
+          message: failedMessage.message,
+          sender_id: userId,
+          sent_time: failedMessage.sent_time,
+          is_player_sender: true,
+          is_file: failedMessage.is_file,
+          file: failedMessage.file,
+          recipient_id: failedMessage.recipient_id,
+          is_admin_recipient: failedMessage.is_admin_recipient
+        }));
+      } catch (error) {
+        console.error('Error retrying message:', error);
+        
+        // Update the message status to indicate failure
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === messageId 
+              ? { ...msg, status: 'error' as any } 
+              : msg
+          )
+        );
+      }
+    } else {
+      console.error('WebSocket is not connected');
+      
+      // Try to reconnect the WebSocket
+      if (!isUsingMockWebSocket) {
+        initializeWebSocket();
+      } else {
+        initializeMockWebSocket();
+      }
+      
+      // Update the message status to indicate failure
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, status: 'error' as any } 
+            : msg
+        )
+      );
+      
+      // Show connection toast
+      setShowConnectionToast(true);
+    }
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -567,6 +781,50 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
             onClick={onClose}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] lg:bg-black/20"
           />
+          
+          {/* Connection Status Toast */}
+          <AnimatePresence>
+            {showConnectionToast && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[70] bg-black/80 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2"
+              >
+                {connectionStatus === 'connecting' ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#00ffff]"></div>
+                    <span>Connecting to chat server...</span>
+                  </>
+                ) : connectionStatus === 'disconnected' ? (
+                  <>
+                    <IoAlert className="text-red-500 w-4 h-4" />
+                    <span>Connection lost. Attempting to reconnect...</span>
+                    <button 
+                      onClick={() => {
+                        initializeWebSocket();
+                        setShowConnectionToast(false);
+                      }}
+                      className="ml-2 bg-[#00ffff]/20 hover:bg-[#00ffff]/30 text-[#00ffff] px-2 py-1 rounded text-xs"
+                    >
+                      Retry Now
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-4 h-4 rounded-full bg-green-400"></div>
+                    <span>Connected to chat server</span>
+                  </>
+                )}
+                <button 
+                  onClick={() => setShowConnectionToast(false)}
+                  className="ml-2 text-white/60 hover:text-white"
+                >
+                  <IoClose className="w-4 h-4" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
           
           {/* Drawer */}
           <motion.div
@@ -588,11 +846,21 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                     shadow-lg shadow-[#00ffff]/5 backdrop-blur-sm">
                     <IoChatbubbleEllipses className="w-6 h-6 sm:w-7 sm:h-7 text-[#00ffff]" />
                   </div>
-                  <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-400 
-                    border-2 border-[#001a1a] animate-pulse" />
+                  <div className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${isWebSocketConnected ? 'bg-green-400' : 'bg-red-400'} 
+                    border-2 border-[#001a1a] ${isWebSocketConnected ? 'animate-pulse' : ''}`} />
                 </div>
                 <div>
-                  <h3 className="text-lg sm:text-xl font-medium text-white tracking-wide">Support Chat</h3>
+                  <h3 className="text-lg sm:text-xl font-medium text-white tracking-wide">
+                    Support Chat {isUsingMockWebSocket && <span className="text-xs text-yellow-300">(Demo Mode)</span>}
+                  </h3>
+                  {/* Connection status */}
+                  <div className="text-xs text-[#00ffff]/60">
+                    {isWebSocketConnected 
+                      ? isUsingMockWebSocket 
+                        ? 'Using demo mode (server unavailable)' 
+                        : 'Connected to chat server' 
+                      : 'Connecting to chat server...'}
+                  </div>
                   {/* Admin selection dropdown */}
                   {availableAdmins.length > 0 && (
                     <div className="mt-1">
@@ -702,17 +970,26 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                               {formatTime(message.sent_time)}
                             </span>
                             {isPlayerMessage && (
-                              <span>
+                              <div className="flex items-center gap-1">
                                 {message.status === 'seen' ? (
                                   <IoCheckmarkDone className="text-[#00ffff] w-4 h-4" />
                                 ) : message.status === 'delivered' ? (
                                   <IoCheckmarkDone className="text-[#00ffff]/50 w-4 h-4" />
                                 ) : message.status === 'error' ? (
-                                  <IoAlert className="text-red-500 w-4 h-4" />
+                                  <div className="flex items-center">
+                                    <IoAlert className="text-red-500 w-4 h-4" />
+                                    <button 
+                                      onClick={() => retryMessage(message.id)}
+                                      className="ml-1 text-[#00ffff]/70 hover:text-[#00ffff] transition-colors"
+                                      title="Retry sending"
+                                    >
+                                      <IoRefresh className="w-4 h-4" />
+                                    </button>
+                                  </div>
                                 ) : (
                                   <IoCheckmarkDone className="text-gray-400 w-4 h-4" />
                                 )}
-                              </span>
+                              </div>
                             )}
                           </div>
                         </div>
