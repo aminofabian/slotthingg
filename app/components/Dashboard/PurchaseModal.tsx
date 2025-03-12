@@ -218,6 +218,15 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
     setIsProcessing(true);
     setError(null);
     
+    // Set a timeout for the entire payment process
+    const paymentTimeout = setTimeout(() => {
+      if (isProcessing) {
+        setIsProcessing(false);
+        setError('Payment request timed out. Please try again.');
+        toast.error('Payment request timed out. Please try again later.');
+      }
+    }, 30000); // 30 seconds timeout
+    
     try {
       // Prepare headers with authentication
       const headers: HeadersInit = {
@@ -230,9 +239,9 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
       
+      console.log('Initiating payment request for', selectedPaymentMethod.title);
+      
       // Use a proxy endpoint to avoid CORS issues
-      // Instead of calling the external API directly, we'll call our own API endpoint
-      // that will forward the request to the external API
       const response = await fetch('/api/payments/process', {
         method: 'POST',
         headers,
@@ -249,12 +258,20 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
         let errorMessage = 'Payment request failed';
         try {
           const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
+          console.log('Payment error response:', errorData);
+          errorMessage = errorData.error || errorData.message || errorMessage;
           
           // Handle authentication errors
           if (errorData.error === "User not authenticated" || response.status === 401) {
             setIsAuthenticated(false);
             throw new Error('Authentication required. Please log in again.');
+          }
+          
+          // Handle specific error cases
+          if (response.status === 504) {
+            throw new Error('Payment service timed out. Please try again later.');
+          } else if (response.status === 502) {
+            throw new Error('Unable to connect to payment service. Please try again later.');
           }
         } catch (parseError) {
           console.error('Error parsing error response:', parseError);
@@ -274,6 +291,8 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
             throw new Error('Invalid request. Please check your payment details.');
           } else if (response.status === 404) {
             throw new Error('Payment service not available. Please try again later.');
+          } else if (response.status === 504) {
+            throw new Error('Payment service timed out. Please try again later.');
           }
         }
         
@@ -281,6 +300,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
       }
       
       const data = await response.json();
+      console.log('Payment response received');
       
       if (!data.payment_url) {
         throw new Error('Invalid payment response. Missing payment URL.');
@@ -303,6 +323,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
       // Show toast for error
       toast.error(err instanceof Error ? err.message : 'Payment failed. Please try again.');
     } finally {
+      clearTimeout(paymentTimeout);
       setIsProcessing(false);
     }
   };
