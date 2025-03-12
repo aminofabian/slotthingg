@@ -54,6 +54,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
   const [adminId, setAdminId] = useState<string | null>(null); // ID of the admin to chat with
   const [availableAdmins, setAvailableAdmins] = useState<{id: string, name: string}[]>([]); // List of available admins
   const [selectedAdmin, setSelectedAdmin] = useState<string | null>(null); // Currently selected admin
+  const [sentMessageIds, setSentMessageIds] = useState<Set<string>>(new Set()); // Track sent message IDs to prevent duplicates
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -229,13 +230,24 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
               });
             }
           } else if (data.type === 'message') {
+            // Check for duplicate messages before processing
+            const messageTimestamp = data.sent_time || new Date().toISOString();
+            const messageId = data.id || Date.now();
+            const messageText = data.message || '';
+            
+            // Skip if this is a duplicate message
+            if (isDuplicateMessage(messageId, messageText, messageTimestamp)) {
+              console.log('Skipping duplicate message:', messageText);
+              return;
+            }
+            
             // Handle incoming messages
             const newMsg: ChatMessage = {
-              id: Date.now(),
+              id: messageId,
               type: 'message',
-              message: data.message || '',
+              message: messageText,
               sender: parseInt(data.sender_id),
-              sent_time: data.sent_time || new Date().toISOString(),
+              sent_time: messageTimestamp,
               is_file: data.is_file || false,
               file: data.file || null,
               is_player_sender: data.is_player_sender || false,
@@ -257,6 +269,9 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
               (newMsg.is_admin_recipient && newMsg.recipient_id === parseInt(selectedAdmin));
             
             if (isRelevantMessage) {
+              // Track this message to prevent duplicates
+              trackSentMessage(messageId, messageText, messageTimestamp);
+              
               setMessages(prev => [...prev, newMsg]);
               scrollToBottom();
             }
@@ -395,14 +410,16 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
 
       // Generate a unique message ID
       const messageId = Date.now();
+      const messageText = newMessage.trim();
+      const messageTimestamp = new Date().toISOString();
 
       // Create a message object for the local state
       const localMessage: ChatMessage = {
         id: messageId,
         type: 'message',
-        message: newMessage.trim(),
+        message: messageText,
         sender: parseInt(userId),
-        sent_time: new Date().toISOString(),
+        sent_time: messageTimestamp,
         is_file: isFile,
         file: fileUrl,
         is_player_sender: true,
@@ -413,6 +430,9 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         recipient_id: selectedAdmin ? parseInt(selectedAdmin) : undefined,
         is_admin_recipient: !!selectedAdmin
       };
+
+      // Track this message to prevent duplicates
+      trackSentMessage(messageId, messageText, messageTimestamp);
 
       // Add the message to the local state
       setMessages(prev => [...prev, localMessage]);
@@ -425,8 +445,10 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         try {
           ws.current.send(JSON.stringify({
             type: "message",
-            message: newMessage.trim(),
+            id: messageId, // Include the message ID to help with deduplication
+            message: messageText,
             sender_id: userId,
+            sent_time: messageTimestamp,
             is_player_sender: true,
             is_file: isFile,
             file: fileUrl,
@@ -507,6 +529,30 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Add a function to check for duplicate messages
+  const isDuplicateMessage = (messageId: number | string, messageText: string, timestamp: string): boolean => {
+    // Create a unique key for the message
+    const messageKey = `${messageId}-${messageText}-${timestamp}`;
+    
+    // Check if this message is already in our tracking set
+    if (sentMessageIds.has(messageKey)) {
+      return true;
+    }
+    
+    // Also check if a very similar message exists in the messages array
+    // This handles cases where the message ID might be different but content is the same
+    return messages.some(msg => 
+      msg.message === messageText && 
+      Math.abs(new Date(msg.sent_time).getTime() - new Date(timestamp).getTime()) < 2000 // Within 2 seconds
+    );
+  };
+
+  // Add a function to track sent messages
+  const trackSentMessage = (messageId: number | string, messageText: string, timestamp: string) => {
+    const messageKey = `${messageId}-${messageText}-${timestamp}`;
+    setSentMessageIds(prev => new Set(prev).add(messageKey));
   };
 
   return (
