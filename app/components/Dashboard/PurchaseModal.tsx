@@ -507,6 +507,31 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                   <p className="text-xs sm:text-sm text-white/40">
                     Click the button above to complete your payment
                   </p>
+                  
+                  {/* Payment URL Display */}
+                  <div className="mt-2 p-2 bg-black/30 rounded-lg">
+                    <p className="text-xs text-white/40 mb-1">Payment URL:</p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={paymentUrl}
+                        className="w-full bg-black/50 border border-white/10 rounded-lg py-1.5 px-2 text-xs text-white/70 overflow-hidden text-ellipsis"
+                      />
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(paymentUrl);
+                          toast.success('Payment URL copied to clipboard');
+                        }}
+                        className="p-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-white/70 hover:text-white transition-colors"
+                        title="Copy to clipboard"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <>
