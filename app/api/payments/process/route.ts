@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 // Set a reasonable timeout for the external API call
 const FETCH_TIMEOUT = 15000; // 15 seconds
-
-// Toggle this to true to use mock responses instead of calling the real API
-// This helps test if the issue is with the external API or our implementation
-const USE_MOCK_RESPONSE = true;
 
 // Helper function to add timeout to fetch
 const fetchWithTimeout = async (url: string, options: RequestInit, timeout: number) => {
@@ -23,18 +20,6 @@ const fetchWithTimeout = async (url: string, options: RequestInit, timeout: numb
     clearTimeout(timeoutId);
     throw error;
   }
-};
-
-// Mock response function for testing
-const getMockResponse = (paymentMethod: string, amount: number) => {
-  // Generate a random payment ID
-  const paymentId = Math.random().toString(36).substring(2, 15);
-  
-  return {
-    payment_id: paymentId,
-    payment_url: `https://example.com/payment/${paymentId}?amount=${amount}&method=${paymentMethod}`,
-    status: 'pending'
-  };
 };
 
 export async function POST(request: NextRequest) {
@@ -65,17 +50,6 @@ export async function POST(request: NextRequest) {
       currency: body.currency,
       payment_method: body.payment_method
     });
-
-    // Use mock response if enabled
-    if (USE_MOCK_RESPONSE) {
-      console.log('Using mock payment response');
-      const mockResponse = getMockResponse(body.payment_method, body.amount);
-      
-      // Simulate a slight delay to mimic network latency
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      return NextResponse.json(mockResponse);
-    }
 
     // Forward the request to the external API with timeout
     try {
