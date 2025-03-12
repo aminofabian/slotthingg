@@ -263,6 +263,17 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
             // Skip if this is a duplicate message
             if (isDuplicateMessage(messageId, messageText, messageTimestamp)) {
               console.log('Skipping duplicate message:', messageText);
+              
+              // Even if it's a duplicate, update the status if it's one of our sent messages
+              if (data.is_player_sender) {
+                setMessages(prev => 
+                  prev.map(msg => 
+                    (msg.id === messageId || (msg.message === messageText && msg.is_player_sender)) 
+                      ? { ...msg, status: 'delivered' } 
+                      : msg
+                  )
+                );
+              }
               return;
             }
             
@@ -294,11 +305,40 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
               (newMsg.is_admin_recipient && newMsg.recipient_id === parseInt(selectedAdmin));
             
             if (isRelevantMessage) {
-              // Track this message to prevent duplicates
-              trackSentMessage(messageId, messageText, messageTimestamp);
-              
-              setMessages(prev => [...prev, newMsg]);
-              scrollToBottom();
+              // If it's a player message that we sent, just update the status
+              if (newMsg.is_player_sender) {
+                // Check if we already have this message in our state
+                const existingMessage = messages.find(msg => 
+                  msg.id === newMsg.id || 
+                  (msg.message === newMsg.message && msg.is_player_sender && 
+                   Math.abs(new Date(msg.sent_time).getTime() - new Date(newMsg.sent_time).getTime()) < 5000)
+                );
+                
+                if (existingMessage) {
+                  // Just update the status
+                  setMessages(prev => 
+                    prev.map(msg => 
+                      msg.id === existingMessage.id
+                        ? { ...msg, status: 'delivered' } 
+                        : msg
+                    )
+                  );
+                } else {
+                  // Track this message to prevent duplicates
+                  trackSentMessage(messageId, messageText, messageTimestamp);
+                  
+                  // Add as new message
+                  setMessages(prev => [...prev, newMsg]);
+                  scrollToBottom();
+                }
+              } else {
+                // If it's a message from someone else, add it as new
+                // Track this message to prevent duplicates
+                trackSentMessage(messageId, messageText, messageTimestamp);
+                
+                setMessages(prev => [...prev, newMsg]);
+                scrollToBottom();
+              }
             }
           } else if (data.type === 'admin_status') {
             // Handle admin status updates (online/offline)
@@ -410,28 +450,10 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                 messageResponse.message, 
                 messageResponse.sent_time
               )) {
-                // Process the message as if it came from the server
-                const newMsg: ChatMessage = {
-                  id: messageResponse.id,
-                  type: 'message',
-                  message: messageResponse.message,
-                  sender: parseInt(messageResponse.sender_id),
-                  sent_time: messageResponse.sent_time,
-                  is_file: messageResponse.is_file || false,
-                  file: messageResponse.file || null,
-                  is_player_sender: messageResponse.is_player_sender || false,
-                  is_tip: messageResponse.is_tip || false,
-                  is_comment: messageResponse.is_comment || false,
-                  status: 'delivered',
-                  attachments: messageResponse.attachments || [],
-                  recipient_id: messageResponse.recipient_id ? parseInt(messageResponse.recipient_id) : undefined,
-                  is_admin_recipient: messageResponse.is_admin_recipient || false
-                };
-                
-                // Update message status
+                // Only update the status of the message, don't add a new one
                 setMessages(prev => 
                   prev.map(msg => 
-                    msg.id === newMsg.id 
+                    msg.id === messageResponse.id 
                       ? { ...msg, status: 'delivered' } 
                       : msg
                   )
@@ -440,24 +462,34 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                 // Simulate admin response after a delay
                 if (selectedAdmin) {
                   setTimeout(() => {
-                    const adminResponse: ChatMessage = {
-                      id: Date.now(),
-                      type: 'message',
-                      message: `This is an automated response from ${availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin'}.`,
-                      sender: parseInt(selectedAdmin),
-                      sent_time: new Date().toISOString(),
-                      is_file: false,
-                      file: null,
-                      is_player_sender: false,
-                      is_tip: false,
-                      is_comment: false,
-                      status: 'delivered',
-                      attachments: []
-                    };
+                    const adminResponseId = Date.now();
+                    const adminResponseText = `This is an automated response from ${availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin'}.`;
+                    const adminResponseTime = new Date().toISOString();
                     
-                    // Add admin response to messages
-                    setMessages(prev => [...prev, adminResponse]);
-                    scrollToBottom();
+                    // Skip if this is a duplicate admin response
+                    if (!isDuplicateMessage(adminResponseId, adminResponseText, adminResponseTime)) {
+                      const adminResponse: ChatMessage = {
+                        id: adminResponseId,
+                        type: 'message',
+                        message: adminResponseText,
+                        sender: parseInt(selectedAdmin),
+                        sent_time: adminResponseTime,
+                        is_file: false,
+                        file: null,
+                        is_player_sender: false,
+                        is_tip: false,
+                        is_comment: false,
+                        status: 'delivered',
+                        attachments: []
+                      };
+                      
+                      // Track this message to prevent duplicates
+                      trackSentMessage(adminResponseId, adminResponseText, adminResponseTime);
+                      
+                      // Add admin response to messages
+                      setMessages(prev => [...prev, adminResponse]);
+                      scrollToBottom();
+                    }
                   }, 2000);
                 }
               }
@@ -556,6 +588,12 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
       const messageId = Date.now();
       const messageText = newMessage.trim();
       const messageTimestamp = new Date().toISOString();
+
+      // Check if this is a duplicate message before adding
+      if (isDuplicateMessage(messageId, messageText, messageTimestamp)) {
+        console.log('Preventing duplicate message send:', messageText);
+        return;
+      }
 
       // Create a message object for the local state
       const localMessage: ChatMessage = {
@@ -679,7 +717,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
     }
   };
 
-  // Add a function to check for duplicate messages
+  // Improved function to check for duplicate messages
   const isDuplicateMessage = (messageId: number | string, messageText: string, timestamp: string): boolean => {
     // Create a unique key for the message
     const messageKey = `${messageId}-${messageText}-${timestamp}`;
@@ -692,8 +730,11 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
     // Also check if a very similar message exists in the messages array
     // This handles cases where the message ID might be different but content is the same
     return messages.some(msg => 
-      msg.message === messageText && 
-      Math.abs(new Date(msg.sent_time).getTime() - new Date(timestamp).getTime()) < 2000 // Within 2 seconds
+      // Check for exact ID match
+      msg.id === messageId ||
+      // Or check for similar content and timestamp (within 5 seconds)
+      (msg.message === messageText && 
+       Math.abs(new Date(msg.sent_time).getTime() - new Date(timestamp).getTime()) < 5000)
     );
   };
 
@@ -729,7 +770,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
           sent_time: failedMessage.sent_time,
           is_player_sender: true,
           is_file: failedMessage.is_file,
-          file: failedMessage.file,
+          file: failedMessage.file, // Use the file URL from the failed message
           recipient_id: failedMessage.recipient_id,
           is_admin_recipient: failedMessage.is_admin_recipient
         }));
@@ -789,38 +830,48 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[70] bg-black/80 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2"
+                className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[70] bg-black/80 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 max-w-md"
               >
                 {connectionStatus === 'connecting' ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-[#00ffff]"></div>
-                    <span>Connecting to chat server...</span>
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-[#00ffff]"></div>
+                    <div>
+                      <p className="font-medium">Connecting to chat server...</p>
+                      <p className="text-xs text-white/70 mt-1">Please wait while we establish a connection.</p>
+                    </div>
                   </>
                 ) : connectionStatus === 'disconnected' ? (
                   <>
-                    <IoAlert className="text-red-500 w-4 h-4" />
-                    <span>Connection lost. Attempting to reconnect...</span>
+                    <IoAlert className="text-red-500 w-5 h-5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium">Connection lost</p>
+                      <p className="text-xs text-white/70 mt-1">We're trying to reconnect automatically. You can also try manually.</p>
+                    </div>
                     <button 
                       onClick={() => {
                         initializeWebSocket();
                         setShowConnectionToast(false);
                       }}
-                      className="ml-2 bg-[#00ffff]/20 hover:bg-[#00ffff]/30 text-[#00ffff] px-2 py-1 rounded text-xs"
+                      className="ml-2 bg-[#00ffff]/20 hover:bg-[#00ffff]/30 text-[#00ffff] px-3 py-1.5 rounded text-sm flex items-center gap-1"
                     >
-                      Retry Now
+                      <IoRefresh className="w-4 h-4" />
+                      <span>Retry Now</span>
                     </button>
                   </>
                 ) : (
                   <>
-                    <div className="w-4 h-4 rounded-full bg-green-400"></div>
-                    <span>Connected to chat server</span>
+                    <div className="w-5 h-5 rounded-full bg-green-400 flex-shrink-0"></div>
+                    <div>
+                      <p className="font-medium">Connected to chat server</p>
+                      <p className="text-xs text-white/70 mt-1">Your messages will be delivered in real-time.</p>
+                    </div>
                   </>
                 )}
                 <button 
                   onClick={() => setShowConnectionToast(false)}
-                  className="ml-2 text-white/60 hover:text-white"
+                  className="ml-auto text-white/60 hover:text-white"
                 >
-                  <IoClose className="w-4 h-4" />
+                  <IoClose className="w-5 h-5" />
                 </button>
               </motion.div>
             )}
@@ -976,14 +1027,16 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                                 ) : message.status === 'delivered' ? (
                                   <IoCheckmarkDone className="text-[#00ffff]/50 w-4 h-4" />
                                 ) : message.status === 'error' ? (
-                                  <div className="flex items-center">
+                                  <div className="flex items-center bg-red-500/10 px-2 py-0.5 rounded-full">
                                     <IoAlert className="text-red-500 w-4 h-4" />
+                                    <span className="text-red-400 text-xs mx-1">Failed</span>
                                     <button 
                                       onClick={() => retryMessage(message.id)}
-                                      className="ml-1 text-[#00ffff]/70 hover:text-[#00ffff] transition-colors"
+                                      className="flex items-center gap-1 ml-1 bg-[#00ffff]/10 hover:bg-[#00ffff]/20 text-[#00ffff]/70 hover:text-[#00ffff] transition-colors px-2 py-0.5 rounded-full"
                                       title="Retry sending"
                                     >
-                                      <IoRefresh className="w-4 h-4" />
+                                      <IoRefresh className="w-3 h-3" />
+                                      <span className="text-xs">Retry</span>
                                     </button>
                                   </div>
                                 ) : (
