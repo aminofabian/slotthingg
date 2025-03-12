@@ -47,20 +47,48 @@ const fetchWithTimeoutAndRetry = async (url: string, options: RequestInit, timeo
   throw lastError || new Error('Failed to fetch after multiple attempts');
 };
 
+// Helper function to verify token format
+const isValidTokenFormat = (token: string): boolean => {
+  // Basic validation - tokens should be non-empty strings with reasonable length
+  // Adjust this validation based on your actual token format
+  return typeof token === 'string' && token.length > 10 && token.length < 2000;
+};
+
 export async function POST(request: NextRequest) {
   console.log('Payment process request received');
   
   try {
-    // Get the auth token from the cookie
-    const token = request.cookies.get('token')?.value;
+    // Get the auth token from multiple sources
+    // 1. Check cookies first
+    let token = request.cookies.get('token')?.value;
+    
+    // 2. If no token in cookies, check Authorization header (sent from localStorage)
+    if (!token) {
+      const authHeader = request.headers.get('Authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7); // Remove 'Bearer ' prefix
+        console.log('Using token from Authorization header');
+      }
+    }
 
     if (!token) {
-      console.log('Authentication token missing');
+      console.log('Authentication token missing from both cookies and headers');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
+
+    // Verify token format
+    if (!isValidTokenFormat(token)) {
+      console.error('Invalid token format detected');
+      return NextResponse.json(
+        { error: 'Invalid authentication token. Please log in again.' },
+        { status: 401 }
+      );
+    }
+
+    console.log('Authentication token found, proceeding with payment request');
 
     // Parse the request body
     const body = await request.json();
@@ -128,8 +156,13 @@ export async function POST(request: NextRequest) {
         
         // Handle specific error cases
         if (response.status === 401 || response.status === 403) {
+          console.error('Authentication failed with payment provider. Token might be invalid or expired.');
+          // Log token length for debugging (don't log the actual token for security)
+          if (token) {
+            console.log(`Token length: ${token.length}, first 4 chars: ${token.substring(0, 4)}...`);
+          }
           return NextResponse.json(
-            { error: 'Authentication failed with payment provider' },
+            { error: 'Authentication failed with payment provider. Please log out and log in again.' },
             { status: 401 }
           );
         }

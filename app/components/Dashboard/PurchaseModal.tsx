@@ -220,6 +220,16 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
       // Add auth token if available
       if (authToken) {
         headers['Authorization'] = `Bearer ${authToken}`;
+        console.log('Adding auth token to request headers');
+      } else {
+        // Try to get token again as a fallback
+        const token = getCookie('token') || localStorage.getItem('token');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+          console.log('Using fallback auth token from cookies/localStorage');
+        } else {
+          console.warn('No authentication token available for payment request');
+        }
       }
       
       console.log('Initiating payment request for', selectedPaymentMethod.title);
@@ -248,9 +258,15 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
           errorMessage = errorData.error || errorData.message || errorMessage;
           
           // Handle authentication errors
-          if (errorData.error === "User not authenticated" || response.status === 401) {
+          if (errorData.error === "User not authenticated" || 
+              errorData.error?.includes("Authentication required") || 
+              errorData.error?.includes("Authentication failed") || 
+              response.status === 401) {
             setIsAuthenticated(false);
-            throw new Error('Authentication required. Please log in again.');
+            // Clear any stored tokens that might be invalid
+            localStorage.removeItem('token');
+            document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            throw new Error('Authentication failed. Please log in again to refresh your session.');
           }
           
           // Handle specific error cases
