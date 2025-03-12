@@ -222,6 +222,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
       // Prepare headers with authentication
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
       };
       
       // Add auth token if available
@@ -229,7 +230,10 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
       
-      const response = await fetch('https://serverhub.biz/payments/btcpay-payment/', {
+      // Use a proxy endpoint to avoid CORS issues
+      // Instead of calling the external API directly, we'll call our own API endpoint
+      // that will forward the request to the external API
+      const response = await fetch('/api/payments/process', {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -237,33 +241,67 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
           currency: 'USD',
           payment_method: selectedPaymentMethod.apiValue
         }),
-        credentials: 'include' // Include credentials for cross-origin requests
+        credentials: 'include'
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        
-        // Handle authentication errors
-        if (errorData.error === "User not authenticated" || response.status === 401) {
-          setIsAuthenticated(false);
-          throw new Error('Authentication required. Please log in again.');
+        // Try to parse error response
+        let errorMessage = 'Payment request failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+          
+          // Handle authentication errors
+          if (errorData.error === "User not authenticated" || response.status === 401) {
+            setIsAuthenticated(false);
+            throw new Error('Authentication required. Please log in again.');
+          }
+        } catch (parseError) {
+          console.error('Error parsing error response:', parseError);
+          
+          // If we can't parse the response, check for specific status codes
+          if (response.status === 401 || response.status === 403) {
+            setIsAuthenticated(false);
+            throw new Error('Authentication required. Please log in again.');
+          } else if (response.status === 0 || response.status === 520) {
+            // Network error or server error
+            throw new Error('Network error. Please check your connection and try again.');
+          } else if (response.status === 429) {
+            throw new Error('Too many requests. Please try again later.');
+          } else if (response.status === 500) {
+            throw new Error('Server error. Please try again later.');
+          } else if (response.status === 400) {
+            throw new Error('Invalid request. Please check your payment details.');
+          } else if (response.status === 404) {
+            throw new Error('Payment service not available. Please try again later.');
+          }
         }
         
-        throw new Error(errorData.message || errorData.error || 'Payment request failed');
+        throw new Error(errorMessage);
       }
       
       const data = await response.json();
+      
+      if (!data.payment_url) {
+        throw new Error('Invalid payment response. Missing payment URL.');
+      }
+      
       setPaymentUrl(data.payment_url);
+      toast.success('Payment initiated successfully!');
       
       // Refresh profile data after successful payment initiation
       fetchProfileData();
     } catch (err) {
+      console.error('Payment error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
       
       // If authentication error, show login prompt
       if ((err as Error).message.includes('Authentication required')) {
         setIsAuthenticated(false);
       }
+      
+      // Show toast for error
+      toast.error(err instanceof Error ? err.message : 'Payment failed. Please try again.');
     } finally {
       setIsProcessing(false);
     }
