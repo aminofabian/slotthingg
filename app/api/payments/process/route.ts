@@ -61,6 +61,13 @@ const refreshToken = async (currentToken: string): Promise<string | null> => {
   try {
     console.log('Attempting to refresh authentication token');
     
+    // First check if the token is already expired or invalid
+    // This is a basic check to avoid unnecessary API calls
+    if (!isValidTokenFormat(currentToken)) {
+      console.error('Cannot refresh token: Invalid token format');
+      return null;
+    }
+    
     const response = await fetchWithTimeoutAndRetry(
       TOKEN_REFRESH_ENDPOINT,
       {
@@ -70,14 +77,26 @@ const refreshToken = async (currentToken: string): Promise<string | null> => {
           'Accept': 'application/json',
           'Authorization': `Bearer ${currentToken}`,
         },
-        body: JSON.stringify({ token: currentToken }),
+        body: JSON.stringify({ 
+          token: currentToken,
+          // Include timestamp to prevent caching issues
+          timestamp: Date.now() 
+        }),
       },
       10000, // 10 second timeout for refresh
-      1      // Only retry once
+      2      // Retry twice for token refresh
     );
     
     if (!response.ok) {
       console.error('Token refresh failed with status:', response.status);
+      
+      // If we get a 401/403, the token is definitely expired and can't be refreshed
+      if (response.status === 401 || response.status === 403) {
+        console.error('Token is expired and cannot be refreshed. User must log in again.');
+        return null;
+      }
+      
+      // For other errors, we might want to retry or handle differently
       return null;
     }
     
