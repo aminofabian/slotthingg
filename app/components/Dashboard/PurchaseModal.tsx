@@ -7,6 +7,7 @@ import { IoClose } from 'react-icons/io5';
 import { HiSparkles } from 'react-icons/hi';
 import { TbBolt } from 'react-icons/tb';
 import { FiLock } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 
 interface PurchaseModalProps {
   isOpen: boolean;
@@ -111,41 +112,26 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
     amount >= (selectedPaymentMethod?.minAmount || 0) && 
     (selectedPaymentMethod?.maxAmount ? amount <= selectedPaymentMethod.maxAmount : true);
 
-  // Fetch user profile data including balance
+  // Check authentication status first
   useEffect(() => {
-    const fetchProfileData = async () => {
-      if (!isOpen) return;
+    if (!isOpen) return;
+    
+    const checkAuthAndFetchProfile = async () => {
+      // First check if we have authentication tokens
+      checkAuthentication();
       
-      setIsLoadingBalance(true);
-      try {
-        const response = await fetch('/api/auth/profile', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include'
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch profile data');
-        }
-
-        const data = await response.json();
-        setProfileData(data);
-        setIsAuthenticated(true);
-      } catch (err) {
-        console.error('Error fetching profile data:', err);
-        // If we can't fetch profile data, we'll check authentication status separately
-        checkAuthentication();
-      } finally {
+      // Then try to fetch profile data if authenticated
+      if (isAuthenticated) {
+        await fetchProfileData();
+      } else {
         setIsLoadingBalance(false);
       }
     };
-
-    fetchProfileData();
+    
+    checkAuthAndFetchProfile();
   }, [isOpen]);
 
-  // Check authentication status on component mount
+  // Check authentication status
   const checkAuthentication = () => {
     // Check for token in cookies
     const token = getCookie('token');
@@ -162,6 +148,48 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
     const userId = localStorage.getItem('user_id');
     if (!tokenToUse && userId) {
       setIsAuthenticated(true);
+    }
+    
+    return !!tokenToUse || !!userId;
+  };
+
+  // Fetch user profile data including balance
+  const fetchProfileData = async () => {
+    setIsLoadingBalance(true);
+    try {
+      const response = await fetch('/api/auth/profile', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        // If we get an authentication error, update the auth state
+        if (errorData.error === "User not authenticated" || response.status === 401) {
+          setIsAuthenticated(false);
+          // Clear any stored tokens that might be invalid
+          localStorage.removeItem('token');
+          document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+          throw new Error('Authentication required');
+        }
+        
+        throw new Error(errorData.error || 'Failed to fetch profile data');
+      }
+
+      const data = await response.json();
+      setProfileData(data);
+      setIsAuthenticated(true);
+    } catch (err) {
+      console.error('Error fetching profile data:', err);
+      if ((err as Error).message !== 'Authentication required') {
+        toast.error('Failed to load balance. Please try again.');
+      }
+    } finally {
+      setIsLoadingBalance(false);
     }
   };
 
@@ -209,17 +237,33 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
           currency: 'USD',
           payment_method: selectedPaymentMethod.apiValue
         }),
+        credentials: 'include' // Include credentials for cross-origin requests
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.message || 'Payment request failed');
+        const errorData = await response.json().catch(() => ({}));
+        
+        // Handle authentication errors
+        if (errorData.error === "User not authenticated" || response.status === 401) {
+          setIsAuthenticated(false);
+          throw new Error('Authentication required. Please log in again.');
+        }
+        
+        throw new Error(errorData.message || errorData.error || 'Payment request failed');
       }
       
       const data = await response.json();
       setPaymentUrl(data.payment_url);
+      
+      // Refresh profile data after successful payment initiation
+      fetchProfileData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
+      
+      // If authentication error, show login prompt
+      if ((err as Error).message.includes('Authentication required')) {
+        setIsAuthenticated(false);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -245,6 +289,18 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
     handleClose();
     // Redirect to login page
     window.location.href = '/login';
+  };
+
+  // Retry authentication and profile fetch
+  const handleRetryAuth = async () => {
+    setError(null);
+    const isAuth = checkAuthentication();
+    
+    if (isAuth) {
+      await fetchProfileData();
+    } else {
+      setError('Authentication required. Please log in.');
+    }
   };
 
   return (
@@ -284,10 +340,12 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                   <div className="flex justify-center items-center h-8">
                     <div className="w-5 h-5 border-2 border-[#00ffff]/30 border-t-[#00ffff] rounded-full animate-spin"></div>
                   </div>
-                ) : (
+                ) : isAuthenticated ? (
                   <p className="text-xl sm:text-2xl font-bold text-[#00ffff]">
                     ${profileData?.balance || '0'}
                   </p>
+                ) : (
+                  <p className="text-sm text-white/40 italic">Login to view balance</p>
                 )}
               </div>
 
@@ -303,13 +361,22 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                   <p className="text-sm sm:text-base text-white/60">
                     You need to be logged in to make a purchase.
                   </p>
-                  <button
-                    onClick={handleLoginRedirect}
-                    className="mt-3 sm:mt-4 w-full py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
-                      hover:bg-[#00ffff]/20 border border-[#00ffff]/30 transition-all duration-200 text-sm sm:text-base"
-                  >
-                    Log In
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3 sm:mt-4">
+                    <button
+                      onClick={handleRetryAuth}
+                      className="py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl bg-white/5 text-white 
+                        hover:bg-white/10 border border-white/10 transition-all duration-200 text-sm sm:text-base"
+                    >
+                      Retry
+                    </button>
+                    <button
+                      onClick={handleLoginRedirect}
+                      className="py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
+                        hover:bg-[#00ffff]/20 border border-[#00ffff]/30 transition-all duration-200 text-sm sm:text-base"
+                    >
+                      Log In
+                    </button>
+                  </div>
                 </div>
               ) : paymentUrl ? (
                 // Payment URL display
