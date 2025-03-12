@@ -239,7 +239,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
       
-      console.log('Initiating payment request for', selectedPaymentMethod.title);
+      console.log('Initiating payment request for', selectedPaymentMethod.title, 'with amount', amount);
       
       // Use a proxy endpoint to avoid CORS issues
       const response = await fetch('/api/payments/process', {
@@ -252,6 +252,8 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
         }),
         credentials: 'include'
       });
+      
+      console.log('Payment response received with status:', response.status);
       
       if (!response.ok) {
         // Try to parse error response
@@ -299,13 +301,23 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
         throw new Error(errorMessage);
       }
       
-      const data = await response.json();
-      console.log('Payment response received');
+      // Try to parse the response data
+      let data;
+      try {
+        data = await response.json();
+        console.log('Payment response data:', data);
+      } catch (parseError) {
+        console.error('Error parsing success response:', parseError);
+        throw new Error('Invalid response format from payment service');
+      }
       
-      if (!data.payment_url) {
+      // Validate the payment URL
+      if (!data || !data.payment_url) {
+        console.error('Missing payment URL in response:', data);
         throw new Error('Invalid payment response. Missing payment URL.');
       }
       
+      // Set the payment URL and show success message
       setPaymentUrl(data.payment_url);
       toast.success('Payment initiated successfully!');
       
