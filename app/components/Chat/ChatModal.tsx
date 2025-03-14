@@ -84,7 +84,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
 
   // Clear processed message IDs periodically to prevent memory leaks
   useEffect(() => {
-    const clearInterval = setInterval(() => {
+    const cleanupInterval = setInterval(() => {
       // Keep only the last 100 message IDs to prevent memory leaks
       if (processedMessageIds.current.size > 100) {
         const idsArray = Array.from(processedMessageIds.current);
@@ -93,7 +93,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
     }, 60000); // Clear every minute
     
     return () => {
-      clearInterval(clearInterval);
+      clearInterval(cleanupInterval);
     };
   }, []);
 
