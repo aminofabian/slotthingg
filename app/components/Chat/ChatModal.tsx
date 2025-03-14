@@ -1,10 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { IoClose, IoSend, IoChatbubbleEllipses, IoAttach, IoHappy, IoCheckmarkDone, IoAlert, IoRefresh } from 'react-icons/io5';
+import { IoClose, IoSend, IoChatbubbleEllipses, IoAttach, IoHappy, IoCheckmarkDone, IoAlert, IoRefresh, IoDocument, IoArrowDown } from 'react-icons/io5';
 import { format } from 'date-fns';
-import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
+// Lazy load the emoji picker to improve initial load time
+const EmojiPicker = lazy(() => import('emoji-picker-react').then(module => ({ 
+  default: module.default 
+})));
+import type { EmojiClickData } from 'emoji-picker-react';
 
 interface ChatMessage {
   id: number;
@@ -68,6 +72,40 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
   const pingInterval = useRef<NodeJS.Timeout | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
   const [showConnectionToast, setShowConnectionToast] = useState<boolean>(false);
+  const [isAdminTyping, setIsAdminTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [hasNewMessages, setHasNewMessages] = useState(false);
+
+  // Add a debounce mechanism for WebSocket messages
+  const processedMessageIds = useRef(new Set<string | number>());
+
+  // Clear processed message IDs periodically to prevent memory leaks
+  useEffect(() => {
+    const clearInterval = setInterval(() => {
+      // Keep only the last 100 message IDs to prevent memory leaks
+      if (processedMessageIds.current.size > 100) {
+        const idsArray = Array.from(processedMessageIds.current);
+        processedMessageIds.current = new Set(idsArray.slice(idsArray.length - 100));
+      }
+    }, 60000); // Clear every minute
+    
+    return () => {
+      clearInterval(clearInterval);
+    };
+  }, []);
+
+  // Helper function to check if a message has already been processed
+  const hasProcessedMessage = (messageId: string | number): boolean => {
+    return processedMessageIds.current.has(messageId);
+  };
+
+  // Helper function to mark a message as processed
+  const markMessageAsProcessed = (messageId: string | number): void => {
+    processedMessageIds.current.add(messageId);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -349,6 +387,12 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         try {
           const data = JSON.parse(event.data);
           
+          // Handle typing indicator
+          if (data.type === 'typing' && data.sender !== userId) {
+            setIsAdminTyping(true);
+            return;
+          }
+          
           // Handle pong response if the server supports it
           if (data.type === 'pong') {
             console.log('Received pong from server');
@@ -383,24 +427,16 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
             const messageId = data.id || Date.now();
             const messageText = data.message || '';
             
-            // Skip if this is a duplicate message
-            if (isDuplicateMessage(messageId, messageText, messageTimestamp)) {
-              console.log('Skipping duplicate message:', messageText);
-              
-              // Even if it's a duplicate, update the status if it's one of our sent messages
-              if (data.is_player_sender) {
-                setMessages(prev => 
-                  prev.map(msg => 
-                    (msg.id === messageId || (msg.message === messageText && msg.is_player_sender)) 
-                      ? { ...msg, status: 'delivered' } 
-                      : msg
-                  )
-                );
-              }
+            // Skip if we've already processed this message
+            if (hasProcessedMessage(messageId)) {
+              console.log('Skipping already processed message:', messageId);
               return;
             }
             
-            // Handle incoming messages
+            // Mark this message as processed
+            markMessageAsProcessed(messageId);
+            
+            // Create a message object for consistency
             const newMsg: ChatMessage = {
               id: messageId,
               type: 'message',
@@ -420,46 +456,49 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
             };
             
             // Only add the message if it's relevant to the current conversation
-            const isRelevantMessage = 
-              // If no admin is selected, show all messages
-              !selectedAdmin || 
-              // If message is from the selected admin
-              (newMsg.sender === parseInt(selectedAdmin)) ||
-              // If message is to the selected admin
-              (newMsg.is_admin_recipient && newMsg.recipient_id === parseInt(selectedAdmin));
+            const isRelevantMessage = !selectedAdmin || 
+              !newMsg.is_admin_recipient || 
+              (newMsg.recipient_id === parseInt(selectedAdmin)) ||
+              (newMsg.sender === parseInt(selectedAdmin));
             
-            if (isRelevantMessage) {
-              // If it's a player message that we sent, just update the status
-              if (newMsg.is_player_sender) {
-                // Check if we already have this message in our state
-                const existingMessage = messages.find(msg => 
+            if (!isRelevantMessage) {
+              return;
+            }
+            
+            // Handle player-sent messages (messages we sent)
+            if (newMsg.is_player_sender) {
+              // Check if we already have this message in our state
+              setMessages(prevMessages => {
+                // Look for an existing message with the same ID or very similar content
+                const existingMessageIndex = prevMessages.findIndex(msg => 
                   msg.id === newMsg.id || 
-                  (msg.message === newMsg.message && msg.is_player_sender && 
+                  (msg.message === newMsg.message && 
+                   msg.is_player_sender && 
                    Math.abs(new Date(msg.sent_time).getTime() - new Date(newMsg.sent_time).getTime()) < 5000)
                 );
                 
-                if (existingMessage) {
-                  // Just update the status
-                  setMessages(prev => 
-                    prev.map(msg => 
-                      msg.id === existingMessage.id
-                        ? { ...msg, status: 'delivered' } 
-                        : msg
-                    )
-                  );
-                } else {
-                  // Track this message to prevent duplicates
-                  trackSentMessage(messageId, messageText, messageTimestamp);
-                  
-                  // Add as new message
-                  setMessages(prev => [...prev, newMsg]);
-                  scrollToBottom();
+                // If we found an existing message, just update its status
+                if (existingMessageIndex !== -1) {
+                  const updatedMessages = [...prevMessages];
+                  updatedMessages[existingMessageIndex] = {
+                    ...updatedMessages[existingMessageIndex],
+                    status: 'delivered'
+                  };
+                  return updatedMessages;
                 }
-              } else {
-                // If it's a message from someone else, add it as new
+                
+                // If it's a new message (shouldn't happen often), add it
+                // This is a safeguard for messages that might have been sent from another device
+                trackSentMessage(messageId, messageText, messageTimestamp);
+                return [...prevMessages, newMsg];
+              });
+            } else {
+              // For messages from others (admins), check if it's a duplicate before adding
+              if (!isDuplicateMessage(messageId, messageText, messageTimestamp)) {
                 // Track this message to prevent duplicates
                 trackSentMessage(messageId, messageText, messageTimestamp);
                 
+                // Add the message
                 setMessages(prev => [...prev, newMsg]);
                 scrollToBottom();
               }
@@ -586,62 +625,61 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
           
           // Simulate server response for other message types
           if (parsedData.type === 'message') {
-            // Echo the message back as if it came from the server
-            const messageResponse = {
-              ...parsedData,
-              status: 'delivered'
-            };
-            
             // Skip if this is a duplicate message
-            if (!isDuplicateMessage(
-              messageResponse.id, 
-              messageResponse.message, 
-              messageResponse.sent_time
+            if (isDuplicateMessage(
+              parsedData.id, 
+              parsedData.message, 
+              parsedData.sent_time
             )) {
-              // Only update the status of the message, don't add a new one
+              console.log('Mock WebSocket: Skipping duplicate message');
+              return;
+            }
+            
+            // Update the status of the message to delivered
+            setTimeout(() => {
               setMessages(prev => 
                 prev.map(msg => 
-                  msg.id === messageResponse.id 
+                  msg.id === parsedData.id 
                     ? { ...msg, status: 'delivered' } 
                     : msg
                 )
               );
-              
-              // Simulate admin response after a delay
-              if (selectedAdmin) {
-                setTimeout(() => {
-                  const adminResponseId = Date.now();
-                  const adminResponseText = `This is an automated response from ${availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin'}.`;
-                  const adminResponseTime = new Date().toISOString();
-                  const adminName = availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin';
+            }, 500);
+            
+            // Simulate admin response after a delay
+            if (selectedAdmin) {
+              setTimeout(() => {
+                const adminResponseId = Date.now();
+                const adminResponseText = `This is an automated response from ${availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin'}.`;
+                const adminResponseTime = new Date().toISOString();
+                const adminName = availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin';
+                
+                // Skip if this is a duplicate admin response
+                if (!isDuplicateMessage(adminResponseId, adminResponseText, adminResponseTime)) {
+                  const adminResponse: ChatMessage = {
+                    id: adminResponseId,
+                    type: 'message',
+                    message: adminResponseText,
+                    sender: parseInt(selectedAdmin),
+                    sender_name: adminName,
+                    sent_time: adminResponseTime,
+                    is_file: false,
+                    file: null,
+                    is_player_sender: false,
+                    is_tip: false,
+                    is_comment: false,
+                    status: 'delivered',
+                    attachments: []
+                  };
                   
-                  // Skip if this is a duplicate admin response
-                  if (!isDuplicateMessage(adminResponseId, adminResponseText, adminResponseTime)) {
-                    const adminResponse: ChatMessage = {
-                      id: adminResponseId,
-                      type: 'message',
-                      message: adminResponseText,
-                      sender: parseInt(selectedAdmin),
-                      sender_name: adminName,
-                      sent_time: adminResponseTime,
-                      is_file: false,
-                      file: null,
-                      is_player_sender: false,
-                      is_tip: false,
-                      is_comment: false,
-                      status: 'delivered',
-                      attachments: []
-                    };
-                    
-                    // Track this message to prevent duplicates
-                    trackSentMessage(adminResponseId, adminResponseText, adminResponseTime);
-                    
-                    // Add admin response to messages
-                    setMessages(prev => [...prev, adminResponse]);
-                    scrollToBottom();
-                  }
-                }, 2000);
-              }
+                  // Track this message to prevent duplicates
+                  trackSentMessage(adminResponseId, adminResponseText, adminResponseTime);
+                  
+                  // Add admin response to messages
+                  setMessages(prev => [...prev, adminResponse]);
+                  scrollToBottom();
+                }
+              }, 2000);
             }
           }
         } catch (error) {
@@ -745,11 +783,17 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         return;
       }
 
+      // Clear input fields first to prevent double-sending if the user types quickly
+      const currentMessage = messageText;
+      const currentFile = selectedFile;
+      setNewMessage('');
+      setSelectedFile(null);
+
       // Create a message object for the local state
       const localMessage: ChatMessage = {
         id: messageId,
         type: 'message',
-        message: messageText,
+        message: currentMessage,
         sender: parseInt(userId),
         sender_name: userName || 'User',
         sent_time: messageTimestamp,
@@ -765,12 +809,10 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
       };
 
       // Track this message to prevent duplicates
-      trackSentMessage(messageId, messageText, messageTimestamp);
+      trackSentMessage(messageId, currentMessage, messageTimestamp);
 
       // Add the message to the local state
       setMessages(prev => [...prev, localMessage]);
-    setNewMessage('');
-      setSelectedFile(null);
       scrollToBottom();
 
       // Send the message via WebSocket in the expected format
@@ -779,7 +821,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
           ws.current?.send(JSON.stringify({
             type: "message",
             id: messageId, // Include the message ID to help with deduplication
-            message: messageText,
+            message: currentMessage,
             sender_id: userId,
             sender_name: userName || 'User',
             sent_time: messageTimestamp,
@@ -819,7 +861,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
           prev.map(msg => 
             msg.id === messageId 
               ? { ...msg, status: 'error' as any } 
-              : msg
+            : msg
           )
         );
         
@@ -880,14 +922,24 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
     }
     
     // Also check if a very similar message exists in the messages array
-    // This handles cases where the message ID might be different but content is the same
-    return messages.some(msg => 
+    return messages.some(msg => {
       // Check for exact ID match
-      msg.id === messageId ||
-      // Or check for similar content and timestamp (within 5 seconds)
-      (msg.message === messageText && 
-       Math.abs(new Date(msg.sent_time).getTime() - new Date(timestamp).getTime()) < 5000)
-    );
+      if (msg.id === messageId) {
+        return true;
+      }
+      
+      // Check for similar content and timestamp (within 5 seconds)
+      if (msg.message === messageText) {
+        const timeDiff = Math.abs(
+          new Date(msg.sent_time).getTime() - new Date(timestamp).getTime()
+        );
+        if (timeDiff < 5000) {
+          return true;
+        }
+      }
+      
+      return false;
+    });
   };
 
   // Add a function to track sent messages
@@ -907,7 +959,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
       prev.map(msg => 
         msg.id === messageId 
           ? { ...msg, status: 'sent' as any } 
-          : msg
+        : msg
       )
     );
     
@@ -935,7 +987,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
           prev.map(msg => 
             msg.id === messageId 
               ? { ...msg, status: 'error' as any } 
-              : msg
+            : msg
           )
         );
       }
@@ -954,14 +1006,237 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         prev.map(msg => 
           msg.id === messageId 
             ? { ...msg, status: 'error' as any } 
-            : msg
-          )
-        );
+          : msg
+        )
+      );
         
         // Show connection toast
         setShowConnectionToast(true);
     }
   };
+
+  // Create a memoized message component for better performance
+  const ChatMessageItem = memo(({ 
+    message, 
+    isPlayerMessage, 
+    isAdminMessage, 
+    userName, 
+    selectedAdmin, 
+    availableAdmins, 
+    formatTime, 
+    retryMessage,
+    isConsecutive
+  }: { 
+    message: ChatMessage;
+    isPlayerMessage: boolean;
+    isAdminMessage: boolean;
+    userName: string;
+    selectedAdmin: string | null;
+    availableAdmins: {id: string, name: string}[];
+    formatTime: (timestamp: string) => string;
+    retryMessage: (messageId: number) => void;
+    isConsecutive: boolean;
+  }) => {
+    return (
+      <div className={`flex ${isPlayerMessage ? 'justify-end' : 'justify-start'} ${isConsecutive ? 'mb-1' : 'mb-4'}`}>
+        <div 
+          className={`max-w-[80%] rounded-2xl p-3 shadow-lg ${
+            isPlayerMessage 
+              ? 'bg-gradient-to-br from-[#00ffff]/20 to-[#00ffff]/10 text-white rounded-tr-none border-r border-t border-[#00ffff]/20' 
+              : isAdminMessage
+                ? 'bg-gradient-to-br from-[#ff00ff]/20 to-[#ff00ff]/10 text-white rounded-tl-none border-l border-t border-[#ff00ff]/20'
+                : 'bg-gradient-to-br from-gray-700/60 to-gray-700/40 text-white rounded-tl-none border-l border-t border-gray-600/30'
+          }`}
+        >
+          {/* Sender name with avatar initial - only show for first message in a group */}
+          {!isConsecutive && (
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
+                isPlayerMessage 
+                  ? 'bg-[#00ffff]/30 text-white' 
+                  : isAdminMessage 
+                    ? 'bg-[#ff00ff]/30 text-white' 
+                    : 'bg-gray-600 text-white'
+              }`}>
+                {(message.sender_name || userName || 'User').charAt(0).toUpperCase()}
+              </div>
+              <div className="text-xs font-medium text-white/80">
+                {isPlayerMessage 
+                  ? (message.sender_name || userName || 'You') 
+                  : (message.sender_name || availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin')}
+              </div>
+            </div>
+          )}
+          
+          {/* Message content */}
+          {message.is_file && message.file ? (
+            message.file.match(/\.(jpeg|jpg|gif|png)$/) ? (
+              <img 
+                src={message.file} 
+                alt="Attachment" 
+                className="rounded-lg max-h-60 mb-2 w-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div className="bg-black/20 p-3 rounded-lg mb-2 flex items-center gap-2 hover:bg-black/30 transition-colors">
+                <IoAttach className="text-[#00ffff]" />
+                <a 
+                  href={message.file} 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#00ffff] underline text-sm"
+                >
+                  Download Attachment
+                </a>
+              </div>
+            )
+          ) : null}
+          
+          {/* Message text */}
+          {message.message && (
+            <p className="text-sm sm:text-base whitespace-pre-wrap break-words leading-relaxed">
+              {message.message}
+            </p>
+          )}
+          
+          {/* Message footer */}
+          <div className="mt-2 flex justify-between items-center">
+            <span className="text-xs text-white/50">
+              {formatTime(message.sent_time)}
+            </span>
+            {isPlayerMessage && (
+              <div className="flex items-center gap-1">
+                {message.status === 'seen' ? (
+                  <div className="flex items-center gap-1">
+                    <IoCheckmarkDone className="text-[#00ffff] w-4 h-4" />
+                    <span className="text-xs text-[#00ffff]/70">Seen</span>
+                  </div>
+                ) : message.status === 'delivered' ? (
+                  <div className="flex items-center gap-1">
+                    <IoCheckmarkDone className="text-[#00ffff]/50 w-4 h-4" />
+                    <span className="text-xs text-white/50">Delivered</span>
+                  </div>
+                ) : message.status === 'error' ? (
+                  <div className="flex items-center bg-red-500/10 px-2 py-0.5 rounded-full">
+                    <IoAlert className="text-red-500 w-4 h-4" />
+                    <span className="text-red-400 text-xs mx-1">Failed</span>
+                    <button 
+                      onClick={() => retryMessage(message.id)}
+                      className="flex items-center gap-1 ml-1 bg-[#00ffff]/10 hover:bg-[#00ffff]/20 text-[#00ffff]/70 hover:text-[#00ffff] transition-colors px-2 py-0.5 rounded-full"
+                      title="Retry sending"
+                    >
+                      <IoRefresh className="w-3 h-3" />
+                      <span className="text-xs">Retry</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <IoCheckmarkDone className="text-gray-400 w-4 h-4" />
+                    <span className="text-xs text-white/50">Sent</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  });
+
+  // Handle typing indicator
+  useEffect(() => {
+    if (isAdminTyping) {
+      // Clear typing indicator after 3 seconds of no updates
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsAdminTyping(false);
+      }, 3000);
+    }
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [isAdminTyping]);
+
+  // Handle sending typing indicator
+  const handleTyping = () => {
+    // Only send typing indicator if we have text and we're not already in typing state
+    if (!isTyping && newMessage.trim().length > 0) {
+      setIsTyping(true);
+      
+      // Send typing indicator via WebSocket
+      if ((ws.current?.readyState === WebSocket.OPEN || isUsingMockWebSocket) && selectedAdmin) {
+        try {
+          ws.current?.send(JSON.stringify({
+            type: "typing",
+            sender: userId,
+            sender_name: userName,
+            recipient_id: parseInt(selectedAdmin),
+            is_admin_recipient: true
+          }));
+        } catch (error) {
+          console.error('Error sending typing indicator:', error);
+        }
+      }
+    }
+    
+    // Reset typing timeout
+    if (typingIndicatorTimeoutRef.current) {
+      clearTimeout(typingIndicatorTimeoutRef.current);
+    }
+    
+    // Set timeout to stop typing indicator
+    typingIndicatorTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+    }, 2000);
+  };
+
+  // Clean up typing indicator timeout
+  useEffect(() => {
+    return () => {
+      if (typingIndicatorTimeoutRef.current) {
+        clearTimeout(typingIndicatorTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Handle scroll events to show/hide scroll button
+  const handleScroll = () => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
+      setShowScrollToBottom(isScrolledUp);
+      
+      // If scrolled to bottom, reset new messages indicator
+      if (!isScrolledUp) {
+        setHasNewMessages(false);
+      }
+    }
+  };
+
+  // Add scroll event listener
+  useEffect(() => {
+    const chatContainer = chatContainerRef.current;
+    if (chatContainer) {
+      chatContainer.addEventListener('scroll', handleScroll);
+      return () => {
+        chatContainer.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, []);
+
+  // Update message handling to set new messages flag
+  useEffect(() => {
+    if (messages.length > 0 && chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
+      
+      if (isScrolledUp) {
+        setHasNewMessages(true);
+      }
+    }
+  }, [messages.length]);
 
   return (
     <AnimatePresence>
@@ -1095,120 +1370,99 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
             {/* Messages */}
             <div 
               ref={chatContainerRef}
-              className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-[#00ffff]/10 scrollbar-track-transparent"
+              className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-[#00ffff]/10 scrollbar-track-transparent
+                bg-gradient-to-b from-black/10 to-transparent backdrop-blur-sm relative"
             >
+              {/* Scroll to bottom button */}
+              {showScrollToBottom && (
+                <button
+                  onClick={() => {
+                    scrollToBottom();
+                    setHasNewMessages(false);
+                  }}
+                  className={`absolute bottom-4 right-4 p-2 rounded-full shadow-lg z-10
+                    ${hasNewMessages 
+                      ? 'bg-[#00ffff] text-black animate-bounce' 
+                      : 'bg-black/50 text-[#00ffff]/80'
+                    } transition-all duration-300`}
+                  aria-label="Scroll to bottom"
+                >
+                  {hasNewMessages ? (
+                    <div className="flex items-center gap-1 px-2">
+                      <span className="text-xs font-medium">New messages</span>
+                      <IoArrowDown className="w-4 h-4" />
+                    </div>
+                  ) : (
+                    <IoArrowDown className="w-5 h-5" />
+                  )}
+                </button>
+              )}
+              
               {isLoading ? (
-                <div className="flex justify-center items-center h-full">
+                <div className="flex flex-col justify-center items-center h-full">
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#00ffff]"></div>
+                  <p className="text-[#00ffff]/70 mt-3 text-sm">Loading messages...</p>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6">
-                  <div className="p-3 rounded-full bg-[#00ffff]/10 mb-4">
+                  <div className="p-4 rounded-full bg-[#00ffff]/10 mb-4 shadow-lg shadow-[#00ffff]/5">
                     <IoChatbubbleEllipses className="w-8 h-8 text-[#00ffff]" />
                   </div>
                   <p className="text-[#00ffff]/80 text-lg font-medium mb-2">No messages yet</p>
-                  <p className="text-[#00ffff]/50 text-sm">
+                  <p className="text-[#00ffff]/50 text-sm max-w-xs">
                     {selectedAdmin 
                       ? `Start a conversation with ${availableAdmins.find(a => a.id === selectedAdmin)?.name || 'the admin'}`
                       : 'Select an admin to start chatting'}
                   </p>
+                  {selectedAdmin && (
+                    <button 
+                      onClick={() => setNewMessage('Hello! I need some assistance.')}
+                      className="mt-4 bg-[#00ffff]/20 hover:bg-[#00ffff]/30 text-[#00ffff] px-4 py-2 rounded-lg 
+                        transition-all duration-300 flex items-center gap-2 shadow-lg"
+                    >
+                      <IoSend className="w-4 h-4" />
+                      <span>Start Conversation</span>
+                    </button>
+                  )}
                 </div>
               ) : (
                 <>
-                  {messages.map((message, index) => {
-                    // Determine if this message is part of the current admin conversation
-                    const isRelevantMessage = !selectedAdmin || 
-                      !message.is_admin_recipient || 
-                      (message.recipient_id === parseInt(selectedAdmin)) ||
-                      (message.sender === parseInt(selectedAdmin));
-                    
-                    if (!isRelevantMessage) return null;
-                    
-                    const isPlayerMessage = message.is_player_sender;
-                    const isAdminMessage = !isPlayerMessage && message.sender === parseInt(selectedAdmin || '0');
-                    
-                    return (
-                      <div key={message.id} className={`flex ${isPlayerMessage ? 'justify-end' : 'justify-start'}`}>
-                        <div 
-                          className={`max-w-[80%] rounded-2xl p-3 ${
-                            isPlayerMessage 
-                              ? 'bg-[#00ffff]/10 text-white rounded-tr-none' 
-                              : isAdminMessage
-                                ? 'bg-[#ff00ff]/10 text-white rounded-tl-none'
-                                : 'bg-gray-700/50 text-white rounded-tl-none'
-                          }`}
-                        >
-                          {/* Sender name */}
-                          <div className="text-xs font-medium mb-1 text-white/70">
-                            {isPlayerMessage 
-                              ? (message.sender_name || userName || 'You') 
-                              : (message.sender_name || availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin')}
-                          </div>
-                          
-                          {/* Message content */}
-                          {message.is_file && message.file ? (
-                            message.file.match(/\.(jpeg|jpg|gif|png)$/) ? (
-                              <img 
-                                src={message.file} 
-                                alt="Attachment" 
-                                className="rounded-lg max-h-60 mb-2"
-                              />
-                            ) : (
-                              <div className="bg-black/20 p-3 rounded-lg mb-2 flex items-center gap-2">
-                                <IoAttach className="text-[#00ffff]" />
-                                <a 
-                                  href={message.file} 
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-[#00ffff] underline text-sm"
-                                >
-                                  Download Attachment
-                                </a>
-                              </div>
-                            )
-                          ) : null}
-                          
-                          {/* Message text */}
-                          {message.message && (
-                            <p className="text-sm sm:text-base whitespace-pre-wrap break-words">
-                              {message.message}
-                            </p>
-                          )}
-                          
-                          {/* Message footer */}
-                          <div className="mt-1 flex justify-between items-center">
-                            <span className="text-xs text-[#00ffff]/50">
-                              {formatTime(message.sent_time)}
-                            </span>
-                            {isPlayerMessage && (
-                              <div className="flex items-center gap-1">
-                                {message.status === 'seen' ? (
-                                  <IoCheckmarkDone className="text-[#00ffff] w-4 h-4" />
-                                ) : message.status === 'delivered' ? (
-                                  <IoCheckmarkDone className="text-[#00ffff]/50 w-4 h-4" />
-                                ) : message.status === 'error' ? (
-                                  <div className="flex items-center bg-red-500/10 px-2 py-0.5 rounded-full">
-                                    <IoAlert className="text-red-500 w-4 h-4" />
-                                    <span className="text-red-400 text-xs mx-1">Failed</span>
-                                    <button 
-                                      onClick={() => retryMessage(message.id)}
-                                      className="flex items-center gap-1 ml-1 bg-[#00ffff]/10 hover:bg-[#00ffff]/20 text-[#00ffff]/70 hover:text-[#00ffff] transition-colors px-2 py-0.5 rounded-full"
-                                      title="Retry sending"
-                                    >
-                                      <IoRefresh className="w-3 h-3" />
-                                      <span className="text-xs">Retry</span>
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <IoCheckmarkDone className="text-gray-400 w-4 h-4" />
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {/* Render only visible messages for better performance */}
+                  <div className="space-y-1">
+                    {messages.map((message, index) => {
+                      // Determine if this message is part of the current admin conversation
+                      const isRelevantMessage = !selectedAdmin || 
+                        !message.is_admin_recipient || 
+                        (message.recipient_id === parseInt(selectedAdmin)) ||
+                        (message.sender === parseInt(selectedAdmin));
+                      
+                      if (!isRelevantMessage) return null;
+                      
+                      const isPlayerMessage = message.is_player_sender;
+                      const isAdminMessage = !isPlayerMessage && message.sender === parseInt(selectedAdmin || '0');
+                      
+                      // Group consecutive messages from the same sender
+                      const prevMessage = index > 0 ? messages[index - 1] : null;
+                      const isConsecutive = prevMessage && 
+                        prevMessage.sender === message.sender && 
+                        Math.abs(new Date(message.sent_time).getTime() - new Date(prevMessage.sent_time).getTime()) < 60000; // Within 1 minute
+                      
+                      return (
+                        <ChatMessageItem
+                          key={message.id}
+                          message={message}
+                          isPlayerMessage={isPlayerMessage}
+                          isAdminMessage={isAdminMessage}
+                          userName={userName}
+                          selectedAdmin={selectedAdmin}
+                          availableAdmins={availableAdmins}
+                          formatTime={formatTime}
+                          retryMessage={retryMessage}
+                          isConsecutive={Boolean(isConsecutive)}
+                        />
+                      );
+                    })}
+                  </div>
                   <div ref={messagesEndRef} />
                 </>
               )}
@@ -1220,86 +1474,120 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
               {selectedAdmin ? (
                 <>
                   {/* Show who the user is chatting with */}
-                  <div className="mb-2 text-xs text-[#00ffff]/60">
+                  <div className="mb-2 text-xs text-[#00ffff]/60 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-[#00ffff] animate-pulse"></div>
                     Chatting with: {availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin'}
                   </div>
-              <div className="flex items-center gap-2">
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleAttachmentClick}
-                    className="p-2.5 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
-                      hover:bg-[#00ffff]/20 transition-all duration-300 active:scale-95"
-                  >
-                    <IoAttach className="w-5 h-5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                    className="p-2.5 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
-                      hover:bg-[#00ffff]/20 transition-all duration-300 active:scale-95"
-                  >
-                    <IoHappy className="w-5 h-5" />
-                  </button>
-                </div>
-                    
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Type a message..."
-                        className="w-full p-2.5 pl-4 pr-12 rounded-xl bg-[#00ffff]/5 border border-[#00ffff]/10 
-                          text-white placeholder-[#00ffff]/30 focus:outline-none focus:ring-1 focus:ring-[#00ffff]/30
-                          transition-all duration-300"
-                      />
-              {selectedFile && (
-                        <div className="absolute -top-10 left-0 right-0 bg-[#003333] p-2 rounded-t-xl 
-                          flex items-center justify-between text-sm text-white">
-                          <span className="truncate">{selectedFile.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedFile(null)}
-                            className="text-[#00ffff] hover:text-white"
-                  >
-                    <IoClose className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-2">
                       <button
-                        type="submit"
-                        disabled={!newMessage.trim() && !selectedFile}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1.5 rounded-lg 
-                          bg-[#00ffff]/20 text-[#00ffff] hover:bg-[#00ffff]/30 
-                          transition-all duration-300 active:scale-95
-                          disabled:opacity-50 disabled:cursor-not-allowed"
+                        type="button"
+                        onClick={handleAttachmentClick}
+                        className="p-2.5 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
+                          hover:bg-[#00ffff]/20 transition-all duration-300 active:scale-95"
+                        aria-label="Attach file"
                       >
-                        <IoSend className="w-5 h-5" />
+                        <IoAttach className="w-5 h-5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        className="p-2.5 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
+                          hover:bg-[#00ffff]/20 transition-all duration-300 active:scale-95"
+                        aria-label="Add emoji"
+                      >
+                        <IoHappy className="w-5 h-5" />
                       </button>
                     </div>
+                    
+                    <div className="relative flex-1">
+                      {/* Emoji picker */}
+                      {showEmojiPicker && (
+                        <div className="absolute bottom-full mb-2 z-10">
+                          <Suspense fallback={<div>Loading...</div>}>
+                            <EmojiPicker onEmojiClick={handleEmojiClick} />
+                          </Suspense>
+                        </div>
+                      )}
+                      
+                      <input
+                        type="text"
+                        value={newMessage}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setNewMessage(value);
+                          // Only trigger typing indicator if there's actual content
+                          if (value.trim().length > 0) {
+                            handleTyping();
+                          }
+                        }}
+                        placeholder="Type a message..."
+                        className="w-full p-3 rounded-xl bg-black/30 border border-[#00ffff]/20 text-white 
+                          placeholder-white/40 focus:outline-none focus:border-[#00ffff]/50 transition-all"
+                        disabled={!isWebSocketConnected && !isUsingMockWebSocket}
+                      />
+                    </div>
+                    
+                    <button
+                      type="submit"
+                      disabled={!newMessage.trim() && !selectedFile && (!isWebSocketConnected && !isUsingMockWebSocket)}
+                      className={`p-3 rounded-xl ${
+                        newMessage.trim() || selectedFile
+                          ? 'bg-[#00ffff]/20 text-[#00ffff] hover:bg-[#00ffff]/30 active:scale-95'
+                          : 'bg-gray-800/50 text-gray-500 cursor-not-allowed'
+                      } transition-all duration-300 flex items-center justify-center`}
+                      aria-label="Send message"
+                    >
+                      <IoSend className="w-5 h-5" />
+                    </button>
                   </div>
-
-            {/* Hidden file input */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileSelect}
-              className="hidden"
-                  />
                   
-                  {/* Emoji picker */}
-                  {showEmojiPicker && (
-                    <div className="absolute bottom-20 left-4">
-                      <EmojiPicker onEmojiClick={handleEmojiClick} />
+                  {/* File upload preview */}
+                  {selectedFile && (
+                    <div className="mt-3 p-2 bg-black/20 rounded-lg flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-white/80">
+                        <IoDocument className="text-[#00ffff]" />
+                        <span className="truncate max-w-[200px]">{selectedFile.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFile(null)}
+                        className="text-white/60 hover:text-white/90 p-1"
+                        aria-label="Remove file"
+                      >
+                        <IoClose className="w-4 h-4" />
+                      </button>
                     </div>
                   )}
+                  
+                  {/* Hidden file input */}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
                 </>
               ) : (
-                <div className="text-center py-4 text-[#00ffff]/60">
-                  Please select an admin to start chatting
+                <div className="text-center text-[#00ffff]/60 py-2">
+                  <p>Select an admin to start chatting</p>
                 </div>
               )}
             </form>
+
+            {/* Add typing indicator above the input */}
+            {isAdminTyping && selectedAdmin && (
+              <div className="px-4 py-1 mb-2">
+                <div className="flex items-center gap-2 text-xs text-[#00ffff]/70">
+                  <div className="flex gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ffff] animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ffff] animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ffff] animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  </div>
+                  <span>{availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin'} is typing...</span>
+                </div>
+              </div>
+            )}
           </motion.div>
         </>
       )}
