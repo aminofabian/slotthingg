@@ -433,7 +433,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
               return;
             }
             
-            // Mark this message as processed
+            // Mark this message as processed immediately to prevent duplicates
             markMessageAsProcessed(messageId);
             
             // Create a message object for consistency
@@ -489,19 +489,12 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                 
                 // If it's a new message (shouldn't happen often), add it
                 // This is a safeguard for messages that might have been sent from another device
-                trackSentMessage(messageId, messageText, messageTimestamp);
                 return [...prevMessages, newMsg];
               });
             } else {
-              // For messages from others (admins), check if it's a duplicate before adding
-              if (!isDuplicateMessage(messageId, messageText, messageTimestamp)) {
-                // Track this message to prevent duplicates
-                trackSentMessage(messageId, messageText, messageTimestamp);
-                
-                // Add the message
-                setMessages(prev => [...prev, newMsg]);
-                scrollToBottom();
-              }
+              // For messages from others (admins), add it directly
+              setMessages(prev => [...prev, newMsg]);
+              scrollToBottom();
             }
           } else if (data.type === 'admin_status') {
             // Handle admin status updates (online/offline)
@@ -625,15 +618,14 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
           
           // Simulate server response for other message types
           if (parsedData.type === 'message') {
-            // Skip if this is a duplicate message
-            if (isDuplicateMessage(
-              parsedData.id, 
-              parsedData.message, 
-              parsedData.sent_time
-            )) {
-              console.log('Mock WebSocket: Skipping duplicate message');
+            // Skip if we've already processed this message
+            if (hasProcessedMessage(parsedData.id)) {
+              console.log('Mock WebSocket: Skipping already processed message');
               return;
             }
+            
+            // Mark this message as processed immediately
+            markMessageAsProcessed(parsedData.id);
             
             // Update the status of the message to delivered
             setTimeout(() => {
@@ -654,31 +646,33 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                 const adminResponseTime = new Date().toISOString();
                 const adminName = availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin';
                 
-                // Skip if this is a duplicate admin response
-                if (!isDuplicateMessage(adminResponseId, adminResponseText, adminResponseTime)) {
-                  const adminResponse: ChatMessage = {
-                    id: adminResponseId,
-                    type: 'message',
-                    message: adminResponseText,
-                    sender: parseInt(selectedAdmin),
-                    sender_name: adminName,
-                    sent_time: adminResponseTime,
-                    is_file: false,
-                    file: null,
-                    is_player_sender: false,
-                    is_tip: false,
-                    is_comment: false,
-                    status: 'delivered',
-                    attachments: []
-                  };
-                  
-                  // Track this message to prevent duplicates
-                  trackSentMessage(adminResponseId, adminResponseText, adminResponseTime);
-                  
-                  // Add admin response to messages
-                  setMessages(prev => [...prev, adminResponse]);
-                  scrollToBottom();
+                // Skip if we've already processed this message
+                if (hasProcessedMessage(adminResponseId)) {
+                  return;
                 }
+                
+                // Mark the admin response as processed
+                markMessageAsProcessed(adminResponseId);
+                
+                const adminResponse: ChatMessage = {
+                  id: adminResponseId,
+                  type: 'message',
+                  message: adminResponseText,
+                  sender: parseInt(selectedAdmin),
+                  sender_name: adminName,
+                  sent_time: adminResponseTime,
+                  is_file: false,
+                  file: null,
+                  is_player_sender: false,
+                  is_tip: false,
+                  is_comment: false,
+                  status: 'delivered',
+                  attachments: []
+                };
+                
+                // Add admin response to messages
+                setMessages(prev => [...prev, adminResponse]);
+                scrollToBottom();
               }, 2000);
             }
           }
@@ -777,8 +771,8 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
       const messageText = newMessage.trim();
       const messageTimestamp = new Date().toISOString();
 
-      // Check if this is a duplicate message before adding
-      if (isDuplicateMessage(messageId, messageText, messageTimestamp)) {
+      // Skip if we've already processed this message
+      if (hasProcessedMessage(messageId)) {
         console.log('Preventing duplicate message send:', messageText);
         return;
       }
@@ -788,6 +782,9 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
       const currentFile = selectedFile;
       setNewMessage('');
       setSelectedFile(null);
+
+      // Mark this message as processed immediately
+      markMessageAsProcessed(messageId);
 
       // Create a message object for the local state
       const localMessage: ChatMessage = {
@@ -807,9 +804,6 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         recipient_id: selectedAdmin ? parseInt(selectedAdmin) : undefined,
         is_admin_recipient: !!selectedAdmin
       };
-
-      // Track this message to prevent duplicates
-      trackSentMessage(messageId, currentMessage, messageTimestamp);
 
       // Add the message to the local state
       setMessages(prev => [...prev, localMessage]);
@@ -839,7 +833,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
             prev.map(msg => 
               msg.id === messageId 
                 ? { ...msg, status: 'error' as any } 
-                : msg
+              : msg
             )
           );
           
@@ -966,6 +960,9 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
     // Try to send the message again
     if (ws.current?.readyState === WebSocket.OPEN || isUsingMockWebSocket) {
       try {
+        // Mark the message as processed to prevent duplicates
+        markMessageAsProcessed(messageId);
+        
         ws.current?.send(JSON.stringify({
           type: "message",
           id: failedMessage.id,
