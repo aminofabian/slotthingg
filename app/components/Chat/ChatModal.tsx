@@ -11,6 +11,7 @@ interface ChatMessage {
   type: 'message' | 'join';
   message: string;
   sender: number;
+  sender_name?: string;
   sent_time: string;
   is_file: boolean;
   file: string | null;
@@ -51,6 +52,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [userId, setUserId] = useState<string>('14'); // Default fallback
   const [playerId, setPlayerId] = useState<string>('9'); // Default fallback
+  const [userName, setUserName] = useState<string>(''); // User's display name
   const [adminId, setAdminId] = useState<string | null>(null); // ID of the admin to chat with
   const [availableAdmins, setAvailableAdmins] = useState<{id: string, name: string}[]>([]); // List of available admins
   const [selectedAdmin, setSelectedAdmin] = useState<string | null>(null); // Currently selected admin
@@ -72,6 +74,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
 
   useEffect(() => {
     if (isOpen) {
+      loadUserInfo(); // Load user info when the chat is opened
       fetchChatHistory();
       initializeWebSocket();
       fetchAvailableAdmins(); // Fetch available admins
@@ -120,7 +123,54 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         setAdminId(storedAdminId);
         setSelectedAdmin(storedAdminId);
       }
+
+      // Get user name if available
+      const storedUserName = localStorage.getItem('user_name');
+      if (storedUserName) {
+        setUserName(storedUserName);
+      }
     }
+  }, []);
+
+  // Load user information from localStorage
+  const loadUserInfo = () => {
+    try {
+      // Check if localStorage is available
+      if (typeof window !== 'undefined' && window.localStorage) {
+        // Try to get user information from various possible localStorage keys
+        const possibleNameKeys = ['user_name', 'username', 'player_name', 'display_name', 'name'];
+        
+        for (const key of possibleNameKeys) {
+          const storedName = localStorage.getItem(key);
+          if (storedName) {
+            setUserName(storedName);
+            break;
+          }
+        }
+        
+        // If no name was found, try to get it from user profile if available
+        if (!userName) {
+          const userProfile = localStorage.getItem('user_profile');
+          if (userProfile) {
+            try {
+              const profile = JSON.parse(userProfile);
+              if (profile.name || profile.display_name || profile.username) {
+                setUserName(profile.name || profile.display_name || profile.username);
+              }
+            } catch (e) {
+              console.warn('Failed to parse user profile from localStorage');
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Error loading user info from localStorage:', error);
+    }
+  };
+
+  // Call loadUserInfo when component mounts
+  useEffect(() => {
+    loadUserInfo();
   }, []);
 
   // Fetch available admins - using mock data for now since the endpoint is missing
@@ -154,9 +204,9 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
       
       // Check if the endpoint is accessible
       try {
-        const response = await fetch(`/api/chat/history?whitelabel_admin_uuid=${whitelabel_admin_uuid}`, {
-          credentials: 'include'
-        });
+      const response = await fetch(`/api/chat/history?whitelabel_admin_uuid=${whitelabel_admin_uuid}`, {
+        credentials: 'include'
+      });
 
         if (response.ok) {
           const data = await response.json();
@@ -228,31 +278,31 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         }
       };
 
-      ws.current.onmessage = (event) => {
+    ws.current.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
-          
+      const data = JSON.parse(event.data);
+      
           if (data.type === 'live_status') {
             // Handle live status updates
             if (data.player_id) {
-              setUserStatus(prevStatus => {
-                const newStatus = [...prevStatus];
+        setUserStatus(prevStatus => {
+          const newStatus = [...prevStatus];
                 const index = newStatus.findIndex(status => status.id === parseInt(data.player_id));
-                if (index !== -1) {
+          if (index !== -1) {
                   newStatus[index] = { 
                     ...newStatus[index], 
                     isOnline: data.is_active,
                     lastSeen: data.sent_time
                   };
-                } else {
+          } else {
                   newStatus.push({ 
                     id: parseInt(data.player_id), 
                     isOnline: data.is_active,
                     lastSeen: data.sent_time
                   });
-                }
-                return newStatus;
-              });
+          }
+          return newStatus;
+        });
             }
           } else if (data.type === 'message') {
             // Check for duplicate messages before processing
@@ -283,6 +333,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
               type: 'message',
               message: messageText,
               sender: parseInt(data.sender_id),
+              sender_name: data.sender_name || (data.is_player_sender ? userName : availableAdmins.find(a => a.id === data.sender_id)?.name),
               sent_time: messageTimestamp,
               is_file: data.is_file || false,
               file: data.file || null,
@@ -356,7 +407,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                 });
               });
             }
-          } else if (data.type === 'message_status') {
+      } else if (data.type === 'message_status') {
             // Handle message status updates (delivered/seen)
             setMessages(prev => {
               return prev.map(msg => {
@@ -465,6 +516,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                     const adminResponseId = Date.now();
                     const adminResponseText = `This is an automated response from ${availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin'}.`;
                     const adminResponseTime = new Date().toISOString();
+                    const adminName = availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin';
                     
                     // Skip if this is a duplicate admin response
                     if (!isDuplicateMessage(adminResponseId, adminResponseText, adminResponseTime)) {
@@ -473,6 +525,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                         type: 'message',
                         message: adminResponseText,
                         sender: parseInt(selectedAdmin),
+                        sender_name: adminName,
                         sent_time: adminResponseTime,
                         is_file: false,
                         file: null,
@@ -527,16 +580,16 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
 
   const uploadFile = async (file: File): Promise<string> => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+    const formData = new FormData();
+    formData.append('file', file);
 
       // Try to use the upload endpoint
       try {
-        const response = await fetch('/api/chat/upload', {
-          method: 'POST',
-          body: formData,
-          credentials: 'include'
-        });
+    const response = await fetch('/api/chat/upload', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include'
+    });
 
         if (response.ok) {
           const data = await response.json();
@@ -569,13 +622,13 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         try {
           fileUrl = await uploadFile(selectedFile);
           isFile = true;
-          attachments.push({
-            id: Date.now().toString(),
-            type: selectedFile.type.startsWith('image/') ? 'image' : 'file',
-            url: fileUrl,
-            name: selectedFile.name,
-            size: selectedFile.size
-          });
+        attachments.push({
+          id: Date.now().toString(),
+          type: selectedFile.type.startsWith('image/') ? 'image' : 'file',
+          url: fileUrl,
+          name: selectedFile.name,
+          size: selectedFile.size
+        });
         } catch (error) {
           console.error('Error uploading file:', error);
           // Show an error message to the user
@@ -601,6 +654,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         type: 'message',
         message: messageText,
         sender: parseInt(userId),
+        sender_name: userName || 'User',
         sent_time: messageTimestamp,
         is_file: isFile,
         file: fileUrl,
@@ -618,7 +672,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
 
       // Add the message to the local state
       setMessages(prev => [...prev, localMessage]);
-      setNewMessage('');
+    setNewMessage('');
       setSelectedFile(null);
       scrollToBottom();
 
@@ -630,6 +684,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
             id: messageId, // Include the message ID to help with deduplication
             message: messageText,
             sender_id: userId,
+            sender_name: userName || 'User',
             sent_time: messageTimestamp,
             is_player_sender: true,
             is_file: isFile,
@@ -767,10 +822,11 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
           id: failedMessage.id,
           message: failedMessage.message,
           sender_id: userId,
+          sender_name: userName || failedMessage.sender_name || 'User',
           sent_time: failedMessage.sent_time,
           is_player_sender: true,
           is_file: failedMessage.is_file,
-          file: failedMessage.file, // Use the file URL from the failed message
+          file: failedMessage.file,
           recipient_id: failedMessage.recipient_id,
           is_admin_recipient: failedMessage.is_admin_recipient
         }));
@@ -802,11 +858,11 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
           msg.id === messageId 
             ? { ...msg, status: 'error' as any } 
             : msg
-        )
-      );
-      
-      // Show connection toast
-      setShowConnectionToast(true);
+          )
+        );
+        
+        // Show connection toast
+        setShowConnectionToast(true);
     }
   };
 
@@ -931,7 +987,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                   )}
                 </div>
               </div>
-              <button 
+              <button
                 onClick={onClose}
                 className="p-2 rounded-full hover:bg-[#00ffff]/10 transition-colors"
               >
@@ -985,6 +1041,13 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                                 : 'bg-gray-700/50 text-white rounded-tl-none'
                           }`}
                         >
+                          {/* Sender name */}
+                          <div className="text-xs font-medium mb-1 text-white/70">
+                            {isPlayerMessage 
+                              ? (message.sender_name || userName || 'You') 
+                              : (message.sender_name || availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin')}
+                          </div>
+                          
                           {/* Message content */}
                           {message.is_file && message.file ? (
                             message.file.match(/\.(jpeg|jpg|gif|png)$/) ? (
@@ -998,7 +1061,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                                 <IoAttach className="text-[#00ffff]" />
                                 <a 
                                   href={message.file} 
-                                  target="_blank" 
+                                  target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-[#00ffff] underline text-sm"
                                 >
@@ -1063,49 +1126,49 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                   <div className="mb-2 text-xs text-[#00ffff]/60">
                     Chatting with: {availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin'}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleAttachmentClick}
-                        className="p-2.5 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
-                          hover:bg-[#00ffff]/20 transition-all duration-300 active:scale-95"
-                      >
-                        <IoAttach className="w-5 h-5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                        className="p-2.5 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
-                          hover:bg-[#00ffff]/20 transition-all duration-300 active:scale-95"
-                      >
-                        <IoHappy className="w-5 h-5" />
-                      </button>
-                    </div>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleAttachmentClick}
+                    className="p-2.5 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
+                      hover:bg-[#00ffff]/20 transition-all duration-300 active:scale-95"
+                  >
+                    <IoAttach className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className="p-2.5 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
+                      hover:bg-[#00ffff]/20 transition-all duration-300 active:scale-95"
+                  >
+                    <IoHappy className="w-5 h-5" />
+                  </button>
+                </div>
                     
-                    <div className="relative flex-1">
-                      <input
-                        type="text"
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
                         placeholder="Type a message..."
                         className="w-full p-2.5 pl-4 pr-12 rounded-xl bg-[#00ffff]/5 border border-[#00ffff]/10 
                           text-white placeholder-[#00ffff]/30 focus:outline-none focus:ring-1 focus:ring-[#00ffff]/30
                           transition-all duration-300"
                       />
-                      {selectedFile && (
+              {selectedFile && (
                         <div className="absolute -top-10 left-0 right-0 bg-[#003333] p-2 rounded-t-xl 
                           flex items-center justify-between text-sm text-white">
                           <span className="truncate">{selectedFile.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedFile(null)}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFile(null)}
                             className="text-[#00ffff] hover:text-white"
-                          >
-                            <IoClose className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
+                  >
+                    <IoClose className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
                       <button
                         type="submit"
                         disabled={!newMessage.trim() && !selectedFile}
@@ -1118,13 +1181,13 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                       </button>
                     </div>
                   </div>
-                  
-                  {/* Hidden file input */}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileSelect}
-                    className="hidden"
+
+            {/* Hidden file input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              className="hidden"
                   />
                   
                   {/* Emoji picker */}
