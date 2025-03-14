@@ -64,7 +64,8 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
   const [isWebSocketConnected, setIsWebSocketConnected] = useState<boolean>(false);
   const [isUsingMockWebSocket, setIsUsingMockWebSocket] = useState<boolean>(false);
   const reconnectAttempts = useRef<number>(0);
-  const maxReconnectAttempts = 3;
+  const maxReconnectAttempts = 5;
+  const pingInterval = useRef<NodeJS.Timeout | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
   const [showConnectionToast, setShowConnectionToast] = useState<boolean>(false);
 
@@ -72,17 +73,35 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Stop the ping interval when component unmounts or chat closes
+  const stopPingInterval = () => {
+    if (pingInterval.current) {
+      clearInterval(pingInterval.current);
+      pingInterval.current = null;
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       loadUserInfo(); // Load user info when the chat is opened
       fetchChatHistory();
-      initializeWebSocket();
+      
+      // Force a fresh connection when the chat is opened
+      if (!isWebSocketConnected || ws.current?.readyState !== WebSocket.OPEN) {
+        console.log('Chat opened - forcing a fresh WebSocket connection');
+        reconnectAttempts.current = 0; // Reset reconnect attempts
+        initializeWebSocket();
+      } else {
+        console.log('Chat opened - using existing WebSocket connection');
+      }
+      
       fetchAvailableAdmins(); // Fetch available admins
       // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
     } else {
       // Restore body scroll when modal is closed
       document.body.style.overflow = 'unset';
+      stopPingInterval(); // Stop ping interval when chat is closed
     }
     
     // Cleanup function
@@ -92,6 +111,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
       if (ws.current) {
         ws.current.close();
       }
+      stopPingInterval(); // Stop ping interval on cleanup
     };
   }, [isOpen, playerId, selectedAdmin]);
 
@@ -171,6 +191,26 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
   // Call loadUserInfo when component mounts
   useEffect(() => {
     loadUserInfo();
+    
+    // Preload WebSocket connection to make it faster when chat is opened
+    const preloadConnection = () => {
+      console.log('Preloading WebSocket connection...');
+      // Only preload if we don't already have a connection
+      if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+        initializeWebSocket();
+      }
+    };
+    
+    // Delay preloading slightly to prioritize other initialization tasks
+    const preloadTimer = setTimeout(preloadConnection, 1000);
+    
+    return () => {
+      clearTimeout(preloadTimer);
+      if (ws.current) {
+        ws.current.close();
+      }
+      stopPingInterval();
+    };
   }, []);
 
   // Fetch available admins - using mock data for now since the endpoint is missing
@@ -229,6 +269,30 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
     }
   };
 
+  // Add a function to keep the WebSocket connection alive with ping/pong
+  const startPingInterval = () => {
+    // Clear any existing interval
+    if (pingInterval.current) {
+      clearInterval(pingInterval.current);
+    }
+    
+    // Set up a new ping interval (every 30 seconds)
+    pingInterval.current = setInterval(() => {
+      if (ws.current?.readyState === WebSocket.OPEN) {
+        try {
+          // Send a ping message to keep the connection alive
+          ws.current.send(JSON.stringify({ type: 'ping', timestamp: new Date().toISOString() }));
+        } catch (error) {
+          console.warn('Error sending ping:', error);
+        }
+      } else if (ws.current?.readyState === WebSocket.CLOSED || ws.current?.readyState === WebSocket.CLOSING) {
+        // If the connection is closed or closing, try to reconnect
+        console.log('Connection appears to be closed during ping check. Attempting to reconnect...');
+        initializeWebSocket();
+      }
+    }, 30000); // 30 seconds
+  };
+
   const initializeWebSocket = () => {
     try {
       // Use the state variable for player ID
@@ -247,14 +311,14 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
       console.log('Attempting to connect to WebSocket server...');
       ws.current = new WebSocket(wsUrl);
 
-      // Set connection timeout
+      // Set connection timeout - reduced from 5000ms to 2000ms for faster fallback
       const connectionTimeout = setTimeout(() => {
         if (ws.current && ws.current.readyState !== WebSocket.OPEN) {
           console.log('WebSocket connection timeout. Falling back to mock WebSocket.');
           ws.current.close();
           initializeMockWebSocket();
         }
-      }, 5000); // 5 second timeout
+      }, 2000); // 2 second timeout (reduced from 5 seconds)
 
       ws.current.onopen = () => {
         console.log('WebSocket connection established');
@@ -263,6 +327,9 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         setIsUsingMockWebSocket(false);
         setConnectionStatus('connected');
         reconnectAttempts.current = 0;
+        
+        // Start the ping interval to keep the connection alive
+        startPingInterval();
         
         // If an admin is selected, send a connection notification
         if (selectedAdmin && ws.current?.readyState === WebSocket.OPEN) {
@@ -278,10 +345,16 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         }
       };
 
-    ws.current.onmessage = (event) => {
+      ws.current.onmessage = (event) => {
         try {
-      const data = JSON.parse(event.data);
-      
+          const data = JSON.parse(event.data);
+          
+          // Handle pong response if the server supports it
+          if (data.type === 'pong') {
+            console.log('Received pong from server');
+            return;
+          }
+          
           if (data.type === 'live_status') {
             // Handle live status updates
             if (data.player_id) {
@@ -434,6 +507,9 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         // Show connection toast
         setShowConnectionToast(true);
         
+        // Stop ping interval on error
+        stopPingInterval();
+        
         // If we've tried to connect multiple times and failed, use mock WebSocket
         if (reconnectAttempts.current >= maxReconnectAttempts) {
           console.log('Max reconnect attempts reached. Falling back to mock WebSocket.');
@@ -447,6 +523,9 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         setIsWebSocketConnected(false);
         setConnectionStatus('disconnected');
         
+        // Stop ping interval on close
+        stopPingInterval();
+        
         // Show connection toast
         setShowConnectionToast(true);
         
@@ -455,9 +534,13 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
           reconnectAttempts.current += 1;
           console.log(`Attempting to reconnect (${reconnectAttempts.current}/${maxReconnectAttempts})...`);
           
+          // Use exponential backoff with a maximum of 1 second for faster recovery
+          const backoffTime = Math.min(500 * Math.pow(1.5, reconnectAttempts.current - 1), 1000);
+          console.log(`Reconnecting in ${backoffTime}ms...`);
+          
           setTimeout(() => {
             if (isOpen) initializeWebSocket();
-          }, 3000);
+          }, backoffTime);
         } else if (reconnectAttempts.current >= maxReconnectAttempts && !isUsingMockWebSocket) {
           console.log('Max reconnect attempts reached. Falling back to mock WebSocket.');
           initializeMockWebSocket();
@@ -477,83 +560,97 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
     setIsUsingMockWebSocket(true);
     setConnectionStatus('connected');
     
+    // Stop any existing ping interval
+    stopPingInterval();
+    
     // Create a mock WebSocket object
     const mockWs = {
       readyState: WebSocket.OPEN,
       send: (data: string) => {
         console.log('Mock WebSocket sending:', data);
         
-        // Simulate server response
-        setTimeout(() => {
-          try {
-            const parsedData = JSON.parse(data);
+        try {
+          const parsedData = JSON.parse(data);
+          
+          // Handle ping messages in mock mode
+          if (parsedData.type === 'ping') {
+            // Simulate a pong response
+            setTimeout(() => {
+              if (ws.current === mockWs) {
+                console.log('Mock WebSocket: Sending pong response');
+                // No need to actually do anything here since it's a mock
+              }
+            }, 50);
+            return;
+          }
+          
+          // Simulate server response for other message types
+          if (parsedData.type === 'message') {
+            // Echo the message back as if it came from the server
+            const messageResponse = {
+              ...parsedData,
+              status: 'delivered'
+            };
             
-            if (parsedData.type === 'message') {
-              // Echo the message back as if it came from the server
-              const messageResponse = {
-                ...parsedData,
-                status: 'delivered'
-              };
+            // Skip if this is a duplicate message
+            if (!isDuplicateMessage(
+              messageResponse.id, 
+              messageResponse.message, 
+              messageResponse.sent_time
+            )) {
+              // Only update the status of the message, don't add a new one
+              setMessages(prev => 
+                prev.map(msg => 
+                  msg.id === messageResponse.id 
+                    ? { ...msg, status: 'delivered' } 
+                    : msg
+                )
+              );
               
-              // Skip if this is a duplicate message
-              if (!isDuplicateMessage(
-                messageResponse.id, 
-                messageResponse.message, 
-                messageResponse.sent_time
-              )) {
-                // Only update the status of the message, don't add a new one
-                setMessages(prev => 
-                  prev.map(msg => 
-                    msg.id === messageResponse.id 
-                      ? { ...msg, status: 'delivered' } 
-                      : msg
-                  )
-                );
-                
-                // Simulate admin response after a delay
-                if (selectedAdmin) {
-                  setTimeout(() => {
-                    const adminResponseId = Date.now();
-                    const adminResponseText = `This is an automated response from ${availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin'}.`;
-                    const adminResponseTime = new Date().toISOString();
-                    const adminName = availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin';
+              // Simulate admin response after a delay
+              if (selectedAdmin) {
+                setTimeout(() => {
+                  const adminResponseId = Date.now();
+                  const adminResponseText = `This is an automated response from ${availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin'}.`;
+                  const adminResponseTime = new Date().toISOString();
+                  const adminName = availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin';
+                  
+                  // Skip if this is a duplicate admin response
+                  if (!isDuplicateMessage(adminResponseId, adminResponseText, adminResponseTime)) {
+                    const adminResponse: ChatMessage = {
+                      id: adminResponseId,
+                      type: 'message',
+                      message: adminResponseText,
+                      sender: parseInt(selectedAdmin),
+                      sender_name: adminName,
+                      sent_time: adminResponseTime,
+                      is_file: false,
+                      file: null,
+                      is_player_sender: false,
+                      is_tip: false,
+                      is_comment: false,
+                      status: 'delivered',
+                      attachments: []
+                    };
                     
-                    // Skip if this is a duplicate admin response
-                    if (!isDuplicateMessage(adminResponseId, adminResponseText, adminResponseTime)) {
-                      const adminResponse: ChatMessage = {
-                        id: adminResponseId,
-                        type: 'message',
-                        message: adminResponseText,
-                        sender: parseInt(selectedAdmin),
-                        sender_name: adminName,
-                        sent_time: adminResponseTime,
-                        is_file: false,
-                        file: null,
-                        is_player_sender: false,
-                        is_tip: false,
-                        is_comment: false,
-                        status: 'delivered',
-                        attachments: []
-                      };
-                      
-                      // Track this message to prevent duplicates
-                      trackSentMessage(adminResponseId, adminResponseText, adminResponseTime);
-                      
-                      // Add admin response to messages
-                      setMessages(prev => [...prev, adminResponse]);
-                      scrollToBottom();
-                    }
-                  }, 2000);
-                }
+                    // Track this message to prevent duplicates
+                    trackSentMessage(adminResponseId, adminResponseText, adminResponseTime);
+                    
+                    // Add admin response to messages
+                    setMessages(prev => [...prev, adminResponse]);
+                    scrollToBottom();
+                  }
+                }, 2000);
               }
             }
-          } catch (error) {
-            console.error('Error processing mock message:', error);
           }
-        }, 500);
+        } catch (error) {
+          console.error('Error processing mock message:', error);
+        }
       },
       close: () => {
         console.log('Mock WebSocket closed');
+        stopPingInterval();
       }
     };
     
