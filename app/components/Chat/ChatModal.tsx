@@ -439,7 +439,10 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
           
           // Handle typing indicator
           if (data.type === 'typing' && data.sender !== userId) {
-            setIsAdminTyping(true);
+            // Only show typing indicator if it's from the selected admin
+            if (selectedAdmin && data.sender === selectedAdmin) {
+              setIsAdminTyping(true);
+            }
             return;
           }
           
@@ -1059,9 +1062,9 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
         prev.map(msg => 
           msg.id === messageId 
             ? { ...msg, status: 'error' as any } 
-          : msg
-        )
-      );
+        : msg
+      )
+    );
         
         // Show connection toast
         setShowConnectionToast(true);
@@ -1162,7 +1165,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                 {message.status === 'seen' ? (
                   <div className="flex items-center gap-1">
                     <IoCheckmarkDone className="text-[#00ffff] w-4 h-4" />
-                    <span className="text-xs text-[#00ffff]/70">Seen</span>
+                    <span className="text-xs text-[#ff00ff]/70">Seen</span>
                   </div>
                 ) : message.status === 'delivered' ? (
                   <div className="flex items-center gap-1">
@@ -1175,7 +1178,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                     <span className="text-red-400 text-xs mx-1">Failed</span>
                     <button 
                       onClick={() => retryMessage(message.id)}
-                      className="flex items-center gap-1 ml-1 bg-[#00ffff]/10 hover:bg-[#00ffff]/20 text-[#00ffff]/70 hover:text-[#00ffff] transition-colors px-2 py-0.5 rounded-full"
+                      className="flex items-center gap-1 ml-1 bg-[#00ffff]/10 hover:bg-[#00ffff]/20 text-[#ff00ff]/70 hover:text-[#00ffff] transition-colors px-2 py-0.5 rounded-full"
                       title="Retry sending"
                     >
                       <IoRefresh className="w-3 h-3" />
@@ -1224,8 +1227,8 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
           ws.current?.send(JSON.stringify({
             type: "typing",
             sender: userId,
-            sender_name: userName,
-            recipient_id: parseInt(selectedAdmin),
+            sender_name: userName || 'User',
+            recipient_id: selectedAdmin ? parseInt(selectedAdmin) : undefined,
             is_admin_recipient: true
           }));
         } catch (error) {
@@ -1454,7 +1457,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
               {isLoading ? (
                 <div className="flex flex-col justify-center items-center h-full">
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#00ffff]"></div>
-                  <p className="text-[#00ffff]/70 mt-3 text-sm">Loading messages...</p>
+                  <p className="text-[#ff00ff]/70 mt-3 text-sm">Loading messages...</p>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center p-6">
@@ -1631,11 +1634,11 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
             {/* Add typing indicator above the input */}
             {isAdminTyping && selectedAdmin && (
               <div className="px-4 py-1 mb-2">
-                <div className="flex items-center gap-2 text-xs text-[#00ffff]/70">
+                <div className="flex items-center gap-2 text-xs text-[#ff00ff]/70">
                   <div className="flex gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ffff] animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ffff] animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#00ffff] animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#ff00ff] animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#ff00ff] animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#ff00ff] animate-bounce" style={{ animationDelay: '300ms' }}></div>
                   </div>
                   <span>{availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin'} is typing...</span>
                 </div>
