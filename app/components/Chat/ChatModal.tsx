@@ -166,13 +166,52 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
       // Get user ID from localStorage
       const storedUserId = localStorage.getItem('user_id');
       if (storedUserId) {
+        console.log('Loaded user ID from localStorage:', storedUserId);
         setUserId(storedUserId);
+      } else {
+        // Try alternative keys for user ID
+        const alternativeKeys = ['userId', 'id', 'playerId', 'player_id', 'uid'];
+        let foundUserId = null;
+        
+        for (const key of alternativeKeys) {
+          const altId = localStorage.getItem(key);
+          if (altId) {
+            console.log(`Found user ID in alternative localStorage key '${key}':`, altId);
+            foundUserId = altId;
+            break;
+          }
+        }
+        
+        if (foundUserId) {
+          setUserId(foundUserId);
+        } else {
+          // Try to extract from user profile if available
+          try {
+            const userProfileStr = localStorage.getItem('user_profile') || localStorage.getItem('userProfile');
+            if (userProfileStr) {
+              const userProfile = JSON.parse(userProfileStr);
+              if (userProfile && (userProfile.id || userProfile.user_id || userProfile.userId)) {
+                const profileUserId = userProfile.id || userProfile.user_id || userProfile.userId;
+                console.log('Extracted user ID from profile:', profileUserId);
+                setUserId(String(profileUserId));
+                return;
+              }
+            }
+            console.warn('No user ID found in localStorage, using default');
+          } catch (error) {
+            console.warn('Error parsing user profile from localStorage:', error);
+            console.warn('No user ID found in localStorage, using default');
+          }
+        }
       }
       
       // Get player ID from localStorage (fallback to user_id if player_id doesn't exist)
       const storedPlayerId = localStorage.getItem('player_id') || localStorage.getItem('user_id');
       if (storedPlayerId) {
+        console.log('Loaded player ID from localStorage:', storedPlayerId);
         setPlayerId(storedPlayerId);
+      } else {
+        console.warn('No player ID found in localStorage, using default');
       }
 
       // Get admin ID if available
@@ -187,6 +226,14 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
       if (storedUserName) {
         setUserName(storedUserName);
       }
+      
+      // Initialize WebSocket after user ID is loaded
+      // We use a small timeout to ensure the state is updated
+      setTimeout(() => {
+        if (!isWebSocketConnected || ws.current?.readyState !== WebSocket.OPEN) {
+          initializeWebSocket();
+        }
+      }, 100);
     }
   }, []);
 
@@ -233,8 +280,8 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
     // Preload WebSocket connection to make it faster when chat is opened
     const preloadConnection = () => {
       console.log('Preloading WebSocket connection...');
-      // Only preload if we don't already have a connection
-      if (!ws.current || ws.current.readyState !== WebSocket.OPEN) {
+      // Only preload if we don't already have a connection and we have a user ID
+      if ((!ws.current || ws.current.readyState !== WebSocket.OPEN) && userId) {
         initializeWebSocket();
       }
     };
@@ -249,7 +296,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
       }
       stopPingInterval();
     };
-  }, []);
+  }, [userId]); // Add userId as a dependency
 
   // Fetch available admins - using mock data for now since the endpoint is missing
   const fetchAvailableAdmins = async () => {
@@ -333,8 +380,11 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
 
   const initializeWebSocket = () => {
     try {
-      // Use the state variable for player ID
-      const wsUrl = `wss://serverhub.biz/ws/cschat/P9Chat/?player_id=${playerId}`;
+      // Use the user ID to create a dynamic chat room identifier
+      // Ensure we have a valid user ID, fallback to default if not available
+      const userIdForChat = userId || '14'; // Default fallback
+      const chatRoomId = `P${userIdForChat}Chat`;
+      const wsUrl = `wss://serverhub.biz/ws/cschat/${chatRoomId}/?player_id=${playerId}`;
       
       // Close existing connection if any
       if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
@@ -346,7 +396,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
       setConnectionStatus('connecting');
       
       // Create new WebSocket connection
-      console.log('Attempting to connect to WebSocket server...');
+      console.log('Attempting to connect to WebSocket server with room ID:', chatRoomId);
       ws.current = new WebSocket(wsUrl);
 
       // Set connection timeout - reduced from 5000ms to 2000ms for faster fallback
@@ -589,6 +639,13 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
   // Initialize a mock WebSocket for development/fallback
   const initializeMockWebSocket = () => {
     console.log('Initializing mock WebSocket...');
+    
+    // Use the user ID to create a dynamic chat room identifier
+    // Ensure we have a valid user ID, fallback to default if not available
+    const userIdForChat = userId || '14'; // Default fallback
+    const chatRoomId = `P${userIdForChat}Chat`;
+    console.log('Using mock WebSocket with room ID:', chatRoomId);
+    
     setIsUsingMockWebSocket(true);
     setConnectionStatus('connected');
     
@@ -633,7 +690,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
                 prev.map(msg => 
                   msg.id === parsedData.id 
                     ? { ...msg, status: 'delivered' } 
-                    : msg
+                  : msg
                 )
               );
             }, 500);
@@ -855,9 +912,9 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
           prev.map(msg => 
             msg.id === messageId 
               ? { ...msg, status: 'error' as any } 
-            : msg
-          )
-        );
+          : msg
+        )
+      );
         
         // Show connection toast
         setShowConnectionToast(true);
@@ -984,11 +1041,10 @@ const ChatDrawer = ({ isOpen, onClose }: ChatModalProps) => {
           prev.map(msg => 
             msg.id === messageId 
               ? { ...msg, status: 'error' as any } 
-            : msg
-          )
-        );
-      }
-    } else {
+          : msg
+        )
+      );
+    } } else {
       console.error('WebSocket is not connected');
       
       // Try to reconnect the WebSocket
