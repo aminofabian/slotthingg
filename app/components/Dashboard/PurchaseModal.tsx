@@ -97,226 +97,46 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
     if (!isOpen) return;
     
     const checkAuthAndFetchProfile = async () => {
-      // First check if we have authentication tokens
-      const isAuth = checkAuthentication();
-      
-      if (isAuth) {
-        // Always refresh the token when the modal opens to ensure fresh session
-        // This is more aggressive but ensures the user always has a valid token
-        console.log('Purchase modal opened, refreshing authentication token');
-        try {
-          const refreshed = await refreshAuthToken();
-          if (refreshed) {
-            console.log('Token refreshed successfully on modal open');
-            localStorage.setItem('token_refreshed_at', Date.now().toString());
-          } else {
-            console.warn('Token refresh failed on modal open, will try again with profile fetch');
-          }
-        } catch (error) {
-          console.error('Error refreshing token on modal open:', error);
+      try {
+        const response = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          // Clear auth data and redirect
+          localStorage.clear();
+          document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+          return;
         }
-        
-        // Then try to fetch profile data (which will also try to refresh token if needed)
+
+        // Fetch profile data only if authenticated
         await fetchProfileData();
-        
-        // Set up a periodic token refresh while the modal is open
-        const refreshInterval = setInterval(async () => {
-          console.log('Performing periodic token refresh check');
-          const tokenLastRefreshed = localStorage.getItem('token_refreshed_at');
-          const tokenNeedsRefresh = !tokenLastRefreshed || 
-            (Date.now() - parseInt(tokenLastRefreshed)) > 1000 * 60 * 15; // 15 minutes
-          
-          if (tokenNeedsRefresh) {
-            console.log('Token needs refresh based on time interval');
-            const refreshed = await refreshAuthToken();
-            if (refreshed) {
-              console.log('Periodic token refresh successful');
-              localStorage.setItem('token_refreshed_at', Date.now().toString());
-              // Refresh profile data to update balance
-              await fetchProfileData();
-            }
-          }
-        }, 60000); // Check every minute
-        
-        // Clean up interval when modal closes
-        return () => clearInterval(refreshInterval);
-      } else {
-        setIsLoadingBalance(false);
+      } catch (error) {
+        console.error('Auth check error:', error);
+        // Redirect on any error
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
       }
     };
     
     checkAuthAndFetchProfile();
   }, [isOpen]);
 
-  // Check authentication status
-  const checkAuthentication = () => {
-    // Check for token in cookies
-    const token = getCookie('token');
-    
-    // If no token in cookies, try localStorage as fallback
-    const localStorageToken = localStorage.getItem('token');
-    
-    const tokenToUse = token || localStorageToken;
-    
-    // If we have a token and it's different from the current one, update the refresh timestamp
-    if (tokenToUse && tokenToUse !== authToken) {
-      console.log('New token detected, updating refresh timestamp');
-      localStorage.setItem('token_refreshed_at', Date.now().toString());
-    }
-    
-    setAuthToken(tokenToUse);
-    setIsAuthenticated(!!tokenToUse);
-    
-    // Also check if user_id exists in localStorage as additional auth check
-    const userId = localStorage.getItem('user_id');
-    if (!tokenToUse && userId) {
-      setIsAuthenticated(true);
-    }
-    
-    return !!tokenToUse || !!userId;
-  };
-
-  // Helper function to refresh the authentication token
-  const refreshAuthToken = async (): Promise<boolean> => {
-    try {
-      setIsProcessing(true);
-      console.log('Attempting to refresh authentication token before payment');
-      
-      // Get current token
-      const currentToken = authToken || getCookie('token') || localStorage.getItem('token');
-      if (!currentToken) {
-        console.error('No token available to refresh');
-        setIsAuthenticated(false);
-        return false;
-      }
-      
-      // Add a timestamp to prevent caching
-      const timestamp = Date.now();
-      
-      // Call the token refresh endpoint
-      const response = await fetch('/api/payments/process', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${currentToken}`,
-          'X-Refresh-Token': 'true',
-          'Cache-Control': 'no-cache, no-store',
-          'Pragma': 'no-cache',
-          'X-Timestamp': timestamp.toString()
-        },
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        console.error('Token refresh failed with status:', response.status);
-        
-        // If authentication failed completely, update UI state
-        if (response.status === 401 || response.status === 403) {
-          setIsAuthenticated(false);
-          // Clear any stored tokens that might be invalid
-          localStorage.removeItem('token');
-          localStorage.removeItem('token_refreshed_at');
-          document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-          
-          // Show a message to the user
-          toast.error('Your session has expired. Please log in again.');
-        }
-        
-        return false;
-      }
-      
-      const data = await response.json();
-      
-      if (data.refreshed) {
-        console.log('Token refreshed successfully');
-        
-        // Check for new token in response header
-        const newToken = response.headers.get('X-New-Token');
-        if (newToken) {
-          // Update token in localStorage
-          localStorage.setItem('token', newToken);
-          setAuthToken(newToken);
-          
-          // Update the refresh timestamp
-          localStorage.setItem('token_refreshed_at', Date.now().toString());
-        } else {
-          // If no header, the token should be in the cookies already
-          const cookieToken = getCookie('token');
-          if (cookieToken && cookieToken !== currentToken) {
-            localStorage.setItem('token', cookieToken);
-            setAuthToken(cookieToken);
-            
-            // Update the refresh timestamp
-            localStorage.setItem('token_refreshed_at', Date.now().toString());
-          }
-        }
-        
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Error refreshing token:', error);
-      return false;
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   // Fetch user profile data including balance
   const fetchProfileData = async () => {
     setIsLoadingBalance(true);
     try {
-      // Check if token might be stale before fetching profile data
-      const tokenLastRefreshed = localStorage.getItem('token_refreshed_at');
-      const tokenMightBeStale = !tokenLastRefreshed || 
-        (Date.now() - parseInt(tokenLastRefreshed)) > 1000 * 60 * 30; // 30 minutes
-      
-      // If token might be stale, refresh it before fetching profile data
-      if (tokenMightBeStale) {
-        console.log('Token might be stale, refreshing before fetching profile data');
-        await refreshAuthToken();
-      }
-      
-      // Get the latest token after potential refresh
-      const currentToken = authToken || getCookie('token') || localStorage.getItem('token');
-      
       const response = await fetch('/api/auth/profile', {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': currentToken ? `Bearer ${currentToken}` : '',
-          'Cache-Control': 'no-cache, no-store',
-          'Pragma': 'no-cache'
+          'Content-Type': 'application/json'
         },
         credentials: 'include'
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        
-        // If we get an authentication error, try refreshing the token once
-        if ((errorData.error === "User not authenticated" || response.status === 401) && !tokenMightBeStale) {
-          console.log('Authentication failed when fetching profile, attempting token refresh');
-          const refreshed = await refreshAuthToken();
-          
-          if (refreshed) {
-            // Retry the profile fetch with the new token
-            console.log('Token refreshed, retrying profile fetch');
-            return fetchProfileData(); // Recursive call with fresh token
-          } else {
-            // If refresh failed, update auth state
-            setIsAuthenticated(false);
-            // Clear any stored tokens that might be invalid
-            localStorage.removeItem('token');
-            localStorage.removeItem('token_refreshed_at');
-            document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-            throw new Error('Authentication required');
-          }
-        }
-        
-        throw new Error(errorData.error || 'Failed to fetch profile data');
+        throw new Error('Failed to fetch profile data');
       }
 
       const data = await response.json();
@@ -324,9 +144,8 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
       setIsAuthenticated(true);
     } catch (err) {
       console.error('Error fetching profile data:', err);
-      if ((err as Error).message !== 'Authentication required') {
-        toast.error('Failed to load balance. Please try again.');
-      }
+      // Redirect on profile fetch error
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
     } finally {
       setIsLoadingBalance(false);
     }
@@ -595,7 +414,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
 
   return (
     <AnimatePresence>
-      {isOpen && (
+      {isOpen && isAuthenticated && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
