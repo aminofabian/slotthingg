@@ -599,7 +599,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
                       className={`max-w-[85%] sm:max-w-[75%] ${
                         msg.is_player_sender
                           ? 'bg-[#00ffff]/10 text-white shadow-lg shadow-[#00ffff]/5'
-                          : 'bg-[#00ffff]/20 text-white shadow-lg shadow-[#00ffff]/10'
+                          : 'bg-gradient-to-br from-[#ff00ff]/20 via-[#9400d3]/20 to-[#4b0082]/20 text-white shadow-lg shadow-[#ff00ff]/10'
                       } rounded-2xl px-3 py-2 sm:px-4 sm:py-2 space-y-1 backdrop-blur-sm
                       transition-all duration-300 hover:scale-[1.02]`}
                     >
