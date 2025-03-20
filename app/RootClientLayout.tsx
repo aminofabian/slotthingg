@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { fetchDashboardData } from '@/lib/auth';
 import ClientLayout from './ClientLayout';
+import { useSessionExpiration } from './hooks/useSessionExpiration';
 
 const queryClient = new QueryClient();
 
@@ -12,6 +13,9 @@ export default function RootClientLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Set up session expiration handling
+  useSessionExpiration();
+
   useEffect(() => {
     const initDashboard = async () => {
       try {

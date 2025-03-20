@@ -3,6 +3,7 @@
  */
 
 import { generateUsername } from './utils';
+import toast from 'react-hot-toast';
 
 interface SignupResponse {
   email: string;
@@ -220,3 +221,45 @@ export async function generateWhitelabelUUID(project_url: string): Promise<strin
     throw error;
   }
 }
+
+export const handleSessionExpiration = () => {
+  // Clear all authentication data
+  localStorage.clear();
+  document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+  
+  // Get current path for redirect after login
+  const currentPath = window.location.pathname;
+  const isAuthPage = ['/login', '/register', '/forgot-password'].includes(currentPath);
+  
+  // Only add redirect if not already on an auth page
+  const redirectPath = isAuthPage ? '/login' : `/login?redirect=${encodeURIComponent(currentPath)}`;
+  
+  // Show message to user
+  toast.error('Your session has expired. Please log in again.');
+  
+  // Redirect to login
+  window.location.href = redirectPath;
+};
+
+export const setupAuthInterceptor = () => {
+  const originalFetch = window.fetch;
+  window.fetch = async function (...args) {
+    try {
+      const response = await originalFetch.apply(this, args);
+      
+      // Check if response indicates session expiration
+      if (response.status === 401 || response.status === 403) {
+        const url = args[0]?.toString() || '';
+        
+        // Skip for auth-related endpoints to avoid loops
+        if (!url.includes('/api/auth/')) {
+          handleSessionExpiration();
+        }
+      }
+      
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  };
+};

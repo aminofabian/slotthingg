@@ -122,7 +122,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       
       if (!isWebSocketConnected || ws.current?.readyState !== WebSocket.OPEN) {
         console.log('Chat opened - forcing a fresh WebSocket connection');
-        initializeWebSocket();
+      initializeWebSocket();
       } else {
         console.log('Chat opened - using existing WebSocket connection');
       }
@@ -414,13 +414,13 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
         try {
           fileUrl = await uploadFile(selectedFile);
           isFile = true;
-          attachments.push({
-            id: Date.now().toString(),
-            type: selectedFile.type.startsWith('image/') ? 'image' : 'file',
-            url: fileUrl,
-            name: selectedFile.name,
-            size: selectedFile.size
-          });
+        attachments.push({
+          id: Date.now().toString(),
+          type: selectedFile.type.startsWith('image/') ? 'image' : 'file',
+          url: fileUrl,
+          name: selectedFile.name,
+          size: selectedFile.size
+        });
         } catch (error) {
           console.error('Error uploading file:', error);
           wsSetShowConnectionToast(true);

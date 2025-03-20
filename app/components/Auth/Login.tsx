@@ -91,11 +91,12 @@ const Login = () => {
       console.log('Login success data:', data);
       reset();
       
-      // Store user data in localStorage (but not the token, as it's in the cookie now)
+      // Store user data in localStorage
       localStorage.setItem('user_id', data.user.id.toString());
       localStorage.setItem('user_role', data.user.role);
       localStorage.setItem('username', data.user.username);
       localStorage.setItem('last_login', data.user.last_login);
+      localStorage.setItem('login_timestamp', Date.now().toString());
       
       console.log('Stored user data in localStorage');
       console.log('Attempting to redirect to:', redirectPath);
