@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { ChatMessageData } from '../components';
 
 interface WebSocketHookProps {
@@ -9,7 +9,7 @@ interface WebSocketHookProps {
 }
 
 interface WebSocketHookReturn {
-  ws: React.RefObject<WebSocket>;
+  ws: React.RefObject<WebSocket | null>;
   isWebSocketConnected: boolean;
   isUsingMockWebSocket: boolean;
   connectionStatus: 'connected' | 'connecting' | 'disconnected';
@@ -27,115 +27,118 @@ export const useWebSocket = ({
   playerId,
   selectedAdmin
 }: WebSocketHookProps): WebSocketHookReturn => {
-  const ws = useRef<WebSocket>(null) as React.RefObject<WebSocket>;
+  const ws = useRef<WebSocket | null>(null);
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
   const [isUsingMockWebSocket, setIsUsingMockWebSocket] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'connecting' | 'disconnected'>('connecting');
   const [showConnectionToast, setShowConnectionToast] = useState(false);
   const reconnectAttempts = useRef<number>(0);
   const maxReconnectAttempts = 5;
-  const pingInterval = useRef<NodeJS.Timeout | null>(null);
   const processedMessageIds = useRef(new Set<string | number>());
+  const isConnecting = useRef(false);
 
-  const stopPingInterval = () => {
-    if (pingInterval.current) {
-      clearInterval(pingInterval.current);
-      pingInterval.current = null;
+  const initializeWebSocket = useCallback(() => {
+    if (isConnecting.current || ws.current?.readyState === WebSocket.CONNECTING) {
+      console.log('Connection already in progress, skipping...');
+      return;
     }
-  };
 
-  const startPingInterval = () => {
-    if (pingInterval.current) {
-      clearInterval(pingInterval.current);
+    if (ws.current?.readyState === WebSocket.OPEN) {
+      console.log('WebSocket already connected');
+      return;
     }
-    
-    pingInterval.current = setInterval(() => {
-      if (ws.current?.readyState === WebSocket.OPEN) {
-        try {
-          ws.current.send(JSON.stringify({ type: 'ping', timestamp: new Date().toISOString() }));
-        } catch (error) {
-          console.warn('Error sending ping:', error);
-        }
-      } else if (ws.current?.readyState === WebSocket.CLOSED || ws.current?.readyState === WebSocket.CLOSING) {
-        console.log('Connection appears to be closed during ping check. Attempting to reconnect...');
-        initializeWebSocket();
-      }
-    }, 30000);
-  };
 
-  const initializeWebSocket = () => {
+    if (!playerId) {
+      console.error('No player ID available for WebSocket connection');
+      return;
+    }
+
+    console.log(`Initializing WebSocket connection, attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts}`);
+    isConnecting.current = true;
+    setConnectionStatus('connecting');
+
     try {
-      const chatRoomId = `P${userId}Chat`;
-      const wsUrl = `wss://serverhub.biz/ws/cschat/${chatRoomId}/?player_id=${playerId}`;
-      
-      if (ws.current && ws.current.readyState !== WebSocket.CLOSED) {
+      if (ws.current) {
         ws.current.close();
+        ws.current = null;
       }
-      
-      setIsWebSocketConnected(false);
-      setConnectionStatus('connecting');
-      
+
+      const wsUrl = `wss://serverhub.biz/ws/cschat/P${playerId}Chat/?player_id=${playerId}`;
+      console.log('Connecting to WebSocket:', wsUrl);
+
       ws.current = new WebSocket(wsUrl);
 
-      const connectionTimeout = setTimeout(() => {
-        if (ws.current && ws.current.readyState !== WebSocket.OPEN) {
-          console.log('WebSocket connection timeout. Falling back to mock WebSocket.');
-          ws.current.close();
-          initializeMockWebSocket();
-        }
-      }, 2000);
-
       ws.current.onopen = () => {
-        console.log('WebSocket connection established');
-        clearTimeout(connectionTimeout);
+        console.log('WebSocket connected successfully');
         setIsWebSocketConnected(true);
-        setIsUsingMockWebSocket(false);
         setConnectionStatus('connected');
         reconnectAttempts.current = 0;
-        startPingInterval();
+        isConnecting.current = false;
+      };
+
+      ws.current.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('WebSocket message received:', data);
+          if (data.type === 'pong') {
+            console.log('Received pong from server');
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
       };
 
       ws.current.onerror = (error) => {
         console.error('WebSocket error:', error);
-        clearTimeout(connectionTimeout);
         setConnectionStatus('disconnected');
-        setShowConnectionToast(true);
-        stopPingInterval();
-        
-        if (reconnectAttempts.current >= maxReconnectAttempts) {
-          initializeMockWebSocket();
+        isConnecting.current = false;
+      };
+
+      ws.current.onclose = () => {
+        console.log('WebSocket connection closed');
+        setIsWebSocketConnected(false);
+        setConnectionStatus('disconnected');
+        isConnecting.current = false;
+
+        if (reconnectAttempts.current < maxReconnectAttempts) {
+          reconnectAttempts.current += 1;
+          const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000);
+          console.log(`Scheduling reconnection attempt in ${backoffDelay}ms`);
+          setTimeout(initializeWebSocket, backoffDelay);
+        } else {
+          console.log('Max reconnection attempts reached');
+          setShowConnectionToast(true);
         }
       };
 
-      ws.current.onclose = (event) => {
-        console.log(`WebSocket connection closed: ${event.code} ${event.reason}`);
-        clearTimeout(connectionTimeout);
-        setIsWebSocketConnected(false);
-        setConnectionStatus('disconnected');
-        stopPingInterval();
-        setShowConnectionToast(true);
-        
-        if (!isUsingMockWebSocket && reconnectAttempts.current < maxReconnectAttempts) {
-          reconnectAttempts.current += 1;
-          const backoffTime = Math.min(500 * Math.pow(1.5, reconnectAttempts.current - 1), 1000);
-          setTimeout(initializeWebSocket, backoffTime);
-        } else if (reconnectAttempts.current >= maxReconnectAttempts && !isUsingMockWebSocket) {
-          initializeMockWebSocket();
-        }
-      };
     } catch (error) {
       console.error('Error initializing WebSocket:', error);
       setConnectionStatus('disconnected');
-      setShowConnectionToast(true);
-      initializeMockWebSocket();
+      isConnecting.current = false;
     }
-  };
+  }, [playerId]);
+
+  useEffect(() => {
+    if (playerId) {
+      console.log('Initializing WebSocket due to playerId change:', playerId);
+      initializeWebSocket();
+    }
+
+    return () => {
+      console.log('Cleaning up WebSocket connection');
+      if (ws.current) {
+        ws.current.close();
+        ws.current = null;
+      }
+      isConnecting.current = false;
+      reconnectAttempts.current = 0;
+    };
+  }, [playerId, initializeWebSocket]);
 
   const initializeMockWebSocket = () => {
     console.log('Initializing mock WebSocket...');
     setIsUsingMockWebSocket(true);
     setConnectionStatus('connected');
-    stopPingInterval();
 
     const mockWs = {
       readyState: WebSocket.OPEN,
@@ -157,7 +160,6 @@ export const useWebSocket = ({
       },
       close: () => {
         console.log('Mock WebSocket closed');
-        stopPingInterval();
       }
     };
     
@@ -183,7 +185,6 @@ export const useWebSocket = ({
     
     return () => {
       clearInterval(cleanupInterval);
-      stopPingInterval();
       if (ws.current) {
         ws.current.close();
       }

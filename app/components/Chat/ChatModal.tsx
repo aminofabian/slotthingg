@@ -120,13 +120,6 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       loadUserInfo();
       fetchChatHistory();
       
-      if (!isWebSocketConnected || ws.current?.readyState !== WebSocket.OPEN) {
-        console.log('Chat opened - forcing a fresh WebSocket connection');
-      initializeWebSocket();
-      } else {
-        console.log('Chat opened - using existing WebSocket connection');
-      }
-      
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -134,11 +127,8 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     
     return () => {
       document.body.style.overflow = 'unset';
-      if (ws.current) {
-        ws.current.close();
-      }
     };
-  }, [isOpen, playerId]);
+  }, [isOpen]);
 
   useEffect(() => {
     scrollToBottom();
@@ -150,126 +140,95 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     const isLocalStorageAvailable = typeof window !== 'undefined' && window.localStorage;
     
     if (isLocalStorageAvailable) {
-      // Get user ID from localStorage
-      const storedUserId = localStorage.getItem('user_id');
-      if (storedUserId) {
-        console.log('Loaded user ID from localStorage:', storedUserId);
-        setUserId(storedUserId);
-      } else {
-        // Try alternative keys for user ID
-        const alternativeKeys = ['userId', 'id', 'playerId', 'player_id', 'uid'];
-        let foundUserId = null;
-        
-        for (const key of alternativeKeys) {
-          const altId = localStorage.getItem(key);
-          if (altId) {
-            console.log(`Found user ID in alternative localStorage key '${key}':`, altId);
-            foundUserId = altId;
-            break;
-          }
-        }
-        
-        if (foundUserId) {
-          setUserId(foundUserId);
-        } else {
-          // Try to extract from user profile if available
-          try {
-            const userProfileStr = localStorage.getItem('user_profile') || localStorage.getItem('userProfile');
-            if (userProfileStr) {
-              const userProfile = JSON.parse(userProfileStr);
-              if (userProfile && (userProfile.id || userProfile.user_id || userProfile.userId)) {
-                const profileUserId = userProfile.id || userProfile.user_id || userProfile.userId;
-                console.log('Extracted user ID from profile:', profileUserId);
-                setUserId(String(profileUserId));
-                return;
-              }
-            }
-            console.warn('No user ID found in localStorage, using default');
-          } catch (error) {
-            console.warn('Error parsing user profile from localStorage:', error);
-            console.warn('No user ID found in localStorage, using default');
-          }
-        }
-      }
-      
-      // Get player ID from localStorage (fallback to user_id if player_id doesn't exist)
-      const storedPlayerId = localStorage.getItem('player_id') || localStorage.getItem('user_id');
+      // Get player ID first since this determines the chat room
+      const storedPlayerId = localStorage.getItem('player_id');
       if (storedPlayerId) {
-        console.log('Loaded player ID from localStorage:', storedPlayerId);
+        console.log('Setting player ID:', storedPlayerId);
         setPlayerId(storedPlayerId);
       } else {
-        console.warn('No player ID found in localStorage, using default');
+        // If no player_id, try to get it from user profile
+        try {
+          const userProfileStr = localStorage.getItem('user_profile');
+          if (userProfileStr) {
+            const userProfile = JSON.parse(userProfileStr);
+            if (userProfile && userProfile.player_id) {
+              console.log('Setting player ID from profile:', userProfile.player_id);
+              setPlayerId(String(userProfile.player_id));
+            }
+          }
+        } catch (error) {
+          console.warn('Error parsing user profile:', error);
+        }
       }
 
-      // Initialize WebSocket after user ID is loaded
-      // We use a small timeout to ensure the state is updated
-      setTimeout(() => {
-        if (!isWebSocketConnected || ws.current?.readyState !== WebSocket.OPEN) {
-          initializeWebSocket();
-        }
-      }, 100);
+      // Get user ID (this is for message sending)
+      const storedUserId = localStorage.getItem('user_id');
+      if (storedUserId) {
+        console.log('Setting user ID:', storedUserId);
+        setUserId(storedUserId);
+      }
     }
   }, []);
 
   // Load user information from localStorage
   const loadUserInfo = () => {
     try {
-      // Check if localStorage is available
       if (typeof window !== 'undefined' && window.localStorage) {
-        // Try to get user information from various possible localStorage keys
-        const possibleNameKeys = ['user_name', 'username', 'player_name', 'display_name', 'name'];
+        // First try to get the name from the auth token or user session
+        const userSession = localStorage.getItem('user_session');
+        const authToken = localStorage.getItem('auth_token');
         
-        for (const key of possibleNameKeys) {
+        if (userSession) {
+          try {
+            const session = JSON.parse(userSession);
+            if (session.user?.name || session.user?.username) {
+              setUserName(session.user.name || session.user.username);
+              return; // Exit if we found the name
+            }
+          } catch (e) {
+            console.warn('Failed to parse user session');
+          }
+        }
+
+        // Then try the user profile
+        const userProfile = localStorage.getItem('user_profile');
+        if (userProfile) {
+          try {
+            const profile = JSON.parse(userProfile);
+            if (profile.name || profile.username) {
+              setUserName(profile.name || profile.username);
+              return; // Exit if we found the name
+            }
+          } catch (e) {
+            console.warn('Failed to parse user profile');
+          }
+        }
+
+        // Finally, try individual keys in a specific order of priority
+        const nameKeys = [
+          'current_username',    // Add this as highest priority
+          'username',           // Then check username
+          'user_name',         // Then user_name
+          'display_name',      // Then display_name
+          'name',             // Then just name
+          'player_name'       // Finally player_name
+        ];
+
+        for (const key of nameKeys) {
           const storedName = localStorage.getItem(key);
           if (storedName) {
             setUserName(storedName);
-            break;
+            return; // Exit once we find a valid name
           }
         }
-        
-        // If no name was found, try to get it from user profile if available
-        if (!userName) {
-          const userProfile = localStorage.getItem('user_profile');
-          if (userProfile) {
-            try {
-              const profile = JSON.parse(userProfile);
-              if (profile.name || profile.display_name || profile.username) {
-                setUserName(profile.name || profile.display_name || profile.username);
-              }
-            } catch (e) {
-              console.warn('Failed to parse user profile from localStorage');
-            }
-          }
-        }
+
+        // If we still don't have a name, log a warning
+        console.warn('No user name found in localStorage');
       }
     } catch (error) {
-      console.warn('Error loading user info from localStorage:', error);
+      console.error('Error loading user info:', error);
     }
   };
-
-  // Call loadUserInfo when component mounts
-  useEffect(() => {
-    loadUserInfo();
-    
-    // Preload WebSocket connection to make it faster when chat is opened
-    const preloadConnection = () => {
-      console.log('Preloading WebSocket connection...');
-      // Only preload if we don't already have a connection and we have a user ID
-      if ((!ws.current || ws.current.readyState !== WebSocket.OPEN) && userId) {
-        initializeWebSocket();
-      }
-    };
-    
-    // Delay preloading slightly to prioritize other initialization tasks
-    const preloadTimer = setTimeout(preloadConnection, 1000);
-    
-    return () => {
-      clearTimeout(preloadTimer);
-      if (ws.current) {
-        ws.current.close();
-      }
-    };
-  }, [userId]); // Add userId as a dependency
 
   const fetchChatHistory = async () => {
     try {
@@ -406,6 +365,16 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     if (!newMessage.trim() && !selectedFile) return;
 
     try {
+      // Add this debug logging
+      console.log('Current user name:', userName);
+      console.log('localStorage contents:', {
+        user_session: localStorage.getItem('user_session'),
+        user_profile: localStorage.getItem('user_profile'),
+        username: localStorage.getItem('username'),
+        current_username: localStorage.getItem('current_username'),
+        user_name: localStorage.getItem('user_name')
+      });
+
       let isFile = false;
       let fileUrl = null;
       let attachments: Attachment[] = [];
@@ -479,7 +448,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
             id: messageId,
             message: currentMessage,
             sender_id: userId,
-            sender_name: userName || 'User',
+            sender_name: userName || localStorage.getItem('current_username') || 'Unknown User',
             sent_time: messageTimestamp,
             is_player_sender: true,
             is_file: isFile,
