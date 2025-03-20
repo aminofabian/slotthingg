@@ -10,115 +10,100 @@ const WARNING_BEFORE_TIMEOUT = 2 * 60 * 1000;
 
 export const useSessionExpiration = () => {
   useEffect(() => {
+    // Static flag to prevent multiple redirects across remounts
+    if (typeof window !== 'undefined') {
+      // @ts-ignore
+      if (window._isHandlingExpiration) return;
+    }
+
     const handleSessionExpiration = () => {
-      console.log('Session expiration triggered');
-      
-      // First show the message to ensure user sees it
+      // Prevent multiple redirects
+      // @ts-ignore
+      if (window._isHandlingExpiration) return;
+      // @ts-ignore
+      window._isHandlingExpiration = true;
+
+      const currentPath = window.location.pathname;
+      const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(currentPath);
+
+      // Don't do anything if we're already on an auth page
+      if (isAuthPage) {
+        // @ts-ignore
+        window._isHandlingExpiration = false;
+        return;
+      }
+
+      // Show message only once
       toast.error('Your session has expired. Redirecting to login...', {
         duration: 3000,
+        id: 'session-expired'
       });
 
-      try {
-        // Clear all authentication data
-        console.log('Clearing localStorage...');
-        localStorage.clear();
-        
-        // Clear all auth-related cookies
-        const cookies = [
-          'token',
-          'refresh_token',
-          'session_id',
-          'auth_token',
-          'access_token'
-        ];
-        
-        console.log('Clearing cookies...');
-        cookies.forEach(cookie => {
-          document.cookie = `${cookie}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax; Secure`;
-        });
-        
-        // Get current path for redirect after login
-        const currentPath = window.location.pathname;
-        const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(currentPath);
-        
-        // Only add redirect if not already on an auth page
-        const redirectPath = isAuthPage ? '/login' : `/login?redirect=${encodeURIComponent(currentPath)}`;
-        
-        console.log('Redirecting to:', redirectPath);
-        
-        // Force immediate logout and redirect
-        window.location.replace(redirectPath);
-      } catch (error) {
-        console.error('Error during session expiration:', error);
-        // Fallback redirect
-        window.location.href = '/login';
-      }
+      // Clear cookies
+      const cookies = ['token', 'refresh_token', 'session_id', 'auth_token', 'access_token'];
+      cookies.forEach(cookie => {
+        document.cookie = `${cookie}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax; Secure`;
+      });
+
+      // Clear localStorage
+      localStorage.clear();
+
+      // Redirect to login
+      const redirectUrl = `/login?redirect=${encodeURIComponent(currentPath)}`;
+      window.location.href = redirectUrl;
     };
 
-    // Function to check token expiration
     const checkTokenExpiration = () => {
-      console.log('Checking token expiration...');
-      
+      // Skip if already handling expiration
+      // @ts-ignore
+      if (window._isHandlingExpiration) return;
+
+      const currentPath = window.location.pathname;
+      const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(currentPath);
+
+      // Skip checks if on auth page
+      if (isAuthPage) return;
+
       const token = document.cookie.split('; ').find(row => row.startsWith('token='));
-      const lastActivityTime = localStorage.getItem('last_activity_time');
-      const currentTime = Date.now();
-
-      console.log('Token exists:', !!token);
-      console.log('Last activity time:', lastActivityTime);
-
-      // If no token, handle expiration immediately
+      
+      // If no token and not on auth page, expire session
       if (!token) {
-        console.log('No token found, triggering session expiration');
-        const currentPath = window.location.pathname;
-        const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(currentPath);
-        if (!isAuthPage) {
-          handleSessionExpiration();
-          return;
-        }
+        handleSessionExpiration();
+        return;
       }
 
-      // Check if session has exceeded timeout based on last activity
+      // Check inactivity timeout
+      const lastActivityTime = localStorage.getItem('last_activity_time');
       if (lastActivityTime) {
+        const currentTime = Date.now();
         const inactivityTime = currentTime - parseInt(lastActivityTime);
-        console.log('Inactivity time (minutes):', Math.floor(inactivityTime / 60000));
         
-        // If session has exceeded timeout, handle expiration
         if (inactivityTime >= SESSION_TIMEOUT) {
-          console.log('Session timeout exceeded, triggering expiration');
           handleSessionExpiration();
-          return;
-        }
-
-        // Show warning if close to timeout
-        if (inactivityTime >= (SESSION_TIMEOUT - WARNING_BEFORE_TIMEOUT)) {
+        } else if (inactivityTime >= (SESSION_TIMEOUT - WARNING_BEFORE_TIMEOUT)) {
           const timeLeft = Math.ceil((SESSION_TIMEOUT - inactivityTime) / 60000);
-          console.log('Session expiring soon, showing warning. Minutes left:', timeLeft);
           toast.error(`Your session will expire in ${timeLeft} minutes. Please save your work.`, {
             duration: 10000,
             id: 'session-warning'
           });
         }
       } else {
-        console.log('No last activity time found, initializing...');
-        localStorage.setItem('last_activity_time', currentTime.toString());
+        // Initialize last activity time if not set
+        localStorage.setItem('last_activity_time', Date.now().toString());
       }
     };
 
-    // Throttled update activity function to prevent too many localStorage writes
+    // Throttled update activity function
     let activityTimeout: NodeJS.Timeout | null = null;
     const updateActivity = () => {
-      if (activityTimeout) {
-        return;
-      }
+      if (activityTimeout) return;
       activityTimeout = setTimeout(() => {
-        const currentTime = Date.now().toString();
-        localStorage.setItem('last_activity_time', currentTime);
-        console.log('Activity updated:', new Date(parseInt(currentTime)).toISOString());
+        localStorage.setItem('last_activity_time', Date.now().toString());
         activityTimeout = null;
       }, 1000);
     };
 
-    // Track user activity
+    // Attach event listeners
     window.addEventListener('mousemove', updateActivity, { passive: true });
     window.addEventListener('keydown', updateActivity, { passive: true });
     window.addEventListener('click', updateActivity, { passive: true });
@@ -129,15 +114,12 @@ export const useSessionExpiration = () => {
     const originalFetch = window.fetch;
     window.fetch = async function (...args) {
       try {
-        updateActivity(); // Update activity on API calls
+        updateActivity();
         const response = await originalFetch.apply(this, args);
         
-        // Check if response indicates session expiration
-        if (response.status === 401 || response.status === 403) {
-          console.log('Received unauthorized response:', response.status);
+        // Only handle 401/403 for non-auth endpoints
+        if ((response.status === 401 || response.status === 403)) {
           const url = args[0]?.toString() || '';
-          
-          // Skip for auth-related endpoints to avoid loops
           if (!url.includes('/api/auth/')) {
             handleSessionExpiration();
           }
@@ -145,37 +127,30 @@ export const useSessionExpiration = () => {
         
         return response;
       } catch (error) {
-        console.error('Fetch error:', error);
-        // If there's a network error, check if it's due to session expiration
-        checkTokenExpiration();
         throw error;
       }
     };
 
-    // Initialize last activity time
-    const initialTime = Date.now().toString();
-    localStorage.setItem('last_activity_time', initialTime);
-    console.log('Session monitoring initialized at:', new Date(parseInt(initialTime)).toISOString());
-
-    // Check token expiration more frequently (every 15 seconds)
-    const intervalId = setInterval(checkTokenExpiration, 15000);
-
     // Initial check
     checkTokenExpiration();
 
+    // Set up interval for periodic checks (every 2 minutes)
+    const sessionCheckInterval = setInterval(checkTokenExpiration, 120000);
+
     // Cleanup function
     return () => {
-      console.log('Cleaning up session monitoring...');
-      window.fetch = originalFetch;
-      clearInterval(intervalId);
       if (activityTimeout) {
         clearTimeout(activityTimeout);
       }
+      clearInterval(sessionCheckInterval);
       window.removeEventListener('mousemove', updateActivity);
       window.removeEventListener('keydown', updateActivity);
       window.removeEventListener('click', updateActivity);
       window.removeEventListener('scroll', updateActivity);
       window.removeEventListener('touchstart', updateActivity);
+      window.fetch = originalFetch;
+      // @ts-ignore
+      window._isHandlingExpiration = false;
     };
   }, []);
 }; 

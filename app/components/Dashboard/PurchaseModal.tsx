@@ -543,15 +543,12 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
         localStorage.removeItem('token_refreshed_at');
         document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
         
-        // Show specific message for authentication errors
+        // Show message and redirect immediately
         toast.error('Your session has expired. Please log in again.', { id: 'payment-processing' });
         
-        // Offer to redirect to login page after a short delay
-        setTimeout(() => {
-          if (confirm('Your session has expired. Would you like to log in again?')) {
-            window.location.href = '/login';
-          }
-        }, 1500);
+        // Redirect to login page immediately
+        const currentPath = window.location.pathname;
+        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
       } else {
         // Show toast for other errors
         toast.error(err instanceof Error ? err.message : 'Payment failed. Please try again.', { id: 'payment-processing' });

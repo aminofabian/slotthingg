@@ -7,29 +7,27 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
 
-  console.log('Middleware processing path:', pathname);
-
-  // Skip middleware for public routes
+  // Skip middleware for public routes and API routes
   if (pathname === '/check-email' || 
       pathname === '/forgot-password' ||
-      pathname.startsWith('/api/auth/forgot-password')) {
-    console.log('Skipping middleware for public route:', pathname);
+      pathname.startsWith('/api/') ||
+      pathname.includes('_next') ||
+      pathname.includes('favicon.ico')) {
     return NextResponse.next();
   }
 
   // If user is not logged in and trying to access protected routes
   if (!token && isProtectedRoute(pathname)) {
-    console.log('Redirecting to login from protected route:', pathname);
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
+    // Only add redirect param if not already on an auth page
+    if (!isAuthRoute(pathname)) {
+      loginUrl.searchParams.set('redirect', pathname);
+    }
     return NextResponse.redirect(loginUrl);
   }
 
   // If user is logged in and trying to access auth pages
-  if (token && isAuthRoute(pathname) && 
-      pathname !== '/forgot-password' && 
-      pathname !== '/check-email') {
-    console.log('Redirecting to dashboard from auth route:', pathname);
+  if (token && isAuthRoute(pathname)) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
