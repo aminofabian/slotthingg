@@ -3,8 +3,7 @@ import { cookies } from 'next/headers';
 
 export async function POST() {
   try {
-    const cookieStore = cookies();
-    const token = cookieStore.get('token')?.value;
+    const token = cookies().get('token')?.value;
 
     if (!token) {
       return NextResponse.json(
