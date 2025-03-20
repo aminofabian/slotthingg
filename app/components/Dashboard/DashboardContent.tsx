@@ -11,6 +11,7 @@ import Footer from '../Footer/Footer';
 import { Dialog, Transition } from '@headlessui/react';
 import useGameStore, { getDefaultGames } from '@/lib/store/useGameStore';
 import type { Game } from '@/lib/store/useGameStore';
+import { Gamepad, Gamepad2 } from 'lucide-react';
 
 const initialGames = getDefaultGames();
 
@@ -140,21 +141,7 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
                   </div>
 
                   {/* Utility Buttons */}
-                  <div className="grid grid-cols-1 gap-4">
-                    <button 
-                      disabled={isRefreshing}
-                      className="flex items-center justify-center gap-2 p-4
-                        text-[#7ffdfd] text-lg font-medium rounded-xl
-                        border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40
-                        hover:bg-[#7ffdfd]/5 transition-all duration-300
-                        disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                      Reset
-                    </button>
-                  </div>
+                
 
                   {/* Play Button */}
                   <button 
@@ -165,7 +152,7 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
                       transition-all duration-300 flex items-center justify-center gap-3
                       disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <SiNintendogamecube className="w-6 h-6" />
+                    <Gamepad2 className="w-6 h-6" />
                     Play Now
                   </button>
                 </div>
