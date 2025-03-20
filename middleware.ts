@@ -3,8 +3,6 @@ import type { NextRequest } from 'next/server'
 import { isProtectedRoute, isAuthRoute, PROTECTED_ROUTES } from '@/lib/routes'
 
 export function middleware(request: NextRequest) {
-  // Get the token from cookies
-  const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
 
   // Skip middleware for public routes and API routes
@@ -12,9 +10,13 @@ export function middleware(request: NextRequest) {
       pathname === '/forgot-password' ||
       pathname.startsWith('/api/') ||
       pathname.includes('_next') ||
-      pathname.includes('favicon.ico')) {
+      pathname.includes('favicon.ico') ||
+      pathname.includes('static')) {
     return NextResponse.next();
   }
+
+  // Get the token from cookies
+  const token = request.cookies.get('token')?.value;
 
   // If user is not logged in and trying to access protected routes
   if (!token && isProtectedRoute(pathname)) {

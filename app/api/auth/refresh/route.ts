@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 
 export async function POST() {
   try {
-    const cookieStore = await cookies();
+    const cookieStore = cookies();
     const token = cookieStore.get('token')?.value;
 
     if (!token) {
@@ -14,7 +14,7 @@ export async function POST() {
     }
 
     try {
-      // Try to validate token with the server
+      // Validate token with the server
       const validateResponse = await fetch('https://serverhub.biz/users/profile/', {
         method: 'GET',
         headers: {
@@ -23,33 +23,40 @@ export async function POST() {
         }
       });
 
-      // If validation succeeds, extend token lifetime
-      if (validateResponse.ok) {
-        const response = NextResponse.json({ message: 'Token refreshed successfully' });
-        const cookieString = `token=${token}; Path=/; Max-Age=1209600; SameSite=Lax; Secure; HttpOnly`;
-        response.headers.set('Set-Cookie', cookieString);
-        return response;
-      }
-
-      // If validation fails with auth error, clear token
-      if (validateResponse.status === 401 || validateResponse.status === 403) {
+      // If validation fails, clear token and return 401
+      if (!validateResponse.ok) {
         const response = NextResponse.json(
           { error: 'Token validation failed' },
           { status: 401 }
         );
-        response.headers.set('Set-Cookie', 'token=; Path=/; Max-Age=0; SameSite=Lax');
+        response.cookies.set('token', '', { 
+          maxAge: 0,
+          path: '/',
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax'
+        });
         return response;
       }
 
-      // For other status codes, keep existing token
-      return NextResponse.json({ message: 'Token refresh skipped' });
+      // If validation succeeds, return success
+      return NextResponse.json({ 
+        message: 'Token is valid',
+        status: 'success'
+      });
     } catch (error) {
-      // On network errors, keep the token
+      // On network errors, return 401 to trigger re-auth
       console.error('Token validation error:', error);
-      return NextResponse.json({ message: 'Token refresh skipped due to network error' });
+      return NextResponse.json(
+        { error: 'Token validation failed' },
+        { status: 401 }
+      );
     }
   } catch (error) {
     console.error('Token refresh error:', error);
-    return NextResponse.json({ message: 'Token refresh failed' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Token validation failed' },
+      { status: 401 }
+    );
   }
 } 
