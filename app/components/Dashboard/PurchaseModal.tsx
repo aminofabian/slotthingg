@@ -167,7 +167,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
   // Process payment
   const handlePayment = async () => {
     if (!isAuthenticated) {
-      setError('You must be logged in to make a purchase');
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
       return;
     }
 
@@ -186,148 +186,52 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
         setError('Payment request timed out. Please try again.');
         toast.error('Payment request timed out. Please try again later.', { id: 'payment-processing' });
       }
-    }, 45000); // 45 seconds timeout (longer than server timeout to allow for retries)
+    }, 45000); // 45 seconds timeout
     
     try {
-      // Always refresh the token before making a payment to ensure it's valid
-      console.log('Refreshing token before payment');
-      const refreshed = await refreshAuthToken();
+      // Verify session is still valid
+      const authCheck = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include'
+      });
       
-      if (refreshed) {
-        console.log('Token refreshed successfully, proceeding with payment');
-        localStorage.setItem('token_refreshed_at', Date.now().toString());
-      } else {
-        console.warn('Token refresh failed, checking authentication status');
-        // If we're not authenticated anymore, show error and return
-        if (!isAuthenticated) {
-          throw new Error('Authentication failed. Please log in again to refresh your session.');
-        }
-        console.warn('Still authenticated, proceeding with payment using existing token');
+      if (!authCheck.ok) {
+        throw new Error('Authentication failed. Please log in again to refresh your session.');
       }
       
-      // Prepare headers with authentication
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache, no-store',
-        'Pragma': 'no-cache',
-        'X-Timestamp': Date.now().toString()
-      };
-      
-      // Add auth token if available
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
-        console.log('Adding auth token to request headers');
-      } else {
-        // Try to get token again as a fallback
-        const token = getCookie('token') || localStorage.getItem('token');
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-          console.log('Using fallback auth token from cookies/localStorage');
-        } else {
-          console.warn('No authentication token available for payment request');
-        }
-      }
-      
-      console.log('Initiating payment request for', selectedPaymentMethod.title);
-      
-      // Use a proxy endpoint to avoid CORS issues
+      // Proceed with payment
       const response = await fetch('/api/payments/process', {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
         body: JSON.stringify({
           amount: amount,
           currency: 'USD',
           payment_method: selectedPaymentMethod.apiValue
-        }),
-        credentials: 'include'
+        })
       });
       
       // Dismiss the loading toast
       toast.dismiss('payment-processing');
       
       if (!response.ok) {
-        // Try to parse error response
-        let errorMessage = 'Payment request failed';
-        try {
-          const errorData = await response.json();
-          console.log('Payment error response:', errorData);
-          errorMessage = errorData.error || errorData.message || errorMessage;
-          
-          // Check if token was refreshed and we should retry
-          if (errorData.refreshed) {
-            console.log('Token was refreshed during payment attempt, retrying...');
-            
-            // Update token from response if available
-            const newToken = response.headers.get('X-New-Token');
-            if (newToken) {
-              localStorage.setItem('token', newToken);
-              setAuthToken(newToken);
-            }
-            
-            // Update the refresh timestamp
-            localStorage.setItem('token_refreshed_at', Date.now().toString());
-            
-            // Retry the payment with the new token
-            toast.loading('Retrying payment with refreshed authentication...', { id: 'payment-processing' });
-            
-            // Small delay to ensure token is properly set
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Retry the payment (recursive call)
-            clearTimeout(paymentTimeout);
-            setIsProcessing(false);
-            handlePayment();
-            return;
-          }
-          
-          // Handle authentication errors
-          if (errorData.error === "User not authenticated" || 
-              errorData.error?.includes("Authentication required") || 
-              errorData.error?.includes("Authentication failed") || 
-              response.status === 401) {
-            setIsAuthenticated(false);
-            // Clear any stored tokens that might be invalid
-            localStorage.removeItem('token');
-            localStorage.removeItem('token_refreshed_at');
-            document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-            throw new Error('Authentication failed. Please log in again to refresh your session.');
-          }
-          
-          // Handle specific error cases
-          if (response.status === 504) {
-            throw new Error('Payment service timed out. Please try again later.');
-          } else if (response.status === 502) {
-            throw new Error('Unable to connect to payment service. Please try again later.');
-          }
-        } catch (parseError) {
-          console.error('Error parsing error response:', parseError);
-          
-          // If we can't parse the response, check for specific status codes
-          if (response.status === 401 || response.status === 403) {
-            setIsAuthenticated(false);
-            throw new Error('Authentication required. Please log in again.');
-          } else if (response.status === 0 || response.status === 520) {
-            // Network error or server error
-            throw new Error('Network error. Please check your connection and try again.');
-          } else if (response.status === 429) {
-            throw new Error('Too many requests. Please try again later.');
-          } else if (response.status === 500) {
-            throw new Error('Server error. Please try again later.');
-          } else if (response.status === 400) {
-            throw new Error('Invalid request. Please check your payment details.');
-          } else if (response.status === 404) {
-            throw new Error('Payment service not available. Please try again later.');
-          } else if (response.status === 504) {
-            throw new Error('Payment service timed out. Please try again later.');
-          }
+        const errorData = await response.json();
+        
+        // Handle authentication errors
+        if (response.status === 401 || response.status === 403) {
+          // Clear auth data
+          localStorage.clear();
+          document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+          throw new Error('Authentication failed. Please log in again.');
         }
         
-        throw new Error(errorMessage);
+        throw new Error(errorData.error || 'Payment request failed');
       }
       
       const data = await response.json();
-      console.log('Payment response received');
       
       if (!data.payment_url) {
         throw new Error('Invalid payment response. Missing payment URL.');
@@ -336,40 +240,16 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
       setPaymentUrl(data.payment_url);
       toast.success('Payment initiated successfully!');
       
-      // Store payment ID if available for reference
-      if (data.payment_id) {
-        console.log('Payment ID:', data.payment_id);
-        // You can store this in state if needed for tracking
-      }
-      
       // Refresh profile data after successful payment initiation
-      // Add a small delay to allow backend to process the payment
-      setTimeout(async () => {
-        console.log('Refreshing profile data after payment');
-        await fetchProfileData();
-      }, 1000);
+      setTimeout(() => fetchProfileData(), 1000);
     } catch (err) {
       console.error('Payment error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
       
-      // If authentication error, show login prompt
-      if ((err as Error).message.includes('Authentication required') || 
-          (err as Error).message.includes('Authentication failed')) {
-        setIsAuthenticated(false);
-        
-        // Clear token data
-        localStorage.removeItem('token');
-        localStorage.removeItem('token_refreshed_at');
-        document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-        
-        // Show message and redirect immediately
-        toast.error('Your session has expired. Please log in again.', { id: 'payment-processing' });
-        
-        // Redirect to login page immediately
-        const currentPath = window.location.pathname;
-        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+      // If authentication error, redirect to login
+      if ((err as Error).message.includes('Authentication failed')) {
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
       } else {
-        // Show toast for other errors
+        setError(err instanceof Error ? err.message : 'An error occurred');
         toast.error(err instanceof Error ? err.message : 'Payment failed. Please try again.', { id: 'payment-processing' });
       }
     } finally {
@@ -390,26 +270,6 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
   const handleClose = () => {
     resetModal();
     onClose();
-  };
-
-  // Handle login redirect
-  const handleLoginRedirect = () => {
-    // Close the modal
-    handleClose();
-    // Redirect to login page
-    window.location.href = '/login';
-  };
-
-  // Retry authentication and profile fetch
-  const handleRetryAuth = async () => {
-    setError(null);
-    const isAuth = checkAuthentication();
-    
-    if (isAuth) {
-      await fetchProfileData();
-    } else {
-      setError('Authentication required. Please log in.');
-    }
   };
 
   return (
@@ -458,36 +318,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                 )}
               </div>
 
-              {!isAuthenticated ? (
-                // Authentication required message
-                <div className="text-center space-y-3 sm:space-y-4 py-4 sm:py-6">
-                  <div className="flex justify-center mb-3 sm:mb-4">
-                    <div className="p-3 sm:p-4 rounded-full bg-white/5 text-[#00ffff]">
-                      <FiLock className="w-6 h-6 sm:w-8 sm:h-8" />
-                    </div>
-                  </div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white">Authentication Required</h3>
-                  <p className="text-sm sm:text-base text-white/60">
-                    You need to be logged in to make a purchase.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3 sm:mt-4">
-                    <button
-                      onClick={handleRetryAuth}
-                      className="py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl bg-white/5 text-white 
-                        hover:bg-white/10 border border-white/10 transition-all duration-200 text-sm sm:text-base"
-                    >
-                      Retry
-                    </button>
-                    <button
-                      onClick={handleLoginRedirect}
-                      className="py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
-                        hover:bg-[#00ffff]/20 border border-[#00ffff]/30 transition-all duration-200 text-sm sm:text-base"
-                    >
-                      Log In
-                    </button>
-                  </div>
-                </div>
-              ) : paymentUrl ? (
+              {paymentUrl ? (
                 // Payment URL display
                 <div className="text-center space-y-3 sm:space-y-4">
                   <div className="bg-[#0f1520] border border-[#00ffff]/20 rounded-xl p-4 sm:p-5 shadow-lg shadow-[#00ffff]/5 mb-4">
