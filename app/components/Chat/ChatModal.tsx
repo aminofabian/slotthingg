@@ -555,7 +555,67 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
                   key={msg.id}
                   className={`flex ${msg.is_player_sender ? 'justify-end' : 'justify-start'}`}
                 >
-                  {/* ... rest of your message rendering code ... */}
+                  {msg.type === 'message' ? (
+                    <div
+                      className={`max-w-[85%] sm:max-w-[75%] ${
+                        msg.is_player_sender
+                          ? 'bg-[#00ffff]/10 text-white shadow-lg shadow-[#00ffff]/5'
+                          : 'bg-[#00ffff]/20 text-white shadow-lg shadow-[#00ffff]/10'
+                      } rounded-2xl px-3 py-2 sm:px-4 sm:py-2 space-y-1 backdrop-blur-sm
+                      transition-all duration-300 hover:scale-[1.02]`}
+                    >
+                      <div className="text-sm sm:text-base break-words leading-relaxed">
+                        {msg.message}
+                      </div>
+                      
+                      {msg.attachments?.map((attachment) => (
+                        <div key={attachment.id} className="mt-2">
+                          {attachment.type === 'image' ? (
+                            <img 
+                              src={attachment.url} 
+                              alt={attachment.name}
+                              className="max-w-full rounded-lg shadow-lg"
+                            />
+                          ) : (
+                            <a 
+                              href={attachment.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-[#00ffff] hover:underline"
+                            >
+                              <IoDocument className="w-4 h-4" />
+                              <span>{attachment.name}</span>
+                            </a>
+                          )}
+                        </div>
+                      ))}
+
+                      <div className="flex items-center justify-between text-[0.65rem] text-white/40">
+                        <span>{formatTime(msg.sent_time)}</span>
+                        {msg.is_player_sender && (
+                          <div className="flex items-center gap-1">
+                            {msg.status === 'error' ? (
+                              <button
+                                onClick={() => retryMessage(msg.id)}
+                                className="flex items-center gap-1 text-red-400 hover:text-red-300"
+                              >
+                                <IoAlert className="w-4 h-4" />
+                                <IoRefresh className="w-3 h-3" />
+                              </button>
+                            ) : (
+                              <IoCheckmarkDone className={`w-4 h-4 ${
+                                msg.status === 'seen' ? 'text-[#00ffff]' : ''
+                              }`} />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-xs sm:text-sm text-white/40 py-2 italic">
+                      {msg.message}
+                    </div>
+                  )}
                 </motion.div>
               ))}
               <div ref={messagesEndRef} />
