@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 
-interface UseTypingProps {
-  ws: React.RefObject<WebSocket>;
+interface TypingHookProps {
+  ws: React.RefObject<WebSocket | null>;
   userId: string;
   userName: string;
   selectedAdmin: string | null;
@@ -23,7 +23,7 @@ export const useTyping = ({
   selectedAdmin,
   isWebSocketConnected,
   isUsingMockWebSocket
-}: UseTypingProps): UseTypingReturn => {
+}: TypingHookProps): UseTypingReturn => {
   const [isTyping, setIsTyping] = useState(false);
   const [isAdminTyping, setIsAdminTyping] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -47,9 +47,9 @@ export const useTyping = ({
     if (!isTyping && message.trim().length > 0) {
       setIsTyping(true);
       
-      if ((ws.current?.readyState === WebSocket.OPEN || isUsingMockWebSocket) && selectedAdmin) {
+      if (ws.current && (ws.current.readyState === WebSocket.OPEN || isUsingMockWebSocket) && selectedAdmin) {
         try {
-          ws.current?.send(JSON.stringify({
+          ws.current.send(JSON.stringify({
             type: "typing",
             sender: userId,
             sender_name: userName || 'User',
