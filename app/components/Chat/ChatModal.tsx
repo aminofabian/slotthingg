@@ -436,7 +436,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
         is_admin_recipient: !!selectedAdmin
       };
 
-      // Add the message to the local state
+      // Add the message to the local state at the end of the array
       setMessages(prev => [...prev, localMessage]);
       scrollToBottom();
 
@@ -539,20 +539,27 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
             />
 
             {/* Messages */}
-            <ChatMessages 
-              messages={messages}
-              isLoading={isLoading}
-              selectedAdmin={selectedAdmin}
-              userName={userName}
-              retryMessage={retryMessage}
-              showScrollToBottom={showScrollToBottom}
-              hasNewMessages={hasNewMessages}
-              scrollToBottom={scrollToBottom}
-              setNewMessage={setNewMessage}
-              messagesEndRef={messagesEndRef}
-              chatContainerRef={chatContainerRef}
-              availableAdmins={[{ id: selectedAdmin, name: 'Support' }]}
-            />
+            <div 
+              ref={chatContainerRef}
+              className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 
+                bg-gradient-to-b from-black/20 via-transparent to-transparent
+                scrollbar-thin scrollbar-thumb-[#00ffff]/10 scrollbar-track-transparent
+                flex flex-col-reverse"
+              style={{ maxHeight: 'calc(100vh - 160px)' }}
+            >
+              {messages.map((msg) => (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  key={msg.id}
+                  className={`flex ${msg.is_player_sender ? 'justify-end' : 'justify-start'}`}
+                >
+                  {/* ... rest of your message rendering code ... */}
+                </motion.div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
 
             {/* Typing Indicator */}
             <TypingIndicator 
