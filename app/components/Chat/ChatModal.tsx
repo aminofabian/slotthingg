@@ -60,8 +60,8 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [userStatus, setUserStatus] = useState<UserStatus[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [userId, setUserId] = useState<string>('14');
-  const [playerId, setPlayerId] = useState<string>('9');
+  const [userId, setUserId] = useState<string>('');
+  const [playerId, setPlayerId] = useState<string>('');
   const [userName, setUserName] = useState<string>('');
   const [selectedAdmin] = useState<string>('1'); // Default admin ID
   const [sentMessageIds, setSentMessageIds] = useState<Set<string>>(new Set());
@@ -140,32 +140,42 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     const isLocalStorageAvailable = typeof window !== 'undefined' && window.localStorage;
     
     if (isLocalStorageAvailable) {
-      // Get player ID first since this determines the chat room
-      const storedPlayerId = localStorage.getItem('player_id');
-      if (storedPlayerId) {
-        console.log('Setting player ID:', storedPlayerId);
-        setPlayerId(storedPlayerId);
-      } else {
-        // If no player_id, try to get it from user profile
-        try {
-          const userProfileStr = localStorage.getItem('user_profile');
-          if (userProfileStr) {
-            const userProfile = JSON.parse(userProfileStr);
-            if (userProfile && userProfile.player_id) {
-              console.log('Setting player ID from profile:', userProfile.player_id);
-              setPlayerId(String(userProfile.player_id));
-            }
+      try {
+        // Try to get user info from user_profile first
+        const userProfileStr = localStorage.getItem('user_profile');
+        if (userProfileStr) {
+          const userProfile = JSON.parse(userProfileStr);
+          if (userProfile) {
+            // Get the user's actual ID
+            const id = String(userProfile.id || userProfile.user_id);
+            console.log('Setting user info from profile:', { id, name: userProfile.username });
+            
+            setUserId(id);
+            setPlayerId(id); // Use the same ID for both
+            setUserName(userProfile.username || userProfile.name || '');
+            return; // Exit if we found the info
           }
-        } catch (error) {
-          console.warn('Error parsing user profile:', error);
         }
-      }
 
-      // Get user ID (this is for message sending)
-      const storedUserId = localStorage.getItem('user_id');
-      if (storedUserId) {
-        console.log('Setting user ID:', storedUserId);
-        setUserId(storedUserId);
+        // Fallback to individual storage items if profile not found
+        const storedUserId = localStorage.getItem('user_id');
+        const storedPlayerId = localStorage.getItem('player_id');
+        
+        if (storedUserId) {
+          console.log('Setting user ID from storage:', storedUserId);
+          setUserId(storedUserId);
+        }
+        
+        if (storedPlayerId) {
+          console.log('Setting player ID from storage:', storedPlayerId);
+          setPlayerId(storedPlayerId);
+        } else if (storedUserId) {
+          // If no player_id but we have user_id, use that
+          console.log('Using user ID as player ID:', storedUserId);
+          setPlayerId(storedUserId);
+        }
+      } catch (error) {
+        console.error('Error loading user/player IDs:', error);
       }
     }
   }, []);
@@ -235,6 +245,13 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       setIsLoading(true);
       const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
       
+      console.log('Fetching chat history with params:', {
+        whitelabel_admin_uuid,
+        userId,
+        playerId,
+        userName
+      });
+      
       // Check if the endpoint is accessible
       try {
       const response = await fetch(`/api/chat/history?whitelabel_admin_uuid=${whitelabel_admin_uuid}`, {
@@ -243,10 +260,13 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
 
         if (response.ok) {
           const data = await response.json();
+          console.log('Chat history response:', data);
           setMessages(data.results);
         } else {
-          // If the endpoint returns an error, use empty messages array
-          console.warn(`Chat history endpoint returned ${response.status}. Using empty chat history.`);
+          console.warn('Chat history response error:', {
+            status: response.status,
+            statusText: response.statusText
+          });
           setMessages([]);
         }
       } catch (error) {
@@ -365,14 +385,20 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     if (!newMessage.trim() && !selectedFile) return;
 
     try {
-      // Add this debug logging
-      console.log('Current user name:', userName);
-      console.log('localStorage contents:', {
-        user_session: localStorage.getItem('user_session'),
-        user_profile: localStorage.getItem('user_profile'),
-        username: localStorage.getItem('username'),
-        current_username: localStorage.getItem('current_username'),
-        user_name: localStorage.getItem('user_name')
+      // Debug logging for user context
+      console.log('Sending message with context:', {
+        userId,
+        playerId,
+        userName,
+        selectedAdmin,
+        localStorage: {
+          user_session: localStorage.getItem('user_session'),
+          user_profile: localStorage.getItem('user_profile'),
+          username: localStorage.getItem('username'),
+          current_username: localStorage.getItem('current_username'),
+          user_name: localStorage.getItem('user_name'),
+          whitelabel_admin_uuid: localStorage.getItem('whitelabel_admin_uuid')
+        }
       });
 
       let isFile = false;
@@ -381,15 +407,21 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       
       if (selectedFile) {
         try {
+          console.log('Uploading file:', {
+            name: selectedFile.name,
+            type: selectedFile.type,
+            size: selectedFile.size
+          });
           fileUrl = await uploadFile(selectedFile);
           isFile = true;
-        attachments.push({
-          id: Date.now().toString(),
-          type: selectedFile.type.startsWith('image/') ? 'image' : 'file',
-          url: fileUrl,
-          name: selectedFile.name,
-          size: selectedFile.size
-        });
+          attachments.push({
+            id: Date.now().toString(),
+            type: selectedFile.type.startsWith('image/') ? 'image' : 'file',
+            url: fileUrl,
+            name: selectedFile.name,
+            size: selectedFile.size
+          });
+          console.log('File upload successful:', { fileUrl, attachments });
         } catch (error) {
           console.error('Error uploading file:', error);
           wsSetShowConnectionToast(true);
@@ -440,22 +472,29 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       setMessages(prev => [...prev, localMessage]);
       scrollToBottom();
 
+      // Create the message payload
+      const messagePayload = {
+        type: "message",
+        id: messageId,
+        message: currentMessage,
+        sender_id: userId,
+        sender_name: userName || localStorage.getItem('current_username') || 'Unknown User',
+        sent_time: messageTimestamp,
+        is_player_sender: true,
+        is_file: isFile,
+        file: fileUrl,
+        recipient_id: selectedAdmin,
+        is_admin_recipient: !!selectedAdmin,
+        attachments
+      };
+
+      console.log('Sending WebSocket message:', messagePayload);
+
       // Send the message via WebSocket
       if (ws.current?.readyState === WebSocket.OPEN || isUsingMockWebSocket) {
         try {
-          ws.current?.send(JSON.stringify({
-            type: "message",
-            id: messageId,
-            message: currentMessage,
-            sender_id: userId,
-            sender_name: userName || localStorage.getItem('current_username') || 'Unknown User',
-            sent_time: messageTimestamp,
-            is_player_sender: true,
-            is_file: isFile,
-            file: fileUrl,
-            recipient_id: selectedAdmin,
-            is_admin_recipient: !!selectedAdmin
-          }));
+          ws.current?.send(JSON.stringify(messagePayload));
+          console.log('WebSocket message sent successfully');
         } catch (error) {
           console.error('Error sending message via WebSocket:', error);
           setMessages(prev => 
@@ -544,7 +583,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
               className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 
                 bg-gradient-to-b from-black/20 via-transparent to-transparent
                 scrollbar-thin scrollbar-thumb-[#00ffff]/10 scrollbar-track-transparent
-                flex flex-col-reverse"
+                flex flex-col"
               style={{ maxHeight: 'calc(100vh - 160px)' }}
             >
               {messages.map((msg) => (
