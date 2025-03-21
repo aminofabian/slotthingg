@@ -79,7 +79,7 @@ export default function DashboardSlider() {
           }}
           modules={[Autoplay, Pagination, Navigation, EffectFade]}
           effect="fade"
-          className="w-full h-[200px] sm:h-[300px] md:h-[350px] lg:h-[400px] xl:h-[450px] 2xl:h-[500px] rounded-2xl
+          className="w-full h-[150px] sm:h-[200px] md:h-[250px] lg:h-[300px] xl:h-[350px] 2xl:h-[400px] rounded-2xl
             [&_.swiper-pagination]:!bottom-8
             [&_.swiper-pagination-bullet-active]:!bg-[#00ffff]
             [&_.swiper-pagination-bullet-active]:!scale-150
