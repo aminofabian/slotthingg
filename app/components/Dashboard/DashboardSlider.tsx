@@ -54,7 +54,7 @@ const slides = [
 
 export default function DashboardSlider() {
   return (
-    <div className="relative w-full overflow-hidden mb-8">
+    <div className="relative w-full overflow-hidden mb-8 mt-6 sm:mt-8 lg:mt-16">
       <div className="max-w-none mx-auto">
         <Swiper
           spaceBetween={0}
@@ -117,71 +117,73 @@ export default function DashboardSlider() {
                     group-hover:scale-105"
                   style={{ 
                     backgroundImage: `url(${slide.image})`,
-                    filter: 'brightness(0.7) contrast(1.1) saturate(1.3)',
+                    filter: 'brightness(0.5) contrast(1.2)',
                   }}
                 />
                 
                 {/* Dynamic Gradient Overlay */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} 
-                  mix-blend-overlay opacity-40 group-hover:opacity-60 transition-all duration-700`} />
+                  mix-blend-overlay opacity-60 group-hover:opacity-70 transition-all duration-700`} />
                 
                 {/* Content Container with Strategic Positioning */}
-                <div className="absolute inset-0 flex items-end justify-start p-8 sm:p-12 md:p-16 lg:p-20">
+                <div className="absolute inset-0 flex items-end sm:items-center justify-start p-4 sm:p-8 md:p-12 lg:p-16">
                   <motion.div 
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.7, ease: "easeOut" }}
-                    className={`${righteous.className} relative flex flex-col items-start max-w-[600px]`}
+                    className={`${righteous.className} relative flex flex-col items-start max-w-[600px] py-4`}
                   >
                     {/* Enhanced Icon with Pulse Effect */}
-                    <div className="mb-4 sm:mb-6 transform group-hover:scale-125 transition-transform duration-700">
+                    <div className="mb-2 sm:mb-4 transform group-hover:scale-125 transition-transform duration-700">
                       <div className="relative">
-                        <slide.icon className="w-12 h-12 sm:w-16 sm:h-16 text-white opacity-90
+                        <slide.icon className="w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 text-white
                           animate-float" />
-                        <div className="absolute inset-0 blur-xl bg-white/20 scale-150
-                          animate-pulse-slow" style={{ boxShadow: `0 0 40px ${slide.glowColor}` }} />
+                        <div className="absolute inset-0 scale-150" 
+                          style={{ boxShadow: `0 0 30px ${slide.glowColor}` }} />
                       </div>
                     </div>
                     
                     {/* Enhanced Subtitle */}
-                    <div className="text-sm sm:text-base tracking-[0.4em] text-white mb-2
-                      animate-pulse-text font-bold" style={{ textShadow: `0 0 10px ${slide.glowColor}` }}>
+                    <div className="text-[10px] sm:text-xs md:text-sm lg:text-base tracking-[0.3em] text-white mb-1 sm:mb-2
+                      font-bold" style={{ textShadow: `2px 2px 4px rgba(0,0,0,0.8), 0 0 10px ${slide.glowColor}` }}>
                       {slide.subtitle}
                     </div>
                     
                     {/* Enhanced Split Title with Animation */}
-                    <div className="mb-3 sm:mb-4">
+                    <div className="mb-2 sm:mb-3">
                       {slide.title.map((part, index) => (
-                        <h2 key={index} className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black 
-                          text-white tracking-wider leading-tight
+                        <h2 key={index} className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-black 
+                          text-white tracking-wide sm:tracking-wider leading-tight
                           group-hover:tracking-widest transition-all duration-700" 
-                          style={{ textShadow: `0 0 30px rgba(0,0,0,0.8), 0 0 20px ${slide.glowColor}` }}>
+                          style={{ textShadow: `2px 2px 4px rgba(0,0,0,0.9), 0 0 20px ${slide.glowColor}` }}>
                           {part}
                         </h2>
                       ))}
                     </div>
                     
                     {/* Enhanced Decorative Line */}
-                    <div className="w-32 h-1 bg-gradient-to-r from-white via-white to-transparent 
-                      mb-4 group-hover:w-48 transition-all duration-700" />
+                    <div className="w-16 sm:w-24 md:w-32 h-0.5 sm:h-1 bg-gradient-to-r from-white via-white to-transparent 
+                      mb-2 sm:mb-4 group-hover:w-40 transition-all duration-700" />
                     
-                    {/* Enhanced Description with Minimal Glass Effect */}
-                    <div className="relative bg-black/40 backdrop-blur-sm rounded-xl p-4 
+                    {/* Enhanced Description with Solid Background */}
+                    <div className="relative bg-black/70 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 
                       transform group-hover:translate-x-4 transition-all duration-700
-                      border border-white/20 max-w-lg">
-                      <p className="text-base sm:text-lg text-white text-left font-medium">
+                      border border-white/30 max-w-lg">
+                      <p className="text-xs sm:text-sm md:text-base lg:text-lg text-white text-left font-medium"
+                         style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
                         {slide.description}
                       </p>
                     </div>
 
                     {/* Enhanced CTA Button */}
-                    <button className="mt-6 px-8 py-3 bg-white/20 backdrop-blur-sm text-white rounded-xl
-                      border border-white/40 hover:border-white/80 
-                      transition-all duration-500 text-base sm:text-lg font-bold
-                      transform hover:translate-x-4 group-hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]
+                    <button className="mt-3 sm:mt-4 md:mt-6 px-4 sm:px-6 md:px-8 py-1.5 sm:py-2 md:py-3 
+                      bg-black/80 text-white rounded-lg sm:rounded-xl
+                      border-2 border-white/40 hover:border-white 
+                      transition-all duration-500 text-xs sm:text-sm md:text-base lg:text-lg font-bold
+                      transform hover:translate-x-4 hover:bg-black group-hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]
                       relative overflow-hidden">
                       <span className="relative z-10">{slide.cta}</span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent
                         translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                     </button>
                   </motion.div>
@@ -189,7 +191,7 @@ export default function DashboardSlider() {
 
                 {/* Subtle Bottom Gradient */}
                 <div className="absolute bottom-0 left-0 right-0 h-1/2 
-                  bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+                  bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
               </div>
             </SwiperSlide>
           ))}
