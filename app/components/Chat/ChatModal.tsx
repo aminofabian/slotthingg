@@ -597,12 +597,12 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
                 >
                   {msg.type === 'message' ? (
                     <div
-                      className={`max-w-[85%] sm:max-w-[75%] ${
+                      className={`max-w-[85%] sm:max-w-[75%] relative ${
                         msg.is_player_sender
-                          ? 'bg-[#00ffff]/10 text-white shadow-lg shadow-[#00ffff]/5'
-                          : 'bg-gradient-to-br from-[#ff00ff]/20 via-[#9400d3]/20 to-[#4b0082]/20 text-white shadow-lg shadow-[#ff00ff]/10'
-                      } rounded-2xl px-3 py-2 sm:px-4 sm:py-2 space-y-1 backdrop-blur-sm
-                      transition-all duration-300 hover:scale-[1.02]`}
+                          ? 'bg-[#00ffff]/10 text-white shadow-lg shadow-[#00ffff]/5 rounded-tl-2xl rounded-tr-none rounded-bl-2xl rounded-br-2xl before:content-[""] before:absolute before:top-0 before:right-0 before:border-8 before:border-transparent before:border-t-[#00ffff]/10 before:border-r-[#00ffff]/10'
+                          : 'bg-gradient-to-br from-[#ff00ff]/20 via-[#9400d3]/20 to-[#4b0082]/20 text-white shadow-lg shadow-[#ff00ff]/10 rounded-tl-none rounded-tr-2xl rounded-bl-2xl rounded-br-2xl before:content-[""] before:absolute before:top-0 before:left-0 before:border-8 before:border-transparent before:border-t-[#ff00ff]/20 before:border-l-[#ff00ff]/20'
+                      } px-3 py-2 sm:px-4 sm:py-2 space-y-1 backdrop-blur-sm
+                      transition-all duration-300 hover:scale-[1.02] border border-white/5`}
                     >
                       <div className="text-sm sm:text-base break-words leading-relaxed">
                         {msg.message}
