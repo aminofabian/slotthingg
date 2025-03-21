@@ -2,9 +2,11 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { fetchDashboardData } from '@/lib/auth';
 import ClientLayout from './ClientLayout';
 import { useSessionExpiration } from './hooks/useSessionExpiration';
+import { isProtectedRoute } from '@/lib/routes';
 
 const queryClient = new QueryClient();
 
@@ -13,8 +15,12 @@ export default function RootClientLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Set up session expiration handling
-  useSessionExpiration();
+  const pathname = usePathname();
+  
+  // Only use session expiration on protected routes
+  if (isProtectedRoute(pathname)) {
+    useSessionExpiration();
+  }
 
   useEffect(() => {
     const initDashboard = async () => {
@@ -25,8 +31,11 @@ export default function RootClientLayout({
       }
     };
 
-    initDashboard();
-  }, []);
+    // Only initialize dashboard on protected routes
+    if (isProtectedRoute(pathname)) {
+      initDashboard();
+    }
+  }, [pathname]);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { isAuthRoute } from '@/lib/routes';
+import { isAuthRoute, isProtectedRoute } from '@/lib/routes';
 
 // Static flag to prevent multiple initializations
 let isInitialized = false;
@@ -12,8 +12,8 @@ export function useSessionExpiration() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Skip for auth routes
-    if (isAuthRoute(pathname)) {
+    // Skip for auth routes and non-protected routes
+    if (isAuthRoute(pathname) || !isProtectedRoute(pathname)) {
       return;
     }
 
