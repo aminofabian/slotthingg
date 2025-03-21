@@ -139,25 +139,26 @@ export const useWebSocket = ({
               is_admin_recipient: data.is_admin_recipient
             };
 
-            // Always add messages from others, and update status for own messages
+            // Update messages while preventing duplicates
             setMessages(prev => {
-              // Check if this is an update to an existing message
-              const existingMessageIndex = prev.findIndex(msg => msg.id === newMessage.id);
+              // Check if message already exists by ID or content+timestamp
+              const exists = prev.some(msg => 
+                msg.id === newMessage.id || 
+                (msg.sent_time === newMessage.sent_time && msg.message === newMessage.message)
+              );
               
-              if (existingMessageIndex !== -1) {
-                // Update existing message status
-                const updatedMessages = [...prev];
-                updatedMessages[existingMessageIndex] = {
-                  ...updatedMessages[existingMessageIndex],
-                  status: newMessage.status
-                };
-                return updatedMessages;
+              if (exists) {
+                // If message exists, only update its status if needed
+                return prev.map(msg => 
+                  msg.id === newMessage.id ? { ...msg, status: newMessage.status } : msg
+                );
               }
               
               // Add new message and sort
               const updatedMessages = [...prev, newMessage].sort((a, b) => 
                 new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
               );
+              
               return updatedMessages;
             });
           }

@@ -268,24 +268,29 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
           console.log('Chat history response:', data);
 
           if (Array.isArray(data.results)) {
-            // Create a Map to track unique messages by ID
+            // Create a Map to track unique messages by ID and content
             const uniqueMessages = new Map();
             
-            // Process each message and only keep the latest version of each message ID
+            // Process each message and only keep the latest version
             data.results.forEach((msg: ChatMessageData) => {
               const messageId = typeof msg.id === 'string' ? parseInt(msg.id) : msg.id;
-              uniqueMessages.set(messageId, {
-                ...msg,
-                id: messageId,
-                sender: typeof msg.sender === 'string' ? parseInt(msg.sender) : msg.sender,
-                sent_time: msg.sent_time || new Date().toISOString(),
-                is_file: msg.is_file || false,
-                is_tip: msg.is_tip || false,
-                is_comment: msg.is_comment || false,
-                status: msg.status || 'delivered',
-                attachments: msg.attachments || [],
-                recipient_id: msg.recipient_id ? String(msg.recipient_id) : undefined,
-              });
+              const messageKey = `${messageId}-${msg.sent_time}-${msg.message}`;
+              
+              // Only add if we haven't seen this message before
+              if (!uniqueMessages.has(messageKey)) {
+                uniqueMessages.set(messageKey, {
+                  ...msg,
+                  id: messageId,
+                  sender: typeof msg.sender === 'string' ? parseInt(msg.sender) : msg.sender,
+                  sent_time: msg.sent_time || new Date().toISOString(),
+                  is_file: msg.is_file || false,
+                  is_tip: msg.is_tip || false,
+                  is_comment: msg.is_comment || false,
+                  status: msg.status || 'delivered',
+                  attachments: msg.attachments || [],
+                  recipient_id: msg.recipient_id ? String(msg.recipient_id) : undefined,
+                });
+              }
             });
 
             // Convert Map back to array and sort by timestamp
@@ -294,7 +299,15 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
             );
 
             console.log(`Loaded ${processedMessages.length} unique messages`);
+            
+            // Clear any existing messages to prevent duplicates
             setMessages(processedMessages);
+            
+            // Mark all loaded messages as processed
+            processedMessages.forEach(msg => {
+              const messageKey = `${msg.id}-${msg.sent_time}`;
+              processedMessageIds.current.add(messageKey);
+            });
           } else {
             console.warn('Invalid chat history format:', data);
             setMessages([]);
