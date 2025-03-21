@@ -87,7 +87,8 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     userId,
     userName,
     playerId,
-    selectedAdmin
+    selectedAdmin,
+    setMessages
   });
 
   const {
@@ -435,7 +436,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       const messageTimestamp = new Date().toISOString();
 
       // Skip if we've already processed this message
-      if (hasProcessedMessage(messageId)) {
+      if (hasProcessedMessage(messageId.toString())) {
         console.log('Preventing duplicate message send:', messageText);
         return;
       }
@@ -447,7 +448,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       setSelectedFile(null);
 
       // Mark this message as processed immediately
-      markMessageAsProcessed(messageId);
+      markMessageAsProcessed(messageId.toString());
 
       // Create a message object for the local state
       const localMessage: ChatMessage = {

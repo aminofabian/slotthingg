@@ -6,6 +6,7 @@ interface WebSocketHookProps {
   userName: string;
   playerId: string;
   selectedAdmin: string | null;
+  setMessages: React.Dispatch<React.SetStateAction<ChatMessageData[]>>;
 }
 
 interface WebSocketHookReturn {
@@ -25,7 +26,8 @@ export const useWebSocket = ({
   userId,
   userName,
   playerId,
-  selectedAdmin
+  selectedAdmin,
+  setMessages
 }: WebSocketHookProps): WebSocketHookReturn => {
   const ws = useRef<WebSocket | null>(null);
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
@@ -80,8 +82,40 @@ export const useWebSocket = ({
         try {
           const data = JSON.parse(event.data);
           console.log('WebSocket message received:', data);
+          
           if (data.type === 'pong') {
             console.log('Received pong from server');
+            return;
+          }
+          
+          if (data.type === 'message' && !processedMessageIds.current.has(data.id)) {
+            processedMessageIds.current.add(data.id);
+            
+            const newMessage: ChatMessageData = {
+              id: typeof data.id === 'string' ? parseInt(data.id) : data.id,
+              type: data.type,
+              message: data.message,
+              sender: parseInt(data.sender_id),
+              sender_name: data.sender_name,
+              sent_time: data.sent_time || new Date().toISOString(),
+              is_file: data.is_file || false,
+              file: data.file,
+              is_player_sender: data.is_player_sender,
+              is_tip: data.is_tip || false,
+              is_comment: data.is_comment || false,
+              status: 'delivered',
+              attachments: data.attachments || [],
+              recipient_id: data.recipient_id ? parseInt(data.recipient_id) : undefined,
+              is_admin_recipient: data.is_admin_recipient
+            };
+
+            setMessages(prev => {
+              // Sort messages by timestamp to maintain order
+              const updatedMessages = [...prev, newMessage].sort((a, b) => 
+                new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
+              );
+              return updatedMessages;
+            });
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -116,7 +150,7 @@ export const useWebSocket = ({
       setConnectionStatus('disconnected');
       isConnecting.current = false;
     }
-  }, [playerId]);
+  }, [playerId, setMessages]);
 
   useEffect(() => {
     if (playerId) {
