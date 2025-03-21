@@ -351,47 +351,49 @@ export default function DashboardContent() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 px-4">
               {games.map((game) => (
                 <button
                   key={game.id}
                   onClick={() => handleGameSelect(game)}
-                  className="relative bg-gradient-to-br from-gray-900 via-black to-gray-900 
-                    rounded-xl overflow-hidden shadow-lg border border-[#7ffdfd]/20
-                    hover:border-[#7ffdfd]/40 transition-all duration-300
-                    [box-shadow:0_0_10px_rgba(127,253,253,0.1)]
-                    hover:[box-shadow:0_0_15px_rgba(127,253,253,0.2)]
-                    group text-left"
+                  className="group relative bg-[#1E1E30]
+                    rounded-2xl overflow-hidden
+                    transition-all duration-200
+                    hover:-translate-y-1 active:translate-y-0
+                    aspect-square
+                    shadow-[0_8px_0_0_#141421,0_15px_20px_-5px_rgba(0,0,0,0.3)]
+                    active:shadow-[0_4px_0_0_#141421,0_8px_10px_-5px_rgba(0,0,0,0.3)]
+                    border border-white/[0.05]
+                    active:border-white/[0.02]"
                 >
+                  {/* Inner content container with gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.07] to-transparent">
+                    {/* Shine effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 
+                      transition-opacity duration-300 bg-gradient-to-t from-transparent via-white/[0.05] to-transparent" />
+                  </div>
+                  
                   {/* Game Image Container */}
-                  <div className="relative aspect-square overflow-hidden bg-gray-900">
+                  <div className="relative w-full h-full p-5">
                     <Image
                       src={game.image}
                       alt={game.name}
                       fill
-                      className="object-cover object-center transform group-hover:scale-110 transition-transform duration-300"
-                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16.67vw"
-                      priority={game.id <= '6'} // Only prioritize first 6 images
+                      className="object-contain drop-shadow-lg transition-transform duration-200
+                        group-hover:scale-110 group-active:scale-95"
+                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16.67vw"
+                      priority={game.id <= '6'}
                       onLoad={handleImageLoad}
-                      onError={handleImageLoad} // Count failed loads too
+                      onError={handleImageLoad}
                     />
-                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors duration-300" />
                   </div>
 
-                  {/* Game Info */}
-                  <div className="p-3">
-                    <h3 className="text-sm font-bold text-white mb-1 truncate">
+                  {/* Game name label */}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent
+                    py-3">
+                    <p className="text-white text-sm font-medium text-center truncate px-3">
                       {game.name}
-                    </h3>
-                    <div className="flex items-center justify-between">
-                      <p className="text-[#7ffdfd] font-medium text-sm">
-                        $ {game.balance}
-                      </p>
-                      <div className="flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 bg-[#7ffdfd] rounded-full animate-pulse"></div>
-                        <span className="text-[#7ffdfd] text-xs">Active</span>
-                      </div>
-                    </div>
+                    </p>
                   </div>
                 </button>
               ))}
