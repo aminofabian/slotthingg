@@ -43,7 +43,9 @@ export default function DashboardPage() {
           {/* Main Content */}
           <main className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-900 to-[#0f172a] pb-16 lg:pb-0">
             <div className="lg:pl-72 w-full">
-              <DashboardContent />
+              <div className="px-6 lg:px-12 xl:px-16 2xl:px-24">
+                <DashboardContent />
+              </div>
             </div>
           </main>
 

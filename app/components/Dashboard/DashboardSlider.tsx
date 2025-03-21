@@ -51,7 +51,7 @@ const slides = [
 
 export default function DashboardSlider() {
   return (
-    <div className="relative w-full overflow-hidden mb-8 px-4">
+    <div className="relative w-full overflow-hidden mb-8">
       <div className="max-w-none mx-auto">
         <Swiper
           spaceBetween={0}
