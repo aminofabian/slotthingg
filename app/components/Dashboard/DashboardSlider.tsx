@@ -54,7 +54,7 @@ const slides = [
 
 export default function DashboardSlider() {
   return (
-    <div className="relative w-full overflow-hidden mb-8 mt-6 sm:mt-8 lg:mt-16">
+    <div className="relative w-full overflow-hidden mb-4 mt-0 sm:mb-8 sm:mt-6 lg:mt-16">
       <div className="max-w-none mx-auto">
         <Swiper
           spaceBetween={0}
@@ -67,7 +67,7 @@ export default function DashboardSlider() {
             clickable: true,
             renderBullet: function(index: number, className: string) {
               const colors = ['#00ffff', '#ffd700', '#ff00ff'];
-              return `<span class="${className} !w-4 !h-4 !bg-white/20 !opacity-100 !mx-2 transition-all duration-300 
+              return `<span class="${className} !w-2 !h-2 sm:!w-4 sm:!h-4 !bg-white/20 !opacity-100 !mx-1 sm:!mx-2 transition-all duration-300 
                 hover:!scale-150 hover:!shadow-[0_0_15px_${colors[index]}] cursor-pointer
                 before:content-[''] before:absolute before:inset-0 before:rounded-full before:animate-ping 
                 before:bg-${colors[index]}/30"></span>`;
@@ -79,51 +79,40 @@ export default function DashboardSlider() {
           }}
           modules={[Autoplay, Pagination, Navigation, EffectFade]}
           effect="fade"
-          className="w-full h-[150px] sm:h-[200px] md:h-[250px] lg:h-[300px] xl:h-[350px] 2xl:h-[400px] rounded-2xl
-            [&_.swiper-pagination]:!bottom-8
-            [&_.swiper-pagination-bullet-active]:!bg-[#00ffff]
-            [&_.swiper-pagination-bullet-active]:!scale-150
-            [&_.swiper-pagination-bullet-active]:!shadow-[0_0_20px_rgba(0,255,255,0.7)]
-            shadow-[0_0_50px_rgba(0,255,255,0.2)]
-            before:content-[''] before:absolute before:inset-0 before:z-[-1]
-            before:bg-[radial-gradient(circle,rgba(0,255,255,0.1)_0%,transparent_70%)]"
+          className="w-full h-[120px] sm:h-[200px] md:h-[250px] lg:h-[300px] xl:h-[350px] 2xl:h-[400px] rounded-lg sm:rounded-2xl
+            [&_.swiper-pagination]:!bottom-4 sm:[&_.swiper-pagination]:!bottom-8
+            [&_.swiper-pagination-bullet-active]:!bg-white
+            [&_.swiper-pagination-bullet-active]:!scale-100
+            shadow-none"
         >
           {/* Custom Navigation Buttons */}
-          <button className="custom-swiper-prev absolute left-4 top-1/2 -translate-y-1/2 z-10
-            w-14 h-14 bg-black/40 rounded-full backdrop-blur-md
-            border-2 border-white/20 text-white hover:text-[#00ffff] hover:border-[#00ffff]
-            hover:bg-black/60 transition-all duration-300 flex items-center justify-center group
-            hover:scale-110 hover:shadow-[0_0_20px_rgba(0,255,255,0.4)]">
-            <FaChevronLeft className="w-6 h-6" />
-            <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100
-              transition-opacity duration-300 bg-[#00ffff]/20 animate-pulse" />
+          <button className="custom-swiper-prev absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10
+            w-8 h-8 sm:w-10 sm:h-10 bg-black/40 rounded-full
+            border border-white/20 text-white/70
+            flex items-center justify-center">
+            <FaChevronLeft className="w-4 h-4" />
           </button>
-          <button className="custom-swiper-next absolute right-4 top-1/2 -translate-y-1/2 z-10
-            w-14 h-14 bg-black/40 rounded-full backdrop-blur-md
-            border-2 border-white/20 text-white hover:text-[#00ffff] hover:border-[#00ffff]
-            hover:bg-black/60 transition-all duration-300 flex items-center justify-center group
-            hover:scale-110 hover:shadow-[0_0_20px_rgba(0,255,255,0.4)]">
-            <FaChevronRight className="w-6 h-6" />
-            <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100
-              transition-opacity duration-300 bg-[#00ffff]/20 animate-pulse" />
+          <button className="custom-swiper-next absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10
+            w-8 h-8 sm:w-10 sm:h-10 bg-black/40 rounded-full
+            border border-white/20 text-white/70
+            flex items-center justify-center">
+            <FaChevronRight className="w-4 h-4" />
           </button>
 
           {slides.map((slide) => (
             <SwiperSlide key={slide.id} className="relative">
-              <div className="relative w-full h-full group cursor-pointer">
+              <div className="relative w-full h-full">
                 {/* Background Image with Enhanced Effects */}
                 <div 
-                  className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-1000
-                    group-hover:scale-105"
+                  className="absolute inset-0 bg-cover bg-center bg-no-repeat"
                   style={{ 
                     backgroundImage: `url(${slide.image})`,
-                    filter: 'brightness(0.5) contrast(1.2)',
+                    filter: 'brightness(0.5)',
                   }}
                 />
                 
-                {/* Dynamic Gradient Overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${slide.gradient} 
-                  mix-blend-overlay opacity-60 group-hover:opacity-70 transition-all duration-700`} />
+                {/* Simple Gradient Overlay */}
+                <div className="absolute inset-0 bg-black/20" />
                 
                 {/* Content Container with Strategic Positioning */}
                 <div className="absolute inset-0 flex items-end sm:items-center justify-start p-4 sm:p-8 md:p-12 lg:p-16">
@@ -131,21 +120,19 @@ export default function DashboardSlider() {
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.7, ease: "easeOut" }}
-                    className={`${righteous.className} relative flex flex-col items-start max-w-[600px] py-4`}
+                    className={`${righteous.className} relative hidden sm:flex sm:flex-col items-start max-w-[600px] py-4`}
                   >
                     {/* Enhanced Icon with Pulse Effect */}
                     <div className="mb-2 sm:mb-4 transform group-hover:scale-125 transition-transform duration-700">
                       <div className="relative">
                         <slide.icon className="w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 text-white
                           animate-float" />
-                        <div className="absolute inset-0 scale-150" 
-                          style={{ boxShadow: `0 0 30px ${slide.glowColor}` }} />
                       </div>
                     </div>
                     
                     {/* Enhanced Subtitle */}
                     <div className="text-[10px] sm:text-xs md:text-sm lg:text-base tracking-[0.3em] text-white mb-1 sm:mb-2
-                      font-bold" style={{ textShadow: `2px 2px 4px rgba(0,0,0,0.8), 0 0 10px ${slide.glowColor}` }}>
+                      font-bold">
                       {slide.subtitle}
                     </div>
                     
@@ -154,8 +141,7 @@ export default function DashboardSlider() {
                       {slide.title.map((part, index) => (
                         <h2 key={index} className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-black 
                           text-white tracking-wide sm:tracking-wider leading-tight
-                          group-hover:tracking-widest transition-all duration-700" 
-                          style={{ textShadow: `2px 2px 4px rgba(0,0,0,0.9), 0 0 20px ${slide.glowColor}` }}>
+                          group-hover:tracking-widest transition-all duration-700">
                           {part}
                         </h2>
                       ))}
@@ -169,8 +155,7 @@ export default function DashboardSlider() {
                     <div className="relative bg-black/70 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 
                       transform group-hover:translate-x-4 transition-all duration-700
                       border border-white/30 max-w-lg">
-                      <p className="text-xs sm:text-sm md:text-base lg:text-lg text-white text-left font-medium"
-                         style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
+                      <p className="text-xs sm:text-sm md:text-base lg:text-lg text-white text-left font-medium">
                         {slide.description}
                       </p>
                     </div>
@@ -183,8 +168,6 @@ export default function DashboardSlider() {
                       transform hover:translate-x-4 hover:bg-black group-hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]
                       relative overflow-hidden">
                       <span className="relative z-10">{slide.cta}</span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent
-                        translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                     </button>
                   </motion.div>
                 </div>
