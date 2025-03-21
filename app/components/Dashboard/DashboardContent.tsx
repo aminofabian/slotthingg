@@ -351,36 +351,36 @@ export default function DashboardContent() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 px-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 px-6">
               {games.map((game) => (
                 <button
                   key={game.id}
                   onClick={() => handleGameSelect(game)}
                   className="group relative bg-[#1E1E30]
-                    rounded-2xl overflow-hidden
-                    transition-all duration-200
-                    hover:-translate-y-1 active:translate-y-0
+                    rounded-3xl overflow-hidden
+                    transition-all duration-300
+                    hover:-translate-y-2
                     aspect-square
-                    shadow-[0_8px_0_0_#141421,0_15px_20px_-5px_rgba(0,0,0,0.3)]
-                    active:shadow-[0_4px_0_0_#141421,0_8px_10px_-5px_rgba(0,0,0,0.3)]
-                    border border-white/[0.05]
-                    active:border-white/[0.02]"
+                    shadow-[0_0_20px_rgba(0,0,0,0.2)]
+                    hover:shadow-[0_0_30px_rgba(127,253,253,0.2)]
+                    border border-white/[0.08]
+                    hover:border-[#7ffdfd]/20"
                 >
-                  {/* Inner content container with gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.07] to-transparent">
-                    {/* Shine effect */}
-                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 
-                      transition-opacity duration-300 bg-gradient-to-t from-transparent via-white/[0.05] to-transparent" />
-                  </div>
+                  {/* Shine effect */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 
+                    transition-all duration-500
+                    bg-[radial-gradient(circle_at_50%_-20%,rgba(127,253,253,0.15),transparent_70%)]" />
                   
                   {/* Game Image Container */}
-                  <div className="relative w-full h-full p-5">
+                  <div className="relative w-full h-full p-6 transition-transform duration-300
+                    group-hover:scale-105">
                     <Image
                       src={game.image}
                       alt={game.name}
                       fill
-                      className="object-contain drop-shadow-lg transition-transform duration-200
-                        group-hover:scale-110 group-active:scale-95"
+                      className="object-contain drop-shadow-xl transition-all duration-300
+                        group-hover:brightness-110
+                        group-active:scale-95"
                       sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16.67vw"
                       priority={game.id <= '6'}
                       onLoad={handleImageLoad}
@@ -388,12 +388,28 @@ export default function DashboardContent() {
                     />
                   </div>
 
-                  {/* Game name label */}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent
-                    py-3">
-                    <p className="text-white text-sm font-medium text-center truncate px-3">
-                      {game.name}
-                    </p>
+                  {/* Hover overlay with game name */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center
+                    opacity-0 group-hover:opacity-100 transition-all duration-300
+                    bg-gradient-to-b from-black/40 via-transparent to-black/60">
+                    <div className="absolute inset-x-0 bottom-0 p-4">
+                      <p className="text-white text-lg font-bold text-center
+                        transform translate-y-4 group-hover:translate-y-0
+                        transition-transform duration-300
+                        drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
+                        {game.name}
+                      </p>
+                      <div className="mt-2 flex justify-center
+                        transform translate-y-4 group-hover:translate-y-0
+                        transition-transform duration-300 delay-75">
+                        <div className="px-5 py-1.5 rounded-full
+                          bg-[#7ffdfd] 
+                          text-[#1E1E30] text-sm font-medium
+                          hover:bg-white transition-colors">
+                          Play Now
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </button>
               ))}
