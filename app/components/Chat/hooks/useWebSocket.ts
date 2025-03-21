@@ -111,27 +111,27 @@ export const useWebSocket = ({
               is_admin_recipient: data.is_admin_recipient
             };
 
-            // Only add the message if it's not from the current user
-            // or if it's a confirmation of message delivery
-            if (!data.is_player_sender || data.status === 'delivered') {
-              setMessages(prev => {
-                // Check if message already exists in the array
-                const messageExists = prev.some(msg => 
-                  msg.id === newMessage.id || 
-                  (msg.sent_time === newMessage.sent_time && msg.message === newMessage.message)
-                );
-                
-                if (messageExists) {
-                  return prev;
-                }
-                
-                // Sort messages by timestamp to maintain order
-                const updatedMessages = [...prev, newMessage].sort((a, b) => 
-                  new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
-                );
+            // Always add messages from others, and update status for own messages
+            setMessages(prev => {
+              // Check if this is an update to an existing message
+              const existingMessageIndex = prev.findIndex(msg => msg.id === newMessage.id);
+              
+              if (existingMessageIndex !== -1) {
+                // Update existing message status
+                const updatedMessages = [...prev];
+                updatedMessages[existingMessageIndex] = {
+                  ...updatedMessages[existingMessageIndex],
+                  status: newMessage.status
+                };
                 return updatedMessages;
-              });
-            }
+              }
+              
+              // Add new message and sort
+              const updatedMessages = [...prev, newMessage].sort((a, b) => 
+                new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
+              );
+              return updatedMessages;
+            });
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -227,11 +227,11 @@ export const useWebSocket = ({
 
   useEffect(() => {
     const cleanupInterval = setInterval(() => {
-      if (processedMessageIds.current.size > 100) {
+      if (processedMessageIds.current.size > 1000) {
         const idsArray = Array.from(processedMessageIds.current);
-        processedMessageIds.current = new Set(idsArray.slice(idsArray.length - 100));
+        processedMessageIds.current = new Set(idsArray.slice(idsArray.length - 1000));
       }
-    }, 60000);
+    }, 300000);
     
     return () => {
       clearInterval(cleanupInterval);

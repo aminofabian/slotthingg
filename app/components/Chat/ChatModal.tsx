@@ -131,9 +131,13 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     };
   }, [isOpen]);
 
+  // Ensure messages are scrolled into view when new ones arrive
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (messages.length > 0) {
+      scrollToBottom();
+      setHasNewMessages(false);
+    }
+  }, [messages, scrollToBottom]);
 
   // Load user and player IDs from localStorage
   useEffect(() => {
@@ -254,25 +258,47 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       });
       
       try {
-        const response = await fetch(`/api/chat/history?whitelabel_admin_uuid=${whitelabel_admin_uuid}`, {
+        // First try to get the total count
+        const countResponse = await fetch(`/api/chat/history/count?whitelabel_admin_uuid=${whitelabel_admin_uuid}`, {
           credentials: 'include'
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Chat history response:', data);
-          // Sort messages by timestamp before setting state
-          const sortedMessages = data.results.sort((a: ChatMessageData, b: ChatMessageData) => 
-            new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
-          );
-          setMessages(sortedMessages);
-        } else {
-          console.warn('Chat history response error:', {
-            status: response.status,
-            statusText: response.statusText
-          });
-          setMessages([]);
+        let totalMessages = 100; // Default to 100 if count endpoint not available
+        if (countResponse.ok) {
+          const countData = await countResponse.json();
+          totalMessages = countData.count;
         }
+
+        // Fetch all messages with pagination
+        const pageSize = 50;
+        const pages = Math.ceil(totalMessages / pageSize);
+        let allMessages: ChatMessageData[] = [];
+
+        for (let page = 0; page < pages; page++) {
+          const response = await fetch(
+            `/api/chat/history?whitelabel_admin_uuid=${whitelabel_admin_uuid}&page=${page}&limit=${pageSize}`, 
+            { credentials: 'include' }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            allMessages = [...allMessages, ...data.results];
+          } else {
+            console.warn('Chat history response error:', {
+              status: response.status,
+              statusText: response.statusText,
+              page
+            });
+          }
+        }
+
+        // Sort all messages by timestamp
+        const sortedMessages = allMessages.sort((a, b) => 
+          new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
+        );
+
+        console.log(`Loaded ${sortedMessages.length} total messages`);
+        setMessages(sortedMessages);
       } catch (error) {
         console.warn('Chat history endpoint not accessible. Using empty chat history.');
         setMessages([]);
