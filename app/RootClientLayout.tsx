@@ -16,11 +16,7 @@ export default function RootClientLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  
-  // Only use session expiration on protected routes
-  if (isProtectedRoute(pathname)) {
-    useSessionExpiration();
-  }
+  useSessionExpiration();
 
   useEffect(() => {
     const initDashboard = async () => {
