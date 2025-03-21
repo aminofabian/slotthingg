@@ -253,16 +253,19 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
         userName
       });
       
-      // Check if the endpoint is accessible
       try {
-      const response = await fetch(`/api/chat/history?whitelabel_admin_uuid=${whitelabel_admin_uuid}`, {
-        credentials: 'include'
-      });
+        const response = await fetch(`/api/chat/history?whitelabel_admin_uuid=${whitelabel_admin_uuid}`, {
+          credentials: 'include'
+        });
 
         if (response.ok) {
           const data = await response.json();
           console.log('Chat history response:', data);
-          setMessages(data.results);
+          // Sort messages by timestamp before setting state
+          const sortedMessages = data.results.sort((a: ChatMessageData, b: ChatMessageData) => 
+            new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
+          );
+          setMessages(sortedMessages);
         } else {
           console.warn('Chat history response error:', {
             status: response.status,
@@ -271,7 +274,6 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
           setMessages([]);
         }
       } catch (error) {
-        // If the endpoint is not accessible, use empty messages array
         console.warn('Chat history endpoint not accessible. Using empty chat history.');
         setMessages([]);
       }
@@ -470,7 +472,13 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       };
 
       // Add the message to the local state at the end of the array
-      setMessages(prev => [...prev, localMessage]);
+      setMessages(prev => {
+        // Sort messages by timestamp to maintain order
+        const updatedMessages = [...prev, localMessage].sort((a, b) => 
+          new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
+        );
+        return updatedMessages;
+      });
       scrollToBottom();
 
       // Create the message payload
@@ -597,40 +605,28 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
                 >
                   {msg.type === 'message' ? (
                     <div
-                      className={`max-w-[85%] sm:max-w-[75%] relative ${
+                      className={`max-w-[85%] sm:max-w-[75%] relative group ${
                         msg.is_player_sender
-                          ? 'bg-[#00ffff]/10 text-white shadow-lg shadow-[#00ffff]/5 rounded-tl-2xl rounded-tr-none rounded-bl-2xl rounded-br-2xl before:content-[""] before:absolute before:top-0 before:right-0 before:border-8 before:border-transparent before:border-t-[#00ffff]/10 before:border-r-[#00ffff]/10'
-                          : 'bg-gradient-to-br from-[#ff00ff]/20 via-[#9400d3]/20 to-[#4b0082]/20 text-white shadow-lg shadow-[#ff00ff]/10 rounded-tl-none rounded-tr-2xl rounded-bl-2xl rounded-br-2xl before:content-[""] before:absolute before:top-0 before:left-0 before:border-8 before:border-transparent before:border-t-[#ff00ff]/20 before:border-l-[#ff00ff]/20'
-                      } px-3 py-2 sm:px-4 sm:py-2 space-y-1 backdrop-blur-sm
-                      transition-all duration-300 hover:scale-[1.02] border border-white/5`}
+                          ? 'bg-gradient-to-br from-[#00ffff]/20 to-[#00ffff]/10 text-white shadow-lg shadow-[#00ffff]/20 rounded-t-2xl rounded-bl-2xl rounded-br-md before:content-[""] before:absolute before:-right-2 before:bottom-0 before:border-8 before:border-transparent before:border-b-[#00ffff]/20'
+                          : 'bg-gradient-to-br from-[#ff00ff]/20 to-[#9400d3]/20 text-white shadow-lg shadow-[#ff00ff]/20 rounded-t-2xl rounded-br-2xl rounded-bl-md before:content-[""] before:absolute before:-left-2 before:bottom-0 before:border-8 before:border-transparent before:border-b-[#9400d3]/20'
+                      } px-4 py-2.5 backdrop-blur-sm border border-white/5
+                      transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5`}
                     >
+                      {/* Sender name - only show for admin messages */}
+                      {!msg.is_player_sender && (
+                        <div className="text-xs text-[#ff00ff]/80 mb-1 font-medium">
+                          {msg.sender_name || 'Admin'}
+                        </div>
+                      )}
+                      
                       <div className="text-sm sm:text-base break-words leading-relaxed">
                         {msg.message}
                       </div>
-                      
-                      {msg.attachments?.map((attachment) => (
-                        <div key={attachment.id} className="mt-2">
-                          {attachment.type === 'image' ? (
-                            <img 
-                              src={attachment.url} 
-                              alt={attachment.name}
-                              className="max-w-full rounded-lg shadow-lg"
-                            />
-                          ) : (
-                            <a 
-                              href={attachment.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-[#00ffff] hover:underline"
-                            >
-                              <IoDocument className="w-4 h-4" />
-                              <span>{attachment.name}</span>
-                            </a>
-                          )}
-                        </div>
-                      ))}
 
-                      <div className="flex items-center justify-between text-[0.65rem] text-white/40">
+                      {/* Time and status */}
+                      <div className={`flex items-center gap-1.5 mt-1 text-[0.65rem] ${
+                        msg.is_player_sender ? 'text-[#00ffff]/70' : 'text-[#ff00ff]/70'
+                      }`}>
                         <span>{formatTime(msg.sent_time)}</span>
                         {msg.is_player_sender && (
                           <div className="flex items-center gap-1">
@@ -639,12 +635,12 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
                                 onClick={() => retryMessage(msg.id)}
                                 className="flex items-center gap-1 text-red-400 hover:text-red-300"
                               >
-                                <IoAlert className="w-4 h-4" />
+                                <IoAlert className="w-3.5 h-3.5" />
                                 <IoRefresh className="w-3 h-3" />
                               </button>
                             ) : (
-                              <IoCheckmarkDone className={`w-4 h-4 ${
-                                msg.status === 'seen' ? 'text-[#00ffff]' : ''
+                              <IoCheckmarkDone className={`w-3.5 h-3.5 ${
+                                msg.status === 'seen' ? 'text-[#00ffff]' : 'text-[#00ffff]/50'
                               }`} />
                             )}
                           </div>
