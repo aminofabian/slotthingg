@@ -23,13 +23,13 @@ export default function DashboardPage() {
         <div className={`
           fixed inset-y-0 left-0 z-50 w-72 bg-gray-900 border-r border-gray-800
           transform transition-transform duration-300 ease-in-out
-          hidden lg:block lg:relative
+          hidden lg:block
         `}>
           <Navbar />
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col w-full lg:pl-72">
+        <div className="flex-1 flex flex-col w-full">
           {/* Top Navigation */}
           <div className="sticky top-0 z-40">
             {/* Desktop Top Nav */}
@@ -42,12 +42,9 @@ export default function DashboardPage() {
 
           {/* Main Content */}
           <main className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-900 to-[#0f172a] pb-16 lg:pb-0">
-            {/* Slider Section */}
-            <div className="max-w-[1400px] mx-auto w-full px-4 sm:px-6 lg:px-8">
+            <div className="lg:pl-72 w-full">
               <DashboardContent />
             </div>
-            
-            {/* Dashboard Content */}
           </main>
 
           {/* Mobile Navigation - Visible only on mobile */}

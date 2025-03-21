@@ -218,9 +218,9 @@ export default function DashboardContent() {
   if (isLoading && games === initialGames) {
     return (
       <div className="min-h-screen w-full mx-auto pb-24 md:pb-6">
-        <div className="w-full px-6">
-          <div className="max-w-[1440px] mx-auto">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="w-full px-4">
+          <div className="max-w-none mx-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
               {[...Array(6)].map((_, i) => (
                 <div 
                   key={i}
@@ -249,8 +249,8 @@ export default function DashboardContent() {
   return (
     <div className="min-h-screen w-full mx-auto pb-24 md:pb-6">
       {/* Add Game Button */}
-      <div className="w-full px-6 py-4">
-        <div className="max-w-[1440px] mx-auto">
+      <div className="w-full px-4 py-4">
+        <div className="max-w-none mx-auto">
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-4">
               <p className="text-red-400">{error}</p>
@@ -293,8 +293,8 @@ export default function DashboardContent() {
       {/* Slider Section End */}
 
       {/* Updated Games Grid */}
-      <div className="w-full px-6">
-        <div className="max-w-[1440px] mx-auto">
+      <div className="w-full px-4">
+        <div className="max-w-none mx-auto">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-white">Games</h2>
             <button 
@@ -351,7 +351,7 @@ export default function DashboardContent() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 px-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
               {games.map((game) => (
                 <button
                   key={game.id}
