@@ -450,7 +450,8 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       setSelectedFile(null);
 
       // Mark this message as processed immediately
-      markMessageAsProcessed(messageId.toString());
+      const messageKey = `${messageId}-${messageTimestamp}`;
+      markMessageAsProcessed(messageKey);
 
       // Create a message object for the local state
       const localMessage: ChatMessage = {
@@ -471,8 +472,18 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
         is_admin_recipient: !!selectedAdmin
       };
 
-      // Add the message to the local state at the end of the array
+      // Add the message to the local state, checking for duplicates
       setMessages(prev => {
+        // Check if message already exists
+        const messageExists = prev.some(msg => 
+          msg.id === messageId || 
+          (msg.sent_time === messageTimestamp && msg.message === currentMessage)
+        );
+        
+        if (messageExists) {
+          return prev;
+        }
+        
         // Sort messages by timestamp to maintain order
         const updatedMessages = [...prev, localMessage].sort((a, b) => 
           new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
