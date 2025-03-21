@@ -76,7 +76,35 @@ export const useWebSocket = ({
         setConnectionStatus('connected');
         reconnectAttempts.current = 0;
         isConnecting.current = false;
+
+        // Send initial presence message
+        try {
+          ws.current?.send(JSON.stringify({
+            type: 'presence',
+            status: 'online',
+            user_id: userId,
+            player_id: playerId
+          }));
+        } catch (error) {
+          console.error('Error sending presence message:', error);
+        }
       };
+
+      // Set up heartbeat interval
+      const heartbeatInterval = setInterval(() => {
+        if (ws.current?.readyState === WebSocket.OPEN) {
+          try {
+            ws.current.send(JSON.stringify({
+              type: 'heartbeat',
+              user_id: userId,
+              player_id: playerId,
+              timestamp: new Date().toISOString()
+            }));
+          } catch (error) {
+            console.error('Error sending heartbeat:', error);
+          }
+        }
+      }, 30000); // Send heartbeat every 30 seconds
 
       ws.current.onmessage = (event) => {
         try {
@@ -149,6 +177,7 @@ export const useWebSocket = ({
         setIsWebSocketConnected(false);
         setConnectionStatus('disconnected');
         isConnecting.current = false;
+        clearInterval(heartbeatInterval); // Clean up heartbeat interval
 
         if (reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current += 1;
