@@ -11,7 +11,14 @@ import Footer from '../Footer/Footer';
 import { Dialog, Transition } from '@headlessui/react';
 import useGameStore, { getDefaultGames } from '@/lib/store/useGameStore';
 import type { Game } from '@/lib/store/useGameStore';
-import { Gamepad, Gamepad2 } from 'lucide-react';
+import { 
+  Gamepad2, 
+  Plus, 
+  X as CloseIcon, 
+  RotateCw, 
+  CircleMinus, 
+  Gamepad
+} from 'lucide-react';
 
 const initialGames = getDefaultGames();
 
@@ -77,7 +84,7 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
                     onClick={onClose}
                     className="p-2 rounded-lg hover:bg-white/10 transition-colors"
                   >
-                    <FaTimes className="w-5 h-5 text-white/60" />
+                    <CloseIcon className="w-5 h-5 text-white/60" />
                   </button>
                 </div>
 
@@ -98,11 +105,7 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
                           text-[#7ffdfd]/60 hover:text-[#7ffdfd]"
                         disabled={isRefreshing}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" 
-                          stroke="currentColor" strokeWidth="2" className="w-4 h-4">
-                          <path strokeLinecap="round" strokeLinejoin="round" 
-                            d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                        </svg>
+                        <RotateCw className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -120,9 +123,7 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
                         border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40
                         disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m6-6H6" />
-                      </svg>
+                      <Plus className="w-6 h-6" />
                       Recharge
                     </button>
                     <button 
@@ -133,9 +134,7 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
                         border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40
                         disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                      <CircleMinus className="w-6 h-6" />
                       Redeem
                     </button>
                   </div>
@@ -318,7 +317,7 @@ export default function DashboardContent() {
               <div className="relative w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center
                 bg-[#003333]/10 rounded-lg border border-[#003333]/10"
               >
-                <SiNintendogamecube className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Gamepad className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
 
               {/* Button text */}
@@ -328,14 +327,7 @@ export default function DashboardContent() {
               <div className="relative w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center
                 bg-[#003333]/10 rounded-md border border-[#003333]/10"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" 
-                  className="w-3 h-3 sm:w-4 sm:h-4 group-hover:rotate-180 transition-transform duration-300"
-                >
-                  <path fillRule="evenodd" 
-                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" 
-                    clipRule="evenodd" 
-                  />
-                </svg>
+                <Plus className="w-3 h-3 sm:w-4 sm:h-4 group-hover:rotate-180 transition-transform duration-300" />
               </div>
             </button>
           </div>
@@ -378,11 +370,13 @@ export default function DashboardContent() {
                       src={game.image}
                       alt={game.name}
                       fill
+                      quality={85}
                       className="object-contain drop-shadow-xl transition-all duration-300
                         group-hover:brightness-110
                         group-active:scale-95"
-                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16.67vw"
+                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1536px) 16.67vw, 12.5vw"
                       priority={game.id <= '6'}
+                      loading={game.id <= '6' ? 'eager' : 'lazy'}
                       onLoad={handleImageLoad}
                       onError={handleImageLoad}
                     />
