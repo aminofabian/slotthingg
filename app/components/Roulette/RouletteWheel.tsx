@@ -21,7 +21,7 @@ const prizes = [
   { name: '5000 XP', color: '#FF99FF', weight: 1 }
 ];
 
-const RouletteWheel = () => {
+export default function RouletteWheel() {
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [rotation, setRotation] = useState(0);
@@ -242,14 +242,149 @@ const RouletteWheel = () => {
                   transition: spinning ? `transform ${spinning ? getRandomFloat(3.5, 4.5) : 0}s cubic-bezier(${getRandomFloat(0.1, 0.2)}, ${getRandomFloat(0.6, 0.7)}, ${getRandomFloat(0.1, 0.2)}, ${getRandomFloat(0.95, 1)})` : 'none'
                 }}
               >
-                {/* Wheel content */}
+                {/* Outer ring */}
+                <circle cx="50" cy="50" r="49" fill="#00ffff" />
+                <circle cx="50" cy="50" r="48" fill="black" />
+                
+                {/* Prize segments */}
+                {prizes.map((prize, index) => {
+                  const rotation = index * sliceDegrees;
+                  const textRotation = rotation + (sliceDegrees / 2);
+                  const textRadius = 35;
+                  const startAngle = -sliceDegrees / 4;
+                  const textX = 50 + textRadius * Math.cos((textRotation - 90 + startAngle) * Math.PI / 180);
+                  const textY = 50 + textRadius * Math.sin((textRotation - 90 + startAngle) * Math.PI / 180);
+
+                  return (
+                    <g key={index}>
+                      {/* Main Segment Path */}
+                      <path
+                        d={`M50,50 L${50 + 45 * Math.cos((rotation - 90) * Math.PI / 180)},${50 + 45 * Math.sin((rotation - 90) * Math.PI / 180)} A45,45 0 0,1 ${50 + 45 * Math.cos((rotation + sliceDegrees - 90) * Math.PI / 180)},${50 + 45 * Math.sin((rotation + sliceDegrees - 90) * Math.PI / 180)} Z`}
+                        fill={prize.color}
+                      />
+
+                      {/* Darker Inner Section for Text Contrast */}
+                      <path
+                        d={`M50,50 
+                          L${50 + 40 * Math.cos((rotation - 90) * Math.PI / 180)},
+                          ${50 + 40 * Math.sin((rotation - 90) * Math.PI / 180)} 
+                          A40,40 0 0,1 
+                          ${50 + 40 * Math.cos((rotation + sliceDegrees - 90) * Math.PI / 180)},
+                          ${50 + 40 * Math.sin((rotation + sliceDegrees - 90) * Math.PI / 180)} Z`}
+                        fill="rgba(0,0,0,0.3)"
+                      />
+
+                      {/* Text with Enhanced Visibility */}
+                      <text
+                        x={textX}
+                        y={textY}
+                        textAnchor="middle"
+                        transform={`rotate(${textRotation + startAngle + 90}, ${textX}, ${textY})`}
+                        className="font-bold"
+                      >
+                        <defs>
+                          {/* Enhanced Text Shadow */}
+                          <filter id={`shadow-${index}`} x="-50%" y="-50%" width="200%" height="200%">
+                            <feDropShadow dx="0" dy="0" stdDeviation="0.3" floodColor="black" floodOpacity="1"/>
+                            <feDropShadow dx="0" dy="0" stdDeviation="0.2" floodColor="black" floodOpacity="1"/>
+                          </filter>
+                        </defs>
+                        
+                        {prize.name.split('\n').map((line, i) => (
+                          <tspan 
+                            key={i} 
+                            x={textX} 
+                            dy={i ? '2' : '0'}
+                            style={{ 
+                              fontSize: '2px',
+                              filter: `url(#shadow-${index})`,
+                              fill: 'white',
+                            }}
+                          >
+                            {line}
+                          </tspan>
+                        ))}
+                      </text>
+
+                      {/* Subtle Highlight at Top of Segment */}
+                      <path
+                        d={`M50,50 
+                          L${50 + 45 * Math.cos((rotation - 90) * Math.PI / 180)},
+                          ${50 + 45 * Math.sin((rotation - 90) * Math.PI / 180)} 
+                          A45,45 0 0,1 
+                          ${50 + 45 * Math.cos((rotation + sliceDegrees/4 - 90) * Math.PI / 180)},
+                          ${50 + 45 * Math.sin((rotation + sliceDegrees/4 - 90) * Math.PI / 180)}`}
+                        fill="white"
+                        fillOpacity="0.1"
+                      />
+                    </g>
+                  );
+                })}
+
+                {/* Enhanced Center Piece */}
+                <g>
+                  <circle cx="50" cy="50" r="8" fill="#00ffff" />
+                  <circle cx="50" cy="50" r="7.5" fill="black" />
+                  <circle cx="50" cy="50" r="7" fill="#00ffff" fillOpacity="0.1" />
+                  <circle cx="50" cy="50" r="6" fill="black" stroke="#00ffff" strokeWidth="0.5" />
+                </g>
               </svg>
+
+              {/* Pointer */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 sm:-translate-y-5 md:-translate-y-6 z-20">
+                <div className="relative">
+                  <div className="w-0 h-0 
+                    border-l-[12px] border-r-[12px] border-b-[24px] 
+                    sm:border-l-[16px] sm:border-r-[16px] sm:border-b-[32px]
+                    md:border-l-[20px] md:border-r-[20px] md:border-b-[40px]
+                    border-l-transparent border-r-transparent border-b-[#00ffff]
+                    relative z-10" />
+                </div>
+              </div>
+            </div>
+
+            {/* Spin Button */}
+            <div className="text-center space-y-4 sm:space-y-6 md:space-y-8">
+              <button 
+                onClick={spin} 
+                disabled={spinning}
+                className="px-12 py-4 bg-[#00ffff] text-black text-2xl font-bold rounded-xl
+                  hover:bg-[#00ffff]/80 disabled:opacity-50 disabled:cursor-not-allowed
+                  transition-all duration-300"
+              >
+                {spinning ? 'Spinning...' : 'SPIN NOW'}
+              </button>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Result Modal */}
+      <AnimatePresence>
+        {result && (
+          <MotionDiv
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 
+              w-[85vw] max-w-[300px] sm:max-w-lg md:max-w-xl
+              bg-black p-3 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl 
+              border-2 sm:border-4 border-[#00ffff] z-50
+              max-h-[90vh] overflow-y-auto"
+          >
+            <div className="text-lg sm:text-2xl md:text-4xl font-bold text-[#00ffff] text-center mb-2 sm:mb-4">
+              <span className="whitespace-nowrap">🎉 Congratulations! </span>
+            </div>
+            <div className="text-base sm:text-2xl md:text-3xl font-bold text-white text-center">
+              You won:
+              <div className="mt-2 sm:mt-4 text-lg sm:text-3xl md:text-4xl text-[#00ffff] 
+                break-words px-2 whitespace-normal">
+                {result.replace('\n', ' ')}
+              </div>
+            </div>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
     </div>
   );
-};
-
-export default RouletteWheel;
+}
