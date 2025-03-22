@@ -1,7 +1,6 @@
 'use client';
-
-import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, LazyMotion, domMax, m } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
 import type { MotionProps, HTMLMotionProps } from 'framer-motion';
 import { IoClose, IoSend, IoChatbubbleEllipses, IoAttach, IoCheckmarkDone, IoAlert, IoRefresh, IoDocument, IoArrowDown } from 'react-icons/io5';
 import { format } from 'date-fns';
@@ -59,7 +58,7 @@ type MotionDivProps = HTMLMotionProps<"div"> & {
   children?: React.ReactNode;
 };
 
-const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
   // State declarations

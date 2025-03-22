@@ -1,11 +1,10 @@
 'use client';
-
+import { motion, HTMLMotionProps } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Navigation, Pagination, EffectFade } from 'swiper/modules';
 import { Righteous } from 'next/font/google';
 import { FaGamepad, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { GiTakeMyMoney, GiStarsStack } from 'react-icons/gi';
-import { motion, HTMLMotionProps } from 'framer-motion';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
@@ -16,7 +15,7 @@ type MotionDivProps = HTMLMotionProps<"div"> & {
   children?: React.ReactNode;
 };
 
-const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 const righteous = Righteous({ 
   weight: ['400'],

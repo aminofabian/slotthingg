@@ -1,7 +1,7 @@
 'use client';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import React, { useState } from 'react';
 import Logo from '../Logo/Logo';
-import { motion, HTMLMotionProps } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
 type MotionDivProps = HTMLMotionProps<"div"> & {
@@ -9,7 +9,7 @@ type MotionDivProps = HTMLMotionProps<"div"> & {
   children?: React.ReactNode;
 };
 
-const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 interface ResetPasswordProps {
   userId: string;

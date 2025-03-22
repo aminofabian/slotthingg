@@ -1,7 +1,6 @@
 'use client';
-
-import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import { FaWhatsapp, FaTelegram, FaComments } from 'react-icons/fa';
 import { IoMdClose } from 'react-icons/io';
 
@@ -21,7 +20,7 @@ type MotionAnchorProps = HTMLMotionProps<"a"> & React.AnchorHTMLAttributes<HTMLA
   children?: React.ReactNode;
 };
 
-const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 const MotionButton = motion.button as React.FC<MotionButtonProps>;
 const MotionAnchor = motion.a as React.FC<MotionAnchorProps>;
 

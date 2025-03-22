@@ -1,4 +1,5 @@
 'use client';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useDispatch, useSelector } from 'react-redux';
@@ -16,7 +17,7 @@ type MotionDivProps = HTMLMotionProps<"div"> & {
   children?: React.ReactNode;
 };
 
-const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 const GAMES = [
   { id: 'panda', name: '🐼 Panda Master' },

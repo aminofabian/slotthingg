@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
+import { useState } from 'react';
 import { IoClose } from 'react-icons/io5';
 import { GiCash } from 'react-icons/gi';
 
@@ -8,7 +8,7 @@ type MotionDivProps = HTMLMotionProps<"div"> & {
   children?: React.ReactNode;
 };
 
-const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 interface CashoutModalProps {
   isOpen: boolean;
