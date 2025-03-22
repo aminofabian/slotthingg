@@ -10,6 +10,8 @@ import { FiLock } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { BiMoney } from 'react-icons/bi';
 import { MotionDiv } from '@/app/types/motion';
+import { BsLightningChargeFill } from 'react-icons/bs';
+import Image from 'next/image';
 
 interface PurchaseModalProps {
   isOpen: boolean;
@@ -23,6 +25,7 @@ type PaymentMethod = {
   icon: React.ReactNode;
   bonus?: number;
   icons?: React.ReactNode[];
+  serviceIcons?: React.ReactNode[];
 };
 
 // Helper function to get cookie by name
@@ -46,21 +49,58 @@ const paymentMethods: PaymentMethod[] = [
     title: 'Bitcoin Lightning',
     icon: <TbBolt className="w-6 h-6" />,
     icons: [
-      <FaBitcoin key="btc" className="w-6 h-6" />,
-      <TbBolt key="lightning" className="w-6 h-6" />
+      <div key="btc-ln" className="relative group">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#F7931A] to-[#FFD700] blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
+        <BsLightningChargeFill className="w-8 h-8 text-[#F7931A] relative z-10 group-hover:scale-110 transition-transform duration-200" />
+      </div>
+    ],
+    serviceIcons: [
+      <div key="cashapp" className="group relative px-2">
+        <SiCashapp className="w-6 h-6 text-[#00D632] group-hover:scale-110 transition-all duration-200 group-hover:drop-shadow-[0_0_8px_rgba(0,214,50,0.5)]" />
+        <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full bg-black/90 text-white text-xs px-2 py-1 rounded-md
+          opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap
+          border border-white/10 backdrop-blur-sm">
+          Cash App
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 border-4 border-transparent border-t-black/90"></div>
+        </div>
+      </div>,
+      <div key="strike" className="group relative px-2">
+        <div className="absolute inset-0 bg-white rounded-full blur opacity-10 group-hover:opacity-20 transition-opacity" />
+        <div className="relative w-6 h-6 bg-white rounded-full overflow-hidden transform group-hover:scale-110 transition-transform duration-200">
+          <Image
+            src="/payment/Strike.jpg"
+            alt="Strike"
+            width={24}
+            height={24}
+            className="object-contain scale-150"
+          />
+        </div>
+        <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full bg-black/90 text-white text-xs px-2 py-1 rounded-md
+          opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap
+          border border-white/10 backdrop-blur-sm">
+          Strike
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 border-4 border-transparent border-t-black/90"></div>
+        </div>
+      </div>
     ]
   },
   {
     id: 'bitcoin',
     apiValue: 'BTC-CHAIN',
     title: 'Bitcoin',
-    icon: <FaBitcoin className="w-6 h-6" />
+    icon: <div className="group relative">
+      <div className="absolute inset-0 bg-[#F7931A] blur-lg opacity-20 group-hover:opacity-30 transition-opacity rounded-full" />
+      <FaBitcoin className="w-6 h-6 text-[#F7931A] relative z-10 group-hover:scale-110 transition-transform duration-200" />
+    </div>
   },
   {
     id: 'litecoin',
     apiValue: 'LTC-CHAIN',
     title: 'Litecoin',
-    icon: <SiLitecoin className="w-6 h-6" />
+    icon: <div className="group relative">
+      <div className="absolute inset-0 bg-[#345D9D] blur-lg opacity-20 group-hover:opacity-30 transition-opacity rounded-full" />
+      <SiLitecoin className="w-6 h-6 text-[#345D9D] relative z-10 group-hover:scale-110 transition-transform duration-200" />
+    </div>
   }
 ];
 
@@ -478,7 +518,9 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                             {method.icons ? (
                               <div className="flex items-center gap-1 sm:gap-2">
                                 {method.icons.map((icon, index) => (
-                                  <div key={index} className="text-base sm:text-xl">{icon}</div>
+                                  <div key={index} className="text-base sm:text-xl relative">
+                                    {icon}
+                                  </div>
                                 ))}
                               </div>
                             ) : (
@@ -491,10 +533,23 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                             <p className="text-sm sm:text-base text-white font-medium">{method.title}</p>
                           </div>
 
+                          {/* Service Icons - Moved to right */}
+                          {method.serviceIcons && (
+                            <div className="flex items-center gap-4 mr-3">
+                              {method.serviceIcons.map((icon, index) => (
+                                <div key={index}>
+                                  {icon}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
                           {/* Bonus Badge */}
                           {method.bonus && (
-                            <div className="absolute top-1 sm:top-2 right-1 sm:right-2 bg-[#00ffff]/10 px-2 sm:px-3 py-0.5 sm:py-1 
-                              rounded-full flex items-center gap-1 sm:gap-1.5">
+                            <div className="absolute top-1 sm:top-2 right-1 sm:right-2 bg-gradient-to-r from-[#00ffff]/10 to-[#00ffff]/5 
+                              backdrop-blur-sm px-2 sm:px-3 py-0.5 sm:py-1 rounded-full flex items-center gap-1 sm:gap-1.5 
+                              border border-[#00ffff]/20 shadow-lg shadow-[#00ffff]/5">
+                              <HiSparkles className="w-4 h-4 text-[#00ffff]" />
                               <span className="text-[#00ffff] text-xs sm:text-sm font-medium">
                                 +{method.bonus}% BONUS
                               </span>
