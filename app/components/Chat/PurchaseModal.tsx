@@ -1,7 +1,15 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
 import { IoClose } from 'react-icons/io5';
 import { BiMoney } from 'react-icons/bi';
+
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 interface PurchaseModalProps {
   isOpen: boolean;
@@ -53,13 +61,13 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
+        <MotionDiv
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4 md:p-6 lg:p-8"
         >
-          <motion.div
+          <MotionDiv
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
@@ -97,7 +105,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
               scrollbar-thin scrollbar-thumb-[#00ffff]/10 scrollbar-track-transparent">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {purchaseOptions.map((option) => (
-                  <motion.div
+                  <MotionDiv
                     key={option.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -134,7 +142,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                         Select Package
                       </button>
                     </div>
-                  </motion.div>
+                  </MotionDiv>
                 ))}
               </div>
             </div>
@@ -146,8 +154,8 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                 Secure payment processing powered by Stripe
               </div>
             </div>
-          </motion.div>
-        </motion.div>
+          </MotionDiv>
+        </MotionDiv>
       )}
     </AnimatePresence>
   );

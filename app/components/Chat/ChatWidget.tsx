@@ -1,9 +1,29 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
 import { FaWhatsapp, FaTelegram, FaComments } from 'react-icons/fa';
 import { IoMdClose } from 'react-icons/io';
+
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+};
+
+type MotionButtonProps = HTMLMotionProps<"button"> & React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+type MotionAnchorProps = HTMLMotionProps<"a"> & React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
+const MotionButton = motion.button as React.FC<MotionButtonProps>;
+const MotionAnchor = motion.a as React.FC<MotionAnchorProps>;
 
 const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -76,7 +96,7 @@ const ChatWidget = () => {
     <div className="fixed bottom-6 right-6 z-50">
       <AnimatePresence>
         {isOpen && (
-          <motion.div
+          <MotionDiv
             variants={containerVariants}
             initial="hidden"
             animate="visible"
@@ -87,18 +107,18 @@ const ChatWidget = () => {
               <h3 className="text-lg font-semibold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
                 Contact Us
               </h3>
-              <motion.button
+              <MotionButton
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setIsOpen(false)}
                 className="text-gray-400 hover:text-gray-200 transition-colors"
               >
                 <IoMdClose className="w-6 h-6" />
-              </motion.button>
+              </MotionButton>
             </div>
             <div className="space-y-3">
               {chatOptions.map((option, index) => (
-                <motion.a
+                <MotionAnchor
                   key={option.name}
                   custom={index}
                   variants={itemVariants}
@@ -112,27 +132,27 @@ const ChatWidget = () => {
                     backgroundColor: `${option.color}15`,
                   }}
                 >
-                  <motion.div
+                  <MotionDiv
                     className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     style={{
                       background: `linear-gradient(45deg, ${option.color}15, ${option.color}30)`,
                     }}
                   />
-                  <motion.div
+                  <MotionDiv
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
                     className="relative z-10"
                     style={{ color: option.color }}
                   >
                     {option.icon}
-                  </motion.div>
+                  </MotionDiv>
                   <span className="font-medium text-gray-200 relative z-10 group-hover:translate-x-1 transition-transform duration-300">
                     {option.name}
                   </span>
-                </motion.a>
+                </MotionAnchor>
               ))}
             </div>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
 
