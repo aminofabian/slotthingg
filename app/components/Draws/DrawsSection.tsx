@@ -3,10 +3,17 @@ import { useEffect, useState } from 'react';
 import DrawCard from './DrawCard';
 import { BiQuestionMark, BiTime } from 'react-icons/bi';
 import { FaTicketAlt, FaGift } from 'react-icons/fa';
-import { motion } from 'framer-motion';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import { FaDiamond } from 'react-icons/fa6';
 import Link from 'next/link';
 import { IoArrowBack } from 'react-icons/io5';
+
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 const DrawsSection = () => {
   const [showInfo, setShowInfo] = useState(false);
@@ -127,7 +134,7 @@ const DrawsSection = () => {
           </div>
 
           {/* How it Works Section */}
-          <motion.div
+          <MotionDiv
             initial={false}
             animate={{ height: showInfo ? 'auto' : 0, opacity: showInfo ? 1 : 0 }}
             className="overflow-hidden"
@@ -192,7 +199,7 @@ const DrawsSection = () => {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </MotionDiv>
         </div>
 
         {/* Draw Cards */}
