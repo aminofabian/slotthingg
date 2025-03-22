@@ -5,11 +5,18 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useMutation } from '@tanstack/react-query';
 import { signupSchema, type SignupFormData } from '@/lib/query';
 import { setFormData, setErrors } from '@/app/store/formSlice';
-import { motion } from 'framer-motion';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Logo from '../Logo/Logo';
 import { RootState } from '@/app/store/store';
 import { signupUser } from '@/lib/auth';
+
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 const GAMES = [
   { id: 'panda', name: '🐼 Panda Master' },
@@ -156,7 +163,7 @@ const Signup = () => {
       </div>
 
       <div className="relative flex min-h-screen items-start justify-center px-4">
-        <motion.div
+        <MotionDiv
           className="w-full max-w-4xl relative"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -164,9 +171,9 @@ const Signup = () => {
         >
           <div className="absolute left-1/2 -translate-x-1/2 -top-16 z-10">
             <div className="relative">
-              <motion.div className="relative z-10">
+              <MotionDiv className="relative z-10">
                 <Logo />
-              </motion.div>
+              </MotionDiv>
               <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#00ffff]/5 rounded-full blur-[80px]" />
             </div>
           </div>
@@ -485,7 +492,7 @@ const Signup = () => {
               </div>
             </div>
           </div>
-        </motion.div>
+        </MotionDiv>
       </div>
     </div>
   );

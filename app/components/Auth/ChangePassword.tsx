@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, type MotionProps } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,6 +8,10 @@ import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { FiLock } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
+
+const MotionDiv = motion.div as unknown as React.FC<
+  React.HTMLAttributes<HTMLDivElement> & MotionProps
+>;
 
 const changePasswordSchema = z.object({
   oldPassword: z.string().min(1, 'Current password is required'),
@@ -116,14 +120,14 @@ const ChangePassword = () => {
       </div>
 
       <div className="relative flex min-h-screen items-center justify-center p-4 sm:p-6 lg:p-8">
-        <motion.div 
+        <MotionDiv 
           className="w-full max-w-lg relative"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
         >
           {/* Main card */}
-          <motion.div
+          <MotionDiv
             className="backdrop-blur-xl bg-white/[0.02] rounded-2xl 
               border border-[#00ffff]/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]
               overflow-hidden"
@@ -258,19 +262,19 @@ const ChangePassword = () => {
                     group overflow-hidden"
                   >
                     {isLoading && (
-                      <motion.div
+                      <MotionDiv
                         className="absolute bottom-0 left-0 h-[2px] bg-[#00ffff]/30"
                         initial={{ width: 0 }}
                         animate={{ width: '100%' }}
                         transition={{ duration: 1, ease: 'easeInOut' }}
                       >
-                        <motion.div
+                        <MotionDiv
                           className="absolute top-0 left-0 h-full bg-[#00ffff]"
                           initial={{ width: '0%' }}
                           animate={{ width: '100%' }}
                           transition={{ duration: 1, ease: 'easeInOut' }}
                         />
-                      </motion.div>
+                      </MotionDiv>
                     )}
                     <span className="relative flex items-center justify-center">
                       {isLoading ? 'Updating...' : 'Update Password'}
@@ -278,7 +282,7 @@ const ChangePassword = () => {
                   </button>
                 </form>
               ) : (
-                <motion.div 
+                <MotionDiv 
                   className="mt-10 text-center space-y-4"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -292,11 +296,11 @@ const ChangePassword = () => {
                   <p className="text-white/90 tracking-wide">
                     Your password has been successfully updated
                   </p>
-                </motion.div>
+                </MotionDiv>
               )}
             </div>
-          </motion.div>
-        </motion.div>
+          </MotionDiv>
+        </MotionDiv>
       </div>
     </div>
   );

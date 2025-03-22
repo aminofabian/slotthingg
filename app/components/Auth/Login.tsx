@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Logo from '../Logo/Logo';
-import { motion } from 'framer-motion';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,6 +9,13 @@ import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { fetchDashboardData } from '@/lib/auth';
 import { useRouter, useSearchParams } from 'next/navigation';
+
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -219,7 +226,7 @@ const Login = () => {
       </div>
 
       <div className="relative flex min-h-screen items-center justify-center p-4">
-        <motion.div
+        <MotionDiv
           className="w-full max-w-md relative"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -227,9 +234,9 @@ const Login = () => {
         >
           <div className="absolute left-1/2 -translate-x-1/2 -top-16 z-10">
             <div className="relative">
-              <motion.div className="relative z-10">
+              <MotionDiv className="relative z-10">
                 <Logo />
-              </motion.div>
+              </MotionDiv>
               <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#00ffff]/5 rounded-full blur-[80px]" />
             </div>
           </div>
@@ -352,7 +359,7 @@ const Login = () => {
               </a>
             </div>
           </div>
-        </motion.div>
+        </MotionDiv>
       </div>
 
       {/* Forgot Password Modal */}

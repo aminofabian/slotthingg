@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
 import { FaBitcoin, FaCreditCard, FaApplePay, FaGooglePay } from 'react-icons/fa';
 import { SiCashapp, SiLitecoin } from 'react-icons/si';
 import { IoClose } from 'react-icons/io5';
@@ -24,6 +24,14 @@ type PaymentMethod = {
   bonus?: number;
   icons?: React.ReactNode[];
 };
+
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 // Helper function to get cookie by name
 const getCookie = (name: string): string | null => {
@@ -275,14 +283,14 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
   return (
     <AnimatePresence>
       {isOpen && isAuthenticated && (
-        <motion.div
+        <MotionDiv
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 overflow-y-auto"
           onClick={(e) => e.target === e.currentTarget && handleClose()}
         >
-          <motion.div
+          <MotionDiv
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
@@ -564,8 +572,8 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                 </button>
               )}
             </div>
-          </motion.div>
-        </motion.div>
+          </MotionDiv>
+        </MotionDiv>
       )}
     </AnimatePresence>
   );

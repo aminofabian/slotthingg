@@ -5,11 +5,18 @@ import { Autoplay, Navigation, Pagination, EffectFade } from 'swiper/modules';
 import { Righteous } from 'next/font/google';
 import { FaGamepad, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { GiTakeMyMoney, GiStarsStack } from 'react-icons/gi';
-import { motion } from 'framer-motion';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import 'swiper/css/effect-fade';
+
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 const righteous = Righteous({ 
   weight: ['400'],
@@ -116,7 +123,7 @@ export default function DashboardSlider() {
                 
                 {/* Content Container with Strategic Positioning */}
                 <div className="absolute inset-0 flex items-end sm:items-center justify-start p-4 sm:p-8 md:p-12 lg:p-16">
-                  <motion.div 
+                  <MotionDiv 
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.7, ease: "easeOut" }}
@@ -169,7 +176,7 @@ export default function DashboardSlider() {
                       relative overflow-hidden">
                       <span className="relative z-10">{slide.cta}</span>
                     </button>
-                  </motion.div>
+                  </MotionDiv>
                 </div>
 
                 {/* Subtle Bottom Gradient */}

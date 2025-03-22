@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { BiMoney, BiWallet } from 'react-icons/bi';
 import { GiDiamonds, GiStarsStack } from 'react-icons/gi';
-import { motion } from 'framer-motion';
+import { MotionDiv } from '@/app/types/motion';
 
 const stats = [
   { 
@@ -44,7 +44,7 @@ const MobileTopNav = () => {
         <div className="mx-4 pt-4">
           <nav className="bg-gradient-to-b from-gray-900 to-black border border-[#7ffdfd]/10 rounded-2xl shadow-lg shadow-black/20">
             <div className="p-2">
-              <motion.div 
+              <MotionDiv 
                 className="flex items-center justify-between gap-1.5"
                 layout
               >
@@ -53,12 +53,12 @@ const MobileTopNav = () => {
                   const colorClasses = getColorClasses(stat.color);
 
                   return (
-                    <motion.div
+                    <MotionDiv
                       key={stat.label}
                       className="flex-1 min-w-0"
                       layout
                     >
-                      <motion.div 
+                      <MotionDiv
                         className={`
                           flex flex-col items-center justify-center gap-1 p-2 rounded-xl
                           border transition-all duration-200 ${colorClasses}
@@ -73,24 +73,24 @@ const MobileTopNav = () => {
                             <Icon className="w-3.5 h-3.5" />
                           </div>
                           
-                          <motion.p
+                          <MotionDiv
                             layout
                             className="text-xs font-bold truncate"
                           >
                             {stat.value}
-                          </motion.p>
+                          </MotionDiv>
                         </div>
 
-                        <motion.span
+                        <MotionDiv
                           className="text-[10px] opacity-70 truncate text-center"
                         >
                           {stat.label}
-                        </motion.span>
-                      </motion.div>
-                    </motion.div>
+                        </MotionDiv>
+                      </MotionDiv>
+                    </MotionDiv>
                   );
                 })}
-              </motion.div>
+              </MotionDiv>
             </div>
           </nav>
         </div>

@@ -1,12 +1,6 @@
-import { motion, type MotionProps, AnimatePresence } from 'framer-motion';
-import type { AnimationProps } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { IoClose, IoAlert, IoRefresh } from 'react-icons/io5';
-
-const MotionDiv = motion.div as React.ComponentType<
-  Omit<React.HTMLAttributes<HTMLDivElement>, keyof MotionProps> &
-  MotionProps &
-  AnimationProps
->;
+import { MotionDiv } from '@/app/types/motion';
 
 interface ConnectionStatusProps {
   showConnectionToast: boolean;
@@ -62,7 +56,8 @@ const ConnectionStatus = ({
           </div>
         </>
       )}
-      <button 
+      
+      <button
         onClick={onClose}
         className="ml-auto text-white/60 hover:text-white"
       >

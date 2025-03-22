@@ -1,8 +1,15 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Logo from '../Logo/Logo';
-import { motion } from 'framer-motion';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 const ForgotPassword = () => {
   const router = useRouter();
@@ -97,7 +104,7 @@ const ForgotPassword = () => {
       </div>
 
       <div className="relative flex min-h-screen items-center justify-center p-4 sm:p-6 lg:p-8">
-        <motion.div 
+        <MotionDiv 
           className="w-full max-w-lg relative"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -106,20 +113,20 @@ const ForgotPassword = () => {
           {/* Logo section with glow */}
           <div className="absolute left-1/2 -translate-x-1/2 -top-24 z-10">
             <div className="relative">
-              <motion.div 
+              <MotionDiv 
                 className="relative z-10 scale-150"
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 2, ease: 'easeOut' }}
               >
                 <Logo />
-              </motion.div>
+              </MotionDiv>
               <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-[#00ffff]/5 rounded-full blur-[100px]" />
             </div>
           </div>
 
           {/* Main card */}
-          <motion.div 
+          <MotionDiv 
             className="backdrop-blur-xl bg-white/[0.02] rounded-2xl 
               border border-[#00ffff]/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]
               overflow-hidden"
@@ -178,19 +185,19 @@ const ForgotPassword = () => {
                     group overflow-hidden"
                   >
                     {isLoading && (
-                      <motion.div
+                      <MotionDiv
                         className="absolute bottom-0 left-0 h-[2px] bg-[#00ffff]/30"
                         initial={{ width: 0 }}
                         animate={{ width: '100%' }}
                         transition={{ duration: 1, ease: 'easeInOut' }}
                       >
-                        <motion.div
+                        <MotionDiv
                           className="absolute top-0 left-0 h-full bg-[#00ffff]"
                           initial={{ width: '0%' }}
                           animate={{ width: '100%' }}
                           transition={{ duration: 1, ease: 'easeInOut' }}
                         />
-                      </motion.div>
+                      </MotionDiv>
                     )}
                     <span className="relative flex items-center justify-center">
                       {isLoading ? 'Sending...' : 'Reset Password'}
@@ -199,8 +206,8 @@ const ForgotPassword = () => {
                 </form>
               ) : null}
             </div>
-          </motion.div>
-        </motion.div>
+          </MotionDiv>
+        </MotionDiv>
       </div>
     </div>
   );
