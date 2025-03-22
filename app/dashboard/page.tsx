@@ -18,7 +18,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#0f172a]">
       {/* Main Layout */}
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex min-h-screen">
         {/* Sidebar - Hidden on mobile, visible on desktop */}
         <div className={`
           fixed inset-y-0 left-0 z-50 w-72 bg-gray-900 border-r border-gray-800
@@ -41,7 +41,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Main Content */}
-          <main className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-900 to-[#0f172a] pb-16 lg:pb-0">
+          <main className="flex-1 bg-gradient-to-b from-gray-900 to-[#0f172a] pb-16 lg:pb-0">
             <div className="lg:pl-72 w-full">
               <div className="px-6 lg:px-12 xl:px-16 2xl:px-24">
                 <DashboardContent />
