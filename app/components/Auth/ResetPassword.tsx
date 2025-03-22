@@ -1,15 +1,12 @@
 'use client';
-import { motion, HTMLMotionProps } from 'framer-motion';
+import { motion } from 'framer-motion';
 import React, { useState } from 'react';
 import Logo from '../Logo/Logo';
 import { useRouter } from 'next/navigation';
-
-type MotionDivProps = HTMLMotionProps<"div"> & {
-  className?: string;
-  children?: React.ReactNode;
-};
-
-const MotionDiv = motion.div as React.FC<MotionDivProps>;
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { resetPasswordSchema, type ResetPasswordFormData } from '@/lib/query';
+import { MotionDiv } from '@/app/types/motion';
 
 interface ResetPasswordProps {
   userId: string;

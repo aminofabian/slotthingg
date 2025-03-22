@@ -2,15 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { FiEdit2, FiLock } from 'react-icons/fi';
-import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import ChangePassword from '../Auth/ChangePassword';
-
-type MotionDivProps = HTMLMotionProps<"div"> & {
-  className?: string;
-  children?: React.ReactNode;
-};
-
-const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
+import { MotionDiv } from '@/app/types/motion';
 
 interface ProfileField {
   label: string;

@@ -1,21 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BiTime, BiInfoCircle } from 'react-icons/bi';
 import { FaTicketAlt } from 'react-icons/fa';
-
-type MotionDivProps = HTMLMotionProps<"div"> & {
-  className?: string;
-  children?: React.ReactNode;
-};
-
-type MotionSpanProps = HTMLMotionProps<"span"> & {
-  className?: string;
-  children?: React.ReactNode;
-};
-
-const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
-const MotionSpan = motion.span as React.FC<MotionSpanProps>;
+import { MotionDiv, MotionSpan } from '@/app/types/motion';
 
 interface DrawCardProps {
   type: 'Weekly' | 'Monthly';

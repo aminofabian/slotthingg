@@ -1,5 +1,5 @@
 'use client';
-import { motion, HTMLMotionProps } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Navigation, Pagination, EffectFade } from 'swiper/modules';
 import { Righteous } from 'next/font/google';
@@ -9,13 +9,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import 'swiper/css/effect-fade';
-
-type MotionDivProps = HTMLMotionProps<"div"> & {
-  className?: string;
-  children?: React.ReactNode;
-};
-
-const MotionDiv = motion.div as React.FC<MotionDivProps>;
+import { MotionDiv } from '@/app/types/motion';
 
 const righteous = Righteous({ 
   weight: ['400'],

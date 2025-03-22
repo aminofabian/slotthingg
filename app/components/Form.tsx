@@ -6,16 +6,10 @@ import { useMutation } from '@tanstack/react-query';
 import { formSchema, type FormData } from '../../lib/query';
 import { setFormData, setErrors } from '../store/formSlice';
 import { RootState } from '@/app/store/store';
-import { motion, HTMLMotionProps } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Logo from './Logo/Logo';
 import toast from 'react-hot-toast';
-
-type MotionDivProps = HTMLMotionProps<"div"> & {
-  className?: string;
-  children?: React.ReactNode;
-};
-
-const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
+import { MotionDiv } from '@/app/types/motion';
 
 export default function Form() {
   const dispatch = useDispatch();

@@ -1,15 +1,9 @@
-import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
+'use client';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { IoClose } from 'react-icons/io5';
 import { BiMoney } from 'react-icons/bi';
-
-type MotionDivProps = HTMLMotionProps<"div"> & {
-  className?: string;
-  children?: React.ReactNode;
-  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
-};
-
-const MotionDiv = motion.div as React.FC<MotionDivProps>;
+import { MotionDiv } from '@/app/types/motion';
 
 interface PurchaseModalProps {
   isOpen: boolean;

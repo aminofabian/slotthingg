@@ -1,5 +1,5 @@
 'use client';
-import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { FaBitcoin, FaCreditCard, FaApplePay, FaGooglePay } from 'react-icons/fa';
 import { SiCashapp, SiLitecoin } from 'react-icons/si';
@@ -8,14 +8,8 @@ import { HiSparkles } from 'react-icons/hi';
 import { TbBolt } from 'react-icons/tb';
 import { FiLock } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-
-type MotionDivProps = HTMLMotionProps<"div"> & {
-  className?: string;
-  children?: React.ReactNode;
-  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
-};
-
-const MotionDiv = motion.div as React.FC<MotionDivProps>;
+import { BiMoney } from 'react-icons/bi';
+import { MotionDiv } from '@/app/types/motion';
 
 interface PurchaseModalProps {
   isOpen: boolean;
@@ -32,8 +26,6 @@ type PaymentMethod = {
   bonus?: number;
   icons?: React.ReactNode[];
 };
-
-
 
 // Helper function to get cookie by name
 const getCookie = (name: string): string | null => {

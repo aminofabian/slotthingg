@@ -3,17 +3,11 @@ import { useEffect, useState } from 'react';
 import DrawCard from './DrawCard';
 import { BiQuestionMark, BiTime } from 'react-icons/bi';
 import { FaTicketAlt, FaGift } from 'react-icons/fa';
-import { motion, HTMLMotionProps } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FaDiamond } from 'react-icons/fa6';
 import Link from 'next/link';
 import { IoArrowBack } from 'react-icons/io5';
-
-type MotionDivProps = HTMLMotionProps<"div"> & {
-  className?: string;
-  children?: React.ReactNode;
-};
-
-const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
+import { MotionDiv } from '@/app/types/motion';
 
 const DrawsSection = () => {
   const [showInfo, setShowInfo] = useState(false);

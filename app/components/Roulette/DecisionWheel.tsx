@@ -7,13 +7,7 @@ import { IoInformationCircleOutline, IoReloadCircle, IoArrowBack, IoAdd, IoClose
 import Link from 'next/link';
 import { Input } from '../../../components/ui/input';
 import { Button } from '../../../components/ui/button';
-
-type MotionDivProps = HTMLMotionProps<"div"> & {
-  className?: string;
-  children?: React.ReactNode;
-};
-
-const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
+import { MotionDiv } from '@/app/types/motion';
 
 type WheelMode = 'yesno' | 'custom';
 
