@@ -1,6 +1,5 @@
 'use client';
 
-import { motion, HTMLMotionProps } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useDispatch, useSelector } from 'react-redux';
@@ -11,13 +10,7 @@ import toast from 'react-hot-toast';
 import Logo from '../Logo/Logo';
 import { RootState } from '@/app/store/store';
 import { signupUser } from '@/lib/auth';
-
-type MotionDivProps = HTMLMotionProps<"div"> & {
-  className?: string;
-  children?: React.ReactNode;
-};
-
-const MotionDiv = motion.div as React.FC<MotionDivProps>;
+import { MotionDiv } from '@/app/types/motion';
 
 const GAMES = [
   { id: 'panda', name: '🐼 Panda Master' },

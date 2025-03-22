@@ -1,7 +1,6 @@
 'use client';
-import { motion, AnimatePresence, LazyMotion, domMax, m } from 'framer-motion';
+import { AnimatePresence, LazyMotion, domMax, m } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
-import type { MotionProps, HTMLMotionProps } from 'framer-motion';
 import { IoClose, IoSend, IoChatbubbleEllipses, IoAttach, IoCheckmarkDone, IoAlert, IoRefresh, IoDocument, IoArrowDown } from 'react-icons/io5';
 import { format } from 'date-fns';
 import {
@@ -15,6 +14,7 @@ import {
 import { useWebSocket } from './hooks/useWebSocket';
 import { useTyping } from './hooks/useTyping';
 import { useScroll } from './hooks/useScroll';
+import { MotionDiv } from '@/app/types/motion';
 
 interface ChatMessage {
   id: number;
@@ -52,13 +52,6 @@ interface ChatModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-type MotionDivProps = HTMLMotionProps<"div"> & {
-  className?: string;
-  children?: React.ReactNode;
-};
-
-const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
   // State declarations
