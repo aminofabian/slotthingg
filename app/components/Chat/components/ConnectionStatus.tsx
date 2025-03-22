@@ -1,8 +1,11 @@
-import { motion, type MotionProps } from 'framer-motion';
+import { motion, type MotionProps, AnimatePresence } from 'framer-motion';
+import type { AnimationProps } from 'framer-motion';
 import { IoClose, IoAlert, IoRefresh } from 'react-icons/io5';
 
-const MotionDiv = motion.div as unknown as React.ComponentType<
-  MotionProps & React.HTMLAttributes<HTMLDivElement>
+const MotionDiv = motion.div as React.ComponentType<
+  Omit<React.HTMLAttributes<HTMLDivElement>, keyof MotionProps> &
+  MotionProps &
+  AnimationProps
 >;
 
 interface ConnectionStatusProps {
