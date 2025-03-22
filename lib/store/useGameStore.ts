@@ -34,183 +34,159 @@ type GameStore = GameStoreState & GameStoreActions;
 const initialGames: Game[] = [
   {
     id: '1',
-    name: 'Cash Frenzy',
-    image: '/Game Logos/Cashfrenzy.png',
-    gameId: 'cashfrenzy_001',
-    entries: 0,
-    active: true,
-    balance: 0,
-    username: 'user_cashfrenzy',
-    password: '********',
-    fallbackImage: '/Game Logos/Cashfrenzy.png'
-  },
-  {
-    id: '2',
-    name: 'Cash Machine',
-    image: '/Game Logos/Cashmachine.webp',
-    gameId: 'cashmachine_001',
-    entries: 0,
-    active: true,
-    balance: 0,
-    username: 'user_cashmachine',
-    password: '********',
-    fallbackImage: '/Game Logos/Cashmachine.webp'
-  },
-  {
-    id: '3',
     name: 'Fire Kirin',
-    image: '/Game Logos/Firekirin.png',
+    image: '/Game Logos/games/FIRE-KIRIN.png',
     gameId: 'firekirin_001',
     entries: 0,
     active: true,
     balance: 0,
     username: 'user_firekirin',
     password: '********',
-    fallbackImage: '/Game Logos/Firekirin.png'
+    fallbackImage: '/Game Logos/games/FIRE-KIRIN.png'
   },
   {
-    id: '4',
-    name: 'Game Room',
-    image: '/Game Logos/Gameroom.png',
-    gameId: 'gameroom_001',
-    entries: 0,
-    active: true,
-    balance: 0,
-    username: 'user_gameroom',
-    password: '********',
-    fallbackImage: '/Game Logos/Gameroom.png'
-  },
-  {
-    id: '5',
+    id: '2',
     name: 'Game Vault',
-    image: '/Game Logos/Gamevault.png',
+    image: '/Game Logos/games/GAME-VAULT.jpg',
     gameId: 'gamevault_001',
     entries: 0,
     active: true,
     balance: 0,
     username: 'user_gamevault',
     password: '********',
-    fallbackImage: '/Game Logos/Gamevault.png'
+    fallbackImage: '/Game Logos/games/GAME-VAULT.jpg'
   },
   {
-    id: '6',
+    id: '3',
+    name: 'Game Room',
+    image: '/Game Logos/games/GAMEROOM.jpg',
+    gameId: 'gameroom_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    username: 'user_gameroom',
+    password: '********',
+    fallbackImage: '/Game Logos/games/GAMEROOM.jpg'
+  },
+  {
+    id: '4',
+    name: 'Golden Dragon',
+    image: '/Game Logos/games/GOLDEN-DRAGON.png',
+    gameId: 'goldendragon_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    username: 'user_goldendragon',
+    password: '********',
+    fallbackImage: '/Game Logos/games/GOLDEN-DRAGON.png'
+  },
+  {
+    id: '5',
     name: 'Juwa',
-    image: '/Game Logos/Juwa.png',
+    image: '/Game Logos/games/JUWA.png',
     gameId: 'juwa_001',
     entries: 0,
     active: true,
     balance: 0,
     username: 'user_juwa',
     password: '********',
-    fallbackImage: '/Game Logos/Juwa.png'
+    fallbackImage: '/Game Logos/games/JUWA.png'
+  },
+  {
+    id: '6',
+    name: 'Machine',
+    image: '/Game Logos/games/MACHINE.jpg',
+    gameId: 'machine_001',
+    entries: 0,
+    active: true,
+    balance: 0,
+    username: 'user_machine',
+    password: '********',
+    fallbackImage: '/Game Logos/games/MACHINE.jpg'
   },
   {
     id: '7',
     name: 'Mafia',
-    image: '/Game Logos/Mafia.png',
+    image: '/Game Logos/games/MAFIA.png',
     gameId: 'mafia_001',
     entries: 0,
     active: true,
     balance: 0,
     username: 'user_mafia',
     password: '********',
-    fallbackImage: '/Game Logos/Mafia.png'
+    fallbackImage: '/Game Logos/games/MAFIA.png'
   },
   {
     id: '8',
     name: 'Milky Way',
-    image: '/Game Logos/Mikyway.png',
+    image: '/Game Logos/games/MILKY-WAY.png',
     gameId: 'milkyway_001',
     entries: 0,
     active: true,
     balance: 0,
     username: 'user_milkyway',
     password: '********',
-    fallbackImage: '/Game Logos/Mikyway.png'
+    fallbackImage: '/Game Logos/games/MILKY-WAY.png'
   },
   {
     id: '9',
-    name: 'Mr All In One',
-    image: '/Game Logos/Mrallinone.png',
-    gameId: 'mrallinone_001',
+    name: 'Orion Star',
+    image: '/Game Logos/games/ORION-STAR.png',
+    gameId: 'orionstar_001',
     entries: 0,
     active: true,
     balance: 0,
-    username: 'user_mrallinone',
+    username: 'user_orionstar',
     password: '********',
-    fallbackImage: '/Game Logos/Mrallinone.png'
+    fallbackImage: '/Game Logos/games/ORION-STAR.png'
   },
   {
     id: '10',
-    name: 'Orion Stars',
-    image: '/Game Logos/Orionstars.png',
-    gameId: 'orionstars_001',
-    entries: 0,
-    active: true,
-    balance: 0,
-    username: 'user_orionstars',
-    password: '********',
-    fallbackImage: '/Game Logos/Orionstars.png'
-  },
-  {
-    id: '11',
     name: 'Panda Master',
-    image: '/Game Logos/Pandamaster.png',
+    image: '/Game Logos/games/PANDA-MASTER (1).png',
     gameId: 'pandamaster_001',
     entries: 0,
     active: true,
     balance: 0,
     username: 'user_pandamaster',
     password: '********',
-    fallbackImage: '/Game Logos/Pandamaster.png'
+    fallbackImage: '/Game Logos/games/PANDA-MASTER (1).png'
   },
   {
-    id: '12',
-    name: 'River Sweeps',
-    image: '/Game Logos/Riversweeps.png',
-    gameId: 'riversweeps_001',
-    entries: 0,
-    active: true,
-    balance: 0,
-    username: 'user_riversweeps',
-    password: '********',
-    fallbackImage: '/Game Logos/Riversweeps.png'
-  },
-  {
-    id: '13',
+    id: '11',
     name: 'Ultra Panda',
-    image: '/Game Logos/Ultrapanda.webp',
+    image: '/Game Logos/games/ULTRA-PANDA.png',
     gameId: 'ultrapanda_001',
     entries: 0,
     active: true,
     balance: 0,
     username: 'user_ultrapanda',
     password: '********',
-    fallbackImage: '/Game Logos/Ultrapanda.webp'
+    fallbackImage: '/Game Logos/games/ULTRA-PANDA.png'
   },
   {
-    id: '14',
-    name: 'VB Link',
-    image: '/Game Logos/Vblink.webp',
+    id: '12',
+    name: 'V Blink',
+    image: '/Game Logos/games/V-BLINK.png',
     gameId: 'vblink_001',
     entries: 0,
     active: true,
     balance: 0,
     username: 'user_vblink',
     password: '********',
-    fallbackImage: '/Game Logos/Vblink.webp'
+    fallbackImage: '/Game Logos/games/V-BLINK.png'
   },
   {
-    id: '15',
-    name: 'Vegas Sweeps',
-    image: '/Game Logos/Vegassweeps.png',
-    gameId: 'vegassweeps_001',
+    id: '13',
+    name: 'Vega Sweeps',
+    image: '/Game Logos/games/VEGA-SWEEPS.jpg',
+    gameId: 'vegasweeps_001',
     entries: 0,
     active: true,
     balance: 0,
-    username: 'user_vegassweeps',
+    username: 'user_vegasweeps',
     password: '********',
-    fallbackImage: '/Game Logos/Vegassweeps.png'
+    fallbackImage: '/Game Logos/games/VEGA-SWEEPS.jpg'
   }
 ];
 
