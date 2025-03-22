@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { motion, type MotionProps } from 'framer-motion';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,9 +9,12 @@ import toast from 'react-hot-toast';
 import { FiLock } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 
-const MotionDiv = MotionDiv as unknown as React.FC<
-  React.HTMLAttributes<HTMLDivElement> & MotionProps
->;
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 const changePasswordSchema = z.object({
   oldPassword: z.string().min(1, 'Current password is required'),
