@@ -1,9 +1,16 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, HTMLMotionProps } from 'framer-motion';
 import { IoInformationCircleOutline, IoReloadCircle, IoArrowBack } from 'react-icons/io5';
 import Link from 'next/link';
+
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 const prizes = [
   { name: '500 XP', color: '#00ffff', weight: 15 },
@@ -153,7 +160,7 @@ export default function RouletteWheel() {
             {/* Collapsible How It Works Section */}
             <AnimatePresence>
               {showInfo && (
-                <motion.div
+                <MotionDiv
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
@@ -194,7 +201,7 @@ export default function RouletteWheel() {
 
                   {/* Divider */}
                   <div className="w-full h-px bg-gradient-to-r from-transparent via-[#00ffff]/20 to-transparent mb-8" />
-                </motion.div>
+                </MotionDiv>
               )}
             </AnimatePresence>
 
@@ -361,7 +368,7 @@ export default function RouletteWheel() {
       {/* Result Modal */}
       <AnimatePresence>
         {result && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
@@ -372,7 +379,7 @@ export default function RouletteWheel() {
               max-h-[90vh] overflow-y-auto"
           >
             <div className="text-lg sm:text-2xl md:text-4xl font-bold text-[#00ffff] text-center mb-2 sm:mb-4">
-              <span className="whitespace-nowrap">🎉 Congratulations! ��</span>
+              <span className="whitespace-nowrap">🎉 Congratulations! </span>
             </div>
             <div className="text-base sm:text-2xl md:text-3xl font-bold text-white text-center">
               You won:
@@ -381,7 +388,7 @@ export default function RouletteWheel() {
                 {result.replace('\n', ' ')}
               </div>
             </div>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>

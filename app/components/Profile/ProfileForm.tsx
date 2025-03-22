@@ -2,8 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { FiEdit2, FiLock } from 'react-icons/fi';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
 import ChangePassword from '../Auth/ChangePassword';
+
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 interface ProfileField {
   label: string;
@@ -158,13 +165,13 @@ const ProfileForm = () => {
       {/* Change Password Modal */}
       <AnimatePresence>
         {showChangePassword && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
-            <motion.div
+            <MotionDiv
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -180,8 +187,8 @@ const ProfileForm = () => {
               </button>
               
               <ChangePassword />
-            </motion.div>
-          </motion.div>
+            </MotionDiv>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </>

@@ -2,11 +2,18 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, HTMLMotionProps } from 'framer-motion';
 import { IoInformationCircleOutline, IoReloadCircle, IoArrowBack, IoAdd, IoClose } from 'react-icons/io5';
 import Link from 'next/link';
 import { Input } from '../../../components/ui/input';
 import { Button } from '../../../components/ui/button';
+
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 type WheelMode = 'yesno' | 'custom';
 
@@ -379,7 +386,7 @@ export default function DecisionWheel() {
       {/* Result Modal */}
       <AnimatePresence>
         {result && (
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
@@ -398,7 +405,7 @@ export default function DecisionWheel() {
                 {result}
               </div>
             </div>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>
