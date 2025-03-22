@@ -1,4 +1,5 @@
 'use client';
+
 import { motion, HTMLMotionProps } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,7 +7,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useMutation } from '@tanstack/react-query';
 import { signupSchema, type SignupFormData } from '@/lib/query';
 import { setFormData, setErrors } from '@/app/store/formSlice';
-import { motion, HTMLMotionProps } from 'framer-motion';
 import toast from 'react-hot-toast';
 import Logo from '../Logo/Logo';
 import { RootState } from '@/app/store/store';
