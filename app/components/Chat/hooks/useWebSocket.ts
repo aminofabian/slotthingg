@@ -131,70 +131,102 @@ export const useWebSocket = ({
 
       ws.current.onmessage = (event) => {
         try {
+          console.log('Raw message received:', event.data);
           const data = JSON.parse(event.data);
-          console.log('WebSocket message received:', data);
+          console.log('Parsed message data:', data);
           
-          if (data.type === 'pong') {
-            console.log('Received pong from server');
-            return;
-          }
-          
-          // Check message ID only to prevent duplicates
-          const messageId = typeof data.id === 'string' ? parseInt(data.id) : data.id;
-          if (data.type === 'message') {
-            // Create the message object
-            const newMessage: ChatMessageData = {
-              id: messageId,
-              type: data.type,
-              message: data.message,
-              sender: parseInt(data.sender_id),
-              sender_name: data.sender_name,
-              sent_time: data.sent_time || new Date().toISOString(),
-              is_file: data.is_file || false,
-              file: data.file,
-              is_player_sender: data.is_player_sender,
-              is_tip: data.is_tip || false,
-              is_comment: data.is_comment || false,
-              status: 'delivered',
-              attachments: data.attachments || [],
-              recipient_id: data.recipient_id ? parseInt(data.recipient_id) : undefined,
-              is_admin_recipient: data.is_admin_recipient
-            };
+          // Handle different message types
+          switch (data.type) {
+            case 'pong':
+              console.log('Received pong from server');
+              break;
+              
+            case 'typing':
+              console.log('Received typing indicator:', data);
+              // Handle typing indicator if needed
+              break;
+              
+            case 'message':
+              console.log('Processing chat message:', data);
+              // Generate a message ID if one isn't provided
+              const messageId = data.id ? 
+                (typeof data.id === 'string' ? parseInt(data.id) : data.id) :
+                Date.now() + Math.floor(Math.random() * 1000);
+              
+              // Create the message object with all possible fields
+              const newMessage: ChatMessageData = {
+                id: messageId, // Use our generated or provided ID
+                type: data.type,
+                message: data.message || '',
+                sender: parseInt(data.sender_id || data.sender || '0'),
+                sender_name: data.sender_name || 'Unknown',
+                sent_time: data.sent_time || new Date().toISOString(),
+                is_file: Boolean(data.is_file),
+                file: data.file || null,
+                is_player_sender: Boolean(data.is_player_sender),
+                is_tip: Boolean(data.is_tip),
+                is_comment: Boolean(data.is_comment),
+                status: 'delivered',
+                attachments: Array.isArray(data.attachments) ? data.attachments : [],
+                recipient_id: data.recipient_id ? parseInt(data.recipient_id) : undefined,
+                is_admin_recipient: Boolean(data.is_admin_recipient)
+              };
 
-            // Update messages while preventing duplicates
-            setMessages(prev => {
-              // Find if this message already exists in the state
-              const existingMsgIndex = prev.findIndex(msg => msg.id === newMessage.id);
-              
-              if (existingMsgIndex >= 0) {
-                // If message exists, update it with the server version
-                const updatedMessages = [...prev];
-                updatedMessages[existingMsgIndex] = {
-                  ...updatedMessages[existingMsgIndex],
-                  status: 'delivered' // Update status to delivered
-                };
+              console.log('Constructed message object:', newMessage);
+
+              // Update messages while preventing duplicates
+              setMessages(prev => {
+                // Create a unique key using sender, timestamp and message content
+                const messageKey = `${data.sender_id}-${data.sent_time}-${data.message}`;
+                
+                // Find if this message already exists in the state using the composite key
+                const existingMsgIndex = prev.findIndex(msg => 
+                  msg.sender === newMessage.sender && 
+                  msg.sent_time === newMessage.sent_time && 
+                  msg.message === newMessage.message
+                );
+                
+                if (existingMsgIndex >= 0) {
+                  console.log('Updating existing message:', messageKey);
+                  // If message exists, update it with the server version
+                  const updatedMessages = [...prev];
+                  updatedMessages[existingMsgIndex] = {
+                    ...updatedMessages[existingMsgIndex],
+                    status: 'delivered'
+                  };
+                  return updatedMessages;
+                }
+                
+                // Check if we've already processed this message
+                if (sharedMessageTracker.has(messageKey)) {
+                  console.log('Message already processed:', messageKey);
+                  return prev;
+                }
+                
+                // Add new message and mark as processed
+                console.log('Adding new message to state:', messageKey);
+                sharedMessageTracker.set(messageKey);
+                
+                // Add new message and sort
+                const updatedMessages = [...prev, newMessage].sort((a, b) => 
+                  new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
+                );
+                
                 return updatedMessages;
-              }
-              
-              // If we already processed this message ID but it's not in the state,
-              // it might be a duplicate from the server, so we'll add it to processedMessageIds
-              if (sharedMessageTracker.has(messageId)) {
-                return prev;
-              }
-              
-              // Otherwise add the message and mark it as processed
-              sharedMessageTracker.set(messageId);
-              
-              // Add new message and sort
-              const updatedMessages = [...prev, newMessage].sort((a, b) => 
-                new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
-              );
-              
-              return updatedMessages;
-            });
+              });
+              break;
+
+            case 'presence':
+              console.log('Received presence update:', data);
+              // Handle presence updates if needed
+              break;
+
+            default:
+              console.log('Received unknown message type:', data.type, data);
           }
         } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+          console.error('Error handling WebSocket message:', error);
+          console.error('Raw message that caused error:', event.data);
         }
       };
 
