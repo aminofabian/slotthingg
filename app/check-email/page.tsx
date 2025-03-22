@@ -1,6 +1,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import type { HTMLMotionProps } from 'framer-motion';
+
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  children?: React.ReactNode;
+  className?: string;
+};
+
+const MotionDiv = motion.div as React.ComponentType<MotionDivProps>;
 
 export default function CheckEmail() {
   return (
@@ -11,7 +19,7 @@ export default function CheckEmail() {
       </div>
 
       <div className="relative flex min-h-screen items-center justify-center p-4 sm:p-6 lg:p-8">
-        <motion.div 
+        <MotionDiv 
           className="w-full max-w-md"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -58,7 +66,7 @@ export default function CheckEmail() {
               Back to Login
             </a>
           </div>
-        </motion.div>
+        </MotionDiv>
       </div>
     </div>
   );
