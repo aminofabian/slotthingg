@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, LazyMotion, domMax, m } from 'framer-motion';
+import type { MotionProps, HTMLMotionProps } from 'framer-motion';
 import { IoClose, IoSend, IoChatbubbleEllipses, IoAttach, IoCheckmarkDone, IoAlert, IoRefresh, IoDocument, IoArrowDown } from 'react-icons/io5';
 import { format } from 'date-fns';
 import {
@@ -53,6 +54,13 @@ interface ChatModalProps {
   onClose: () => void;
 }
 
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
+
 const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
   // State declarations
   const [messages, setMessages] = useState<ChatMessageData[]>([]);
@@ -80,7 +88,6 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     showConnectionToast: wsShowConnectionToast,
     setShowConnectionToast: wsSetShowConnectionToast,
     initializeWebSocket,
-    processedMessageIds,
     hasProcessedMessage,
     markMessageAsProcessed
   } = useWebSocket({
@@ -306,7 +313,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
             // Mark all loaded messages as processed
             processedMessages.forEach(msg => {
               const messageKey = `${msg.id}-${msg.sent_time}`;
-              processedMessageIds.current.add(messageKey);
+              markMessageAsProcessed(messageKey);
             });
           } else {
             console.warn('Invalid chat history format:', data);
@@ -388,7 +395,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     
     if (ws.current?.readyState === WebSocket.OPEN || isUsingMockWebSocket) {
       try {
-        processedMessageIds.current.add(messageId);
+        markMessageAsProcessed(messageId.toString());
         
         ws.current?.send(JSON.stringify({
           type: "message",
@@ -602,141 +609,144 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] lg:bg-black/20"
-          />
-          
-          {/* Connection Status Toast */}
-          <ConnectionStatus 
-            showConnectionToast={wsShowConnectionToast}
-            connectionStatus={connectionStatus}
-            onClose={() => wsSetShowConnectionToast(false)}
-            onRetry={() => {
-              initializeWebSocket();
-              wsSetShowConnectionToast(false);
-            }}
-          />
-          
-          {/* Chat Modal */}
-          <motion.div
-            initial={{ x: '-100%', opacity: 0.5 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: '-100%', opacity: 0.5 }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed left-0 top-0 bottom-0 w-full sm:w-[400px] md:w-[450px] lg:w-[500px] 
-              bg-gradient-to-br from-[#001a1a] to-[#002f2f]
-              shadow-2xl shadow-[#00ffff]/5 border-r border-[#00ffff]/10 
-              overflow-hidden flex flex-col z-[61]"
-          >
-            {/* Chat Header */}
-            <ChatHeader 
-              isWebSocketConnected={isWebSocketConnected}
-              isUsingMockWebSocket={isUsingMockWebSocket}
-              onClose={onClose}
+    <LazyMotion features={domMax}>
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <div onClick={onClose}>
+              <MotionDiv
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] lg:bg-black/20"
+              />
+            </div>
+            
+            {/* Connection Status Toast */}
+            <ConnectionStatus 
+              showConnectionToast={wsShowConnectionToast}
+              connectionStatus={connectionStatus}
+              onClose={() => wsSetShowConnectionToast(false)}
+              onRetry={() => {
+                initializeWebSocket();
+                wsSetShowConnectionToast(false);
+              }}
             />
-
-            {/* Messages */}
-            <div 
-              ref={chatContainerRef}
-              className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 
-                bg-gradient-to-b from-black/20 via-transparent to-transparent
-                scrollbar-thin scrollbar-thumb-[#00ffff]/10 scrollbar-track-transparent
-                flex flex-col"
-              style={{ maxHeight: 'calc(100vh - 160px)' }}
+            
+            {/* Chat Modal */}
+            <MotionDiv
+              initial={{ x: '-100%', opacity: 0.5 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '-100%', opacity: 0.5 }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed left-0 top-0 bottom-0 w-full sm:w-[400px] md:w-[450px] lg:w-[500px] 
+                bg-gradient-to-br from-[#001a1a] to-[#002f2f]
+                shadow-2xl shadow-[#00ffff]/5 border-r border-[#00ffff]/10 
+                overflow-hidden flex flex-col z-[61]"
             >
-              {messages.map((msg) => (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  key={msg.id}
-                  className={`flex ${msg.is_player_sender ? 'justify-end' : 'justify-start'}`}
-                >
-                  {msg.type === 'message' ? (
-                    <div
-                      className={`max-w-[85%] sm:max-w-[75%] relative group ${
-                        msg.is_player_sender
-                          ? 'bg-gradient-to-br from-[#00ffff]/20 to-[#00ffff]/10 text-white shadow-lg shadow-[#00ffff]/20 rounded-t-2xl rounded-bl-2xl rounded-br-md before:content-[""] before:absolute before:-right-2 before:bottom-0 before:border-8 before:border-transparent before:border-b-[#00ffff]/20'
-                          : 'bg-gradient-to-br from-[#ff00ff]/20 to-[#9400d3]/20 text-white shadow-lg shadow-[#ff00ff]/20 rounded-t-2xl rounded-br-2xl rounded-bl-md before:content-[""] before:absolute before:-left-2 before:bottom-0 before:border-8 before:border-transparent before:border-b-[#9400d3]/20'
-                      } px-4 py-2.5 backdrop-blur-sm border border-white/5
-                      transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5`}
-                    >
-                      {/* Sender name - only show for admin messages */}
-                      {!msg.is_player_sender && (
-                        <div className="text-xs text-[#ff00ff]/80 mb-1 font-medium">
-                          {msg.sender_name || 'Admin'}
-                        </div>
-                      )}
-                      
-                      <div className="text-sm sm:text-base break-words leading-relaxed">
-                        {msg.message}
-                      </div>
+              {/* Chat Header */}
+              <ChatHeader 
+                isWebSocketConnected={isWebSocketConnected}
+                isUsingMockWebSocket={isUsingMockWebSocket}
+                onClose={onClose}
+              />
 
-                      {/* Time and status */}
-                      <div className={`flex items-center gap-1.5 mt-1 text-[0.65rem] ${
-                        msg.is_player_sender ? 'text-[#00ffff]/70' : 'text-[#ff00ff]/70'
-                      }`}>
-                        <span>{formatTime(msg.sent_time)}</span>
-                        {msg.is_player_sender && (
-                          <div className="flex items-center gap-1">
-                            {msg.status === 'error' ? (
-                              <button
-                                onClick={() => retryMessage(msg.id)}
-                                className="flex items-center gap-1 text-red-400 hover:text-red-300"
-                              >
-                                <IoAlert className="w-3.5 h-3.5" />
-                                <IoRefresh className="w-3 h-3" />
-                              </button>
-                            ) : (
-                              <IoCheckmarkDone className={`w-3.5 h-3.5 ${
-                                msg.status === 'seen' ? 'text-[#00ffff]' : 'text-[#00ffff]/50'
-                              }`} />
-                            )}
+              {/* Messages */}
+              <div 
+                ref={chatContainerRef}
+                className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 
+                  bg-gradient-to-b from-black/20 via-transparent to-transparent
+                  scrollbar-thin scrollbar-thumb-[#00ffff]/10 scrollbar-track-transparent
+                  flex flex-col"
+                style={{ maxHeight: 'calc(100vh - 160px)' }}
+              >
+                {messages.map((msg) => (
+                  <MotionDiv
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className={`flex ${msg.is_player_sender ? 'justify-end' : 'justify-start'}`}
+                  >
+                    {msg.type === 'message' ? (
+                      <div
+                        className={`max-w-[85%] sm:max-w-[75%] relative group ${
+                          msg.is_player_sender
+                            ? 'bg-gradient-to-br from-[#00ffff]/20 to-[#00ffff]/10 text-white shadow-lg shadow-[#00ffff]/20 rounded-t-2xl rounded-bl-2xl rounded-br-md before:content-[""] before:absolute before:-right-2 before:bottom-0 before:border-8 before:border-transparent before:border-b-[#00ffff]/20'
+                            : 'bg-gradient-to-br from-[#ff00ff]/20 to-[#9400d3]/20 text-white shadow-lg shadow-[#ff00ff]/20 rounded-t-2xl rounded-br-2xl rounded-bl-md before:content-[""] before:absolute before:-left-2 before:bottom-0 before:border-8 before:border-transparent before:border-b-[#9400d3]/20'
+                        } px-4 py-2.5 backdrop-blur-sm border border-white/5
+                        transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5`}
+                      >
+                        {/* Sender name - only show for admin messages */}
+                        {!msg.is_player_sender && (
+                          <div className="text-xs text-[#ff00ff]/80 mb-1 font-medium">
+                            {msg.sender_name || 'Admin'}
                           </div>
                         )}
+                        
+                        <div className="text-sm sm:text-base break-words leading-relaxed">
+                          {msg.message}
+                        </div>
+
+                        {/* Time and status */}
+                        <div className={`flex items-center gap-1.5 mt-1 text-[0.65rem] ${
+                          msg.is_player_sender ? 'text-[#00ffff]/70' : 'text-[#ff00ff]/70'
+                        }`}>
+                          <span>{formatTime(msg.sent_time)}</span>
+                          {msg.is_player_sender && (
+                            <div className="flex items-center gap-1">
+                              {msg.status === 'error' ? (
+                                <button
+                                  onClick={() => retryMessage(msg.id)}
+                                  className="flex items-center gap-1 text-red-400 hover:text-red-300"
+                                >
+                                  <IoAlert className="w-3.5 h-3.5" />
+                                  <IoRefresh className="w-3 h-3" />
+                                </button>
+                              ) : (
+                                <IoCheckmarkDone className={`w-3.5 h-3.5 ${
+                                  msg.status === 'seen' ? 'text-[#00ffff]' : 'text-[#00ffff]/50'
+                                }`} />
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-xs sm:text-sm text-white/40 py-2 italic">
-                      {msg.message}
-                    </div>
-                  )}
-                </motion.div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
+                    ) : (
+                      <div className="text-xs sm:text-sm text-white/40 py-2 italic">
+                        {msg.message}
+                      </div>
+                    )}
+                  </MotionDiv>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
 
-            {/* Typing Indicator */}
-            <TypingIndicator 
-              isAdminTyping={isAdminTyping}
-              selectedAdmin={selectedAdmin}
-            />
+              {/* Typing Indicator */}
+              <TypingIndicator 
+                isAdminTyping={isAdminTyping}
+                selectedAdmin={selectedAdmin}
+              />
 
-            {/* Chat Input */}
-            <ChatInput 
-              newMessage={newMessage}
-              setNewMessage={setNewMessage}
-              selectedFile={selectedFile}
-              setSelectedFile={setSelectedFile}
-              handleSendMessage={handleSendMessage}
-              isWebSocketConnected={isWebSocketConnected}
-              isUsingMockWebSocket={isUsingMockWebSocket}
-              selectedAdmin={selectedAdmin}
-              handleTyping={handleTypingWrapper}
-              availableAdmins={[{ id: selectedAdmin, name: 'Support' }]}
-            />
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+              {/* Chat Input */}
+              <ChatInput 
+                newMessage={newMessage}
+                setNewMessage={setNewMessage}
+                selectedFile={selectedFile}
+                setSelectedFile={setSelectedFile}
+                handleSendMessage={handleSendMessage}
+                isWebSocketConnected={isWebSocketConnected}
+                isUsingMockWebSocket={isUsingMockWebSocket}
+                selectedAdmin={selectedAdmin}
+                handleTyping={handleTypingWrapper}
+                availableAdmins={[{ id: selectedAdmin, name: 'Support' }]}
+              />
+            </MotionDiv>
+          </>
+        )}
+      </AnimatePresence>
+    </LazyMotion>
   );
 };
 

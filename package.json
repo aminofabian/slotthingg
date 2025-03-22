@@ -9,6 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@chakra-ui/react": "^2.10.7",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@headlessui/react": "^2.2.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-slot": "^1.1.1",
@@ -20,7 +23,7 @@
     "cookies-next": "^5.1.0",
     "date-fns": "^4.1.0",
     "emoji-picker-react": "^4.12.0",
-    "framer-motion": "^11.18.0",
+    "framer-motion": "^6.5.1",
     "lucide-react": "^0.471.1",
     "next": "15.1.4",
     "react": "^19.0.0",

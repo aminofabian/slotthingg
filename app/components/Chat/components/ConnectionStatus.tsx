@@ -1,5 +1,9 @@
-import { motion } from 'framer-motion';
+import { motion, type MotionProps } from 'framer-motion';
 import { IoClose, IoAlert, IoRefresh } from 'react-icons/io5';
+
+const MotionDiv = motion.div as unknown as React.ComponentType<
+  MotionProps & React.HTMLAttributes<HTMLDivElement>
+>;
 
 interface ConnectionStatusProps {
   showConnectionToast: boolean;
@@ -17,7 +21,7 @@ const ConnectionStatus = ({
   if (!showConnectionToast) return null;
 
   return (
-    <motion.div 
+    <MotionDiv 
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
@@ -61,7 +65,7 @@ const ConnectionStatus = ({
       >
         <IoClose className="w-5 h-5" />
       </button>
-    </motion.div>
+    </MotionDiv>
   );
 };
 

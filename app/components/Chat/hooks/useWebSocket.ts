@@ -1,11 +1,36 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { ChatMessageData } from '../components';
 
+// Create a shared message tracker that can be used across components
+export const sharedMessageTracker = {
+  processedIds: new Map<number, boolean>(),
+  has: function(id: number | string): boolean {
+    const numId = typeof id === 'string' ? parseInt(id) : id;
+    return this.processedIds.has(numId);
+  },
+  set: function(id: number | string, value: boolean = true): void {
+    const numId = typeof id === 'string' ? parseInt(id) : id;
+    this.processedIds.set(numId, value);
+  },
+  clear: function(): void {
+    this.processedIds.clear();
+  },
+  size: function(): number {
+    return this.processedIds.size;
+  },
+  cleanup: function(): void {
+    if (this.processedIds.size > 1000) {
+      const idsArray = Array.from(this.processedIds.keys());
+      idsArray.slice(0, idsArray.length - 1000).forEach(id => this.processedIds.delete(id));
+    }
+  }
+};
+
 interface WebSocketHookProps {
   userId: string;
   userName: string;
   playerId: string;
-  selectedAdmin: string | null;
+  selectedAdmin: string;
   setMessages: React.Dispatch<React.SetStateAction<ChatMessageData[]>>;
 }
 
@@ -17,7 +42,6 @@ interface WebSocketHookReturn {
   showConnectionToast: boolean;
   setShowConnectionToast: (show: boolean) => void;
   initializeWebSocket: () => void;
-  processedMessageIds: React.RefObject<Set<string | number>>;
   hasProcessedMessage: (messageId: string | number) => boolean;
   markMessageAsProcessed: (messageId: string | number) => void;
 }
@@ -36,7 +60,6 @@ export const useWebSocket = ({
   const [showConnectionToast, setShowConnectionToast] = useState(false);
   const reconnectAttempts = useRef<number>(0);
   const maxReconnectAttempts = 5;
-  const processedMessageIds = useRef(new Set<string | number>());
   const isConnecting = useRef(false);
 
   const initializeWebSocket = useCallback(() => {
@@ -116,13 +139,12 @@ export const useWebSocket = ({
             return;
           }
           
-          // Check both message ID and timestamp to prevent duplicates
-          const messageKey = `${data.id}-${data.sent_time}`;
-          if (data.type === 'message' && !processedMessageIds.current.has(messageKey)) {
-            processedMessageIds.current.add(messageKey);
-            
+          // Check message ID only to prevent duplicates
+          const messageId = typeof data.id === 'string' ? parseInt(data.id) : data.id;
+          if (data.type === 'message') {
+            // Create the message object
             const newMessage: ChatMessageData = {
-              id: typeof data.id === 'string' ? parseInt(data.id) : data.id,
+              id: messageId,
               type: data.type,
               message: data.message,
               sender: parseInt(data.sender_id),
@@ -141,18 +163,27 @@ export const useWebSocket = ({
 
             // Update messages while preventing duplicates
             setMessages(prev => {
-              // Check if message already exists by ID or content+timestamp
-              const exists = prev.some(msg => 
-                msg.id === newMessage.id || 
-                (msg.sent_time === newMessage.sent_time && msg.message === newMessage.message)
-              );
+              // Find if this message already exists in the state
+              const existingMsgIndex = prev.findIndex(msg => msg.id === newMessage.id);
               
-              if (exists) {
-                // If message exists, only update its status if needed
-                return prev.map(msg => 
-                  msg.id === newMessage.id ? { ...msg, status: newMessage.status } : msg
-                );
+              if (existingMsgIndex >= 0) {
+                // If message exists, update it with the server version
+                const updatedMessages = [...prev];
+                updatedMessages[existingMsgIndex] = {
+                  ...updatedMessages[existingMsgIndex],
+                  status: 'delivered' // Update status to delivered
+                };
+                return updatedMessages;
               }
+              
+              // If we already processed this message ID but it's not in the state,
+              // it might be a duplicate from the server, so we'll add it to processedMessageIds
+              if (sharedMessageTracker.has(messageId)) {
+                return prev;
+              }
+              
+              // Otherwise add the message and mark it as processed
+              sharedMessageTracker.set(messageId);
               
               // Add new message and sort
               const updatedMessages = [...prev, newMessage].sort((a, b) => 
@@ -201,6 +232,10 @@ export const useWebSocket = ({
   useEffect(() => {
     if (playerId) {
       console.log('Initializing WebSocket due to playerId change:', playerId);
+      
+      // Clear processed message IDs when playerId changes to prevent stale references
+      sharedMessageTracker.clear();
+      
       initializeWebSocket();
     }
 
@@ -248,19 +283,16 @@ export const useWebSocket = ({
   };
 
   const hasProcessedMessage = (messageId: string | number): boolean => {
-    return processedMessageIds.current.has(messageId);
+    return sharedMessageTracker.has(messageId);
   };
 
   const markMessageAsProcessed = (messageId: string | number): void => {
-    processedMessageIds.current.add(messageId);
+    sharedMessageTracker.set(messageId);
   };
 
   useEffect(() => {
     const cleanupInterval = setInterval(() => {
-      if (processedMessageIds.current.size > 1000) {
-        const idsArray = Array.from(processedMessageIds.current);
-        processedMessageIds.current = new Set(idsArray.slice(idsArray.length - 1000));
-      }
+      sharedMessageTracker.cleanup();
     }, 300000);
     
     return () => {
@@ -279,8 +311,7 @@ export const useWebSocket = ({
     showConnectionToast,
     setShowConnectionToast,
     initializeWebSocket,
-    processedMessageIds,
     hasProcessedMessage,
     markMessageAsProcessed
   };
-}; 
+};
