@@ -1,16 +1,10 @@
 'use client';
 
-import { motion, HTMLMotionProps } from 'framer-motion';
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Logo from '../Logo/Logo';
-
-type MotionDivProps = HTMLMotionProps<"div"> & {
-  className?: string;
-  children?: React.ReactNode;
-};
-
-const MotionDiv = motion.div as React.FC<MotionDivProps>;
+import { MotionDiv } from '@/app/types/motion';
 
 const ForgotPassword = () => {
   const router = useRouter();

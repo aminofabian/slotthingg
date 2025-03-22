@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { resetPasswordSchema, type ResetPasswordFormData } from '@/lib/query';
 import { MotionDiv } from '@/app/types/motion';
+import toast from 'react-hot-toast';
 
 interface ResetPasswordProps {
   userId: string;
@@ -15,23 +16,29 @@ interface ResetPasswordProps {
 
 const ResetPassword = ({ userId, token }: ResetPasswordProps) => {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    password: '',
-    confirmPassword: ''
-  });
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [error, setError] = useState('');
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setError('');
-    
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+  } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+    mode: 'onChange'
+  });
 
+  const password = watch('password');
+  const passwordRequirements = {
+    length: (password?.length || 0) >= 5,
+    uppercase: /[A-Z]/.test(password || ''),
+    lowercase: /[a-z]/.test(password || ''),
+    number: /[0-9]/.test(password || ''),
+    symbol: /[^A-Za-z0-9]/.test(password || '')
+  };
+
+  const onSubmit = async (data: ResetPasswordFormData) => {
     try {
       setIsLoading(true);
       const response = await fetch('https://serverhub.biz/users/reset-password/confirm/', {
@@ -41,32 +48,26 @@ const ResetPassword = ({ userId, token }: ResetPasswordProps) => {
         },
         body: JSON.stringify({
           uidb64: userId,
-          password: formData.password,
+          password: data.password,
           token: token
         }),
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to reset password');
+        const responseData = await response.json();
+        throw new Error(responseData.message || 'Failed to reset password');
       }
 
       setIsSubmitted(true);
+      toast.success('Password reset successfully!');
       setTimeout(() => {
         router.push('/login');
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to reset password');
+      toast.error(err instanceof Error ? err.message : 'Failed to reset password');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
   };
 
   return (
@@ -123,13 +124,8 @@ const ResetPassword = ({ userId, token }: ResetPasswordProps) => {
               </div>
 
               {!isSubmitted ? (
-                <form className="mt-10 space-y-6" onSubmit={handleSubmit}>
+                <form className="mt-10 space-y-6" onSubmit={handleSubmit(onSubmit)}>
                   <div className="space-y-5">
-                    {error && (
-                      <div className="text-red-500 text-sm text-center">
-                        {error}
-                      </div>
-                    )}
                     <div className="group relative">
                       <label htmlFor="password" className="block text-sm text-[#00ffff]/80 mb-2 ml-1 
                         tracking-wider uppercase">
@@ -137,18 +133,22 @@ const ResetPassword = ({ userId, token }: ResetPasswordProps) => {
                       </label>
                       <input
                         id="password"
-                        name="password"
                         type="password"
-                        required
-                        value={formData.password}
-                        onChange={handleChange}
-                        className="block w-full rounded-xl border border-[#00ffff]/20 
-                        bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                        {...register('password')}
+                        className={`block w-full rounded-xl border ${
+                          errors.password ? 'border-red-500' : 'border-[#00ffff]/20'
+                        } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
                         focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
                         backdrop-blur-sm transition-all duration-300
-                        hover:border-[#00ffff]/30 hover:bg-white/[0.04]"
+                        hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
                         placeholder="Enter new password"
                       />
+                      {errors.password && (
+                        <p className="mt-1 text-sm text-red-400 flex items-center">
+                          <span className="mr-1">⚠️</span>
+                          {errors.password.message}
+                        </p>
+                      )}
                     </div>
 
                     <div className="group relative">
@@ -158,33 +158,56 @@ const ResetPassword = ({ userId, token }: ResetPasswordProps) => {
                       </label>
                       <input
                         id="confirmPassword"
-                        name="confirmPassword"
                         type="password"
-                        required
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        className="block w-full rounded-xl border border-[#00ffff]/20 
-                        bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
+                        {...register('confirmPassword')}
+                        className={`block w-full rounded-xl border ${
+                          errors.confirmPassword ? 'border-red-500' : 'border-[#00ffff]/20'
+                        } bg-white/[0.02] px-5 py-3.5 text-white placeholder-white/30
                         focus:border-[#00ffff] focus:ring-1 focus:ring-[#00ffff]/50
                         backdrop-blur-sm transition-all duration-300
-                        hover:border-[#00ffff]/30 hover:bg-white/[0.04]"
+                        hover:border-[#00ffff]/30 hover:bg-white/[0.04]`}
                       />
+                      {errors.confirmPassword && (
+                        <p className="mt-1 text-sm text-red-400 flex items-center">
+                          <span className="mr-1">⚠️</span>
+                          {errors.confirmPassword.message}
+                        </p>
+                      )}
                     </div>
 
-                    <p className="text-white/40 text-sm tracking-wide bg-[#00ffff]/5 p-3 rounded-lg">
-                      At least 5 characters, but 10 or more is better. Use a combination of upper and lower case letters, numbers and symbols.
-                    </p>
+                    <div className="space-y-2 mt-4">
+                      <p className={`flex items-center ${passwordRequirements.length ? 'text-green-400' : 'text-white/50'}`}>
+                        <span className="mr-1">{passwordRequirements.length ? '✓' : '○'}</span>
+                        At least 5 characters
+                      </p>
+                      <p className={`flex items-center ${passwordRequirements.uppercase ? 'text-green-400' : 'text-white/50'}`}>
+                        <span className="mr-1">{passwordRequirements.uppercase ? '✓' : '○'}</span>
+                        One uppercase letter
+                      </p>
+                      <p className={`flex items-center ${passwordRequirements.lowercase ? 'text-green-400' : 'text-white/50'}`}>
+                        <span className="mr-1">{passwordRequirements.lowercase ? '✓' : '○'}</span>
+                        One lowercase letter
+                      </p>
+                      <p className={`flex items-center ${passwordRequirements.number ? 'text-green-400' : 'text-white/50'}`}>
+                        <span className="mr-1">{passwordRequirements.number ? '✓' : '○'}</span>
+                        One number
+                      </p>
+                      <p className={`flex items-center ${passwordRequirements.symbol ? 'text-green-400' : 'text-white/50'}`}>
+                        <span className="mr-1">{passwordRequirements.symbol ? '✓' : '○'}</span>
+                        One symbol
+                      </p>
+                    </div>
                   </div>
 
                   <button
                     type="submit"
                     disabled={isLoading}
                     className="relative w-full rounded-xl border border-[#00ffff]/20
-                    bg-[#00ffff]/10 px-6 py-4 text-[#00ffff] tracking-[0.2em] uppercase
-                    hover:bg-[#00ffff]/20 focus:outline-none focus:ring-2 
-                    focus:ring-[#00ffff]/50 transition-all duration-300
-                    disabled:opacity-70 disabled:cursor-not-allowed
-                    group overflow-hidden"
+                      bg-[#00ffff]/10 px-6 py-4 text-[#00ffff] tracking-[0.2em] uppercase
+                      hover:bg-[#00ffff]/20 focus:outline-none focus:ring-2 
+                      focus:ring-[#00ffff]/50 transition-all duration-300
+                      disabled:opacity-70 disabled:cursor-not-allowed
+                      group overflow-hidden"
                   >
                     {isLoading && (
                       <MotionDiv

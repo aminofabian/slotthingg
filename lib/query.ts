@@ -19,6 +19,22 @@ export const formSchema = z.object({
 // Type inference
 export type FormData = z.infer<typeof formSchema>;
 
+// Reset password schema
+export const resetPasswordSchema = z.object({
+  password: z.string()
+    .min(5, 'Password must be at least 5 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one symbol'),
+  confirmPassword: z.string().min(1, 'Please confirm your password')
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+
 // Validation function
 export const validateForm = (data: unknown) => {
   try {
