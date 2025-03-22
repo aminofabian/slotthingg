@@ -1,14 +1,16 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import type { HTMLMotionProps } from 'framer-motion';
+import { motion, HTMLMotionProps } from 'framer-motion';
+import Link from 'next/link';
+import { FaEnvelope } from 'react-icons/fa';
+import Logo from '../components/Logo/Logo';
 
 type MotionDivProps = HTMLMotionProps<"div"> & {
-  children?: React.ReactNode;
   className?: string;
+  children?: React.ReactNode;
 };
 
-const MotionDiv = MotionDiv as React.ComponentType<MotionDivProps>;
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 export default function CheckEmail() {
   return (
