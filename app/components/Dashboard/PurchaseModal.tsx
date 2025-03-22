@@ -21,8 +21,6 @@ type PaymentMethod = {
   apiValue?: string;
   title: string;
   icon: React.ReactNode;
-  minAmount: number;
-  maxAmount?: number;
   bonus?: number;
   icons?: React.ReactNode[];
 };
@@ -50,23 +48,19 @@ const paymentMethods: PaymentMethod[] = [
     icons: [
       <FaBitcoin key="btc" className="w-6 h-6" />,
       <TbBolt key="lightning" className="w-6 h-6" />
-    ],
-    minAmount: 5,
-    maxAmount: 1000
+    ]
   },
   {
     id: 'bitcoin',
     apiValue: 'BTC-CHAIN',
     title: 'Bitcoin',
-    icon: <FaBitcoin className="w-6 h-6" />,
-    minAmount: 20
+    icon: <FaBitcoin className="w-6 h-6" />
   },
   {
     id: 'litecoin',
     apiValue: 'LTC-CHAIN',
     title: 'Litecoin',
-    icon: <SiLitecoin className="w-6 h-6" />,
-    minAmount: 10
+    icon: <SiLitecoin className="w-6 h-6" />
   }
 ];
 
@@ -90,9 +84,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
   const selectedPaymentMethod = paymentMethods.find(method => method.id === selectedMethod);
   
   // Check if amount is valid
-  const isAmountValid = typeof amount === 'number' && 
-    amount >= (selectedPaymentMethod?.minAmount || 0) && 
-    (selectedPaymentMethod?.maxAmount ? amount <= selectedPaymentMethod.maxAmount : true);
+  const isAmountValid = typeof amount === 'number' && amount > 0;
 
   // Check authentication status first
   useEffect(() => {
@@ -429,23 +421,14 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                             type="number"
                             value={amount}
                             onChange={handleAmountChange}
-                            min={selectedPaymentMethod?.minAmount}
-                            max={selectedPaymentMethod?.maxAmount}
                             className="w-full bg-black/40 border-2 border-[#00ffff]/20 rounded-xl py-3 sm:py-4 px-10 sm:px-14
                               text-white text-center text-lg sm:text-xl font-bold focus:outline-none focus:border-[#00ffff]/50
                               transition-all duration-200 hover:border-[#00ffff]/30"
-                            placeholder={`${selectedPaymentMethod?.minAmount}`}
+                            placeholder="Enter amount"
                           />
                           <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-white/60 text-xs sm:text-sm">
                             USD
                           </div>
-                        </div>
-                        
-                        <div className="flex justify-between items-center text-xs sm:text-sm text-white/60 px-2 mb-2 sm:mb-3">
-                          <span>Min: ${selectedPaymentMethod?.minAmount}</span>
-                          {selectedPaymentMethod?.maxAmount && (
-                            <span>Max: ${selectedPaymentMethod?.maxAmount}</span>
-                          )}
                         </div>
                         
                         {selectedPaymentMethod?.bonus && (
@@ -506,10 +489,6 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                           {/* Info */}
                           <div className="flex-1 text-left">
                             <p className="text-sm sm:text-base text-white font-medium">{method.title}</p>
-                            <p className="text-xs sm:text-sm text-white/40">
-                              Min.${method.minAmount}
-                              {method.maxAmount ? ` - Max. $${method.maxAmount}` : ''}
-                            </p>
                           </div>
 
                           {/* Bonus Badge */}
