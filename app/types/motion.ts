@@ -53,4 +53,7 @@ export const MotionAnchor = motion.a as React.FC<MotionAnchorProps>;
 
 // Helper type for creating motion components with specific HTML element types
 export type CreateMotionComponent<T extends keyof HTMLElementTagNameMap> = 
-  HTMLMotionProps<T> & BaseMotionProps; 
+  HTMLMotionProps<T> & BaseMotionProps;
+
+export type MotionDiv = typeof motion.div
+export type MotionProps = HTMLMotionProps<"div"> 
