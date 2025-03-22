@@ -1,11 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import { FaHome } from 'react-icons/fa';
 import {GiDiamonds, GiCrownCoin, GiCherry } from 'react-icons/gi';
 import Logo from './components/Logo/Logo';
 import { useEffect, useState } from 'react';
+
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 interface SlotReelProps {
   symbols: React.ComponentType[];
@@ -36,7 +43,7 @@ const SlotReel = ({ symbols, delay = 0 }: SlotReelProps) => {
   return (
     <div className="relative w-24 h-24 bg-gradient-to-b from-[#00ffff]/10 to-[#009999]/20 
       rounded-lg border border-[#00ffff]/30 overflow-hidden">
-      <motion.div
+      <MotionDiv
         animate={{
           y: spinning ? [0, -100] : 0
         }}
@@ -58,16 +65,16 @@ const SlotReel = ({ symbols, delay = 0 }: SlotReelProps) => {
         ))
         ) : (
           <div className="w-24 h-24 flex items-center justify-center">
-            <motion.div
+            <MotionDiv
               initial={{ scale: 2, rotate: 180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", duration: 0.5 }}
             >
               <span className="text-5xl">4</span>
-            </motion.div>
+            </MotionDiv>
           </div>
         )}
-      </motion.div>
+      </MotionDiv>
     </div>
   );
 };
@@ -84,7 +91,7 @@ export default function NotFound() {
       {/* Content */}
       <div className="relative z-10 w-full max-w-2xl mx-auto px-4 text-center">
         {/* Logo */}
-        <motion.div 
+        <MotionDiv 
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5 }}
@@ -93,11 +100,11 @@ export default function NotFound() {
           <div className="w-48 h-16 mx-auto">
             <Logo />
           </div>
-        </motion.div>
+        </MotionDiv>
 
         {/* Slot Machine */}
         <div className="mb-12">
-          <motion.div
+          <MotionDiv
             initial={{ y: -50, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -106,9 +113,9 @@ export default function NotFound() {
             <SlotReel symbols={symbols} delay={0} />
             <SlotReel symbols={symbols} delay={200} />
             <SlotReel symbols={symbols} delay={400} />
-          </motion.div>
+          </MotionDiv>
 
-          <motion.div
+          <MotionDiv
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 2.5 }}
@@ -120,11 +127,11 @@ export default function NotFound() {
             <p className="text-white/70 text-lg">
               Looks like this spin didn't hit the jackpot. Try another round!
             </p>
-          </motion.div>
+          </MotionDiv>
         </div>
 
         {/* Buttons */}
-        <motion.div 
+        <MotionDiv 
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 2.7 }}
@@ -147,7 +154,7 @@ export default function NotFound() {
             <GiDiamonds className="w-5 h-5 text-[#00ffff] group-hover:scale-110 transition-transform duration-300" />
             <span>Play Now</span>
           </Link>
-        </motion.div>
+        </MotionDiv>
       </div>
 
       {/* Decorative Elements */}

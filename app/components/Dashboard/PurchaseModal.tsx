@@ -31,7 +31,7 @@ type MotionDivProps = HTMLMotionProps<"div"> & {
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 };
 
-const MotionDiv = motion.div as React.FC<MotionDivProps>;
+const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
 
 // Helper function to get cookie by name
 const getCookie = (name: string): string | null => {

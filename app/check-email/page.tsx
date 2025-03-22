@@ -8,7 +8,7 @@ type MotionDivProps = HTMLMotionProps<"div"> & {
   className?: string;
 };
 
-const MotionDiv = motion.div as React.ComponentType<MotionDivProps>;
+const MotionDiv = MotionDiv as React.ComponentType<MotionDivProps>;
 
 export default function CheckEmail() {
   return (

@@ -11,7 +11,7 @@ export interface BaseMotionProps {
 export type MotionDivProps = HTMLMotionProps<"div"> & BaseMotionProps;
 
 // Pre-typed motion components
-export const MotionDiv = motion.div as React.FC<MotionDivProps>;
+export const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
 
 // Add more motion components as needed
 export type MotionHeaderProps = HTMLMotionProps<"header"> & BaseMotionProps;

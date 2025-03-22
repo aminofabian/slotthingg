@@ -9,7 +9,7 @@ type MotionDivProps = HTMLMotionProps<"div"> & {
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 };
 
-const MotionDiv = motion.div as React.FC<MotionDivProps>;
+const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
 
 interface PurchaseModalProps {
   isOpen: boolean;

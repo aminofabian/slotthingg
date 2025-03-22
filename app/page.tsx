@@ -24,7 +24,7 @@ export default function Home() {
 
   return (
     <main>
-      <AnimatePresence mode="wait">
+      <AnimatePresence initial={false}>
         {isLoading ? (
           <LoadingScreen key="loading" />
         ) : (

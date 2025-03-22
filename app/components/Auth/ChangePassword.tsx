@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 import { FiLock } from 'react-icons/fi';
 import { useRouter } from 'next/navigation';
 
-const MotionDiv = motion.div as unknown as React.FC<
+const MotionDiv = MotionDiv as unknown as React.FC<
   React.HTMLAttributes<HTMLDivElement> & MotionProps
 >;
 

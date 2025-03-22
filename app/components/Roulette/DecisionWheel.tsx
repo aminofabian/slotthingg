@@ -13,7 +13,7 @@ type MotionDivProps = HTMLMotionProps<"div"> & {
   children?: React.ReactNode;
 };
 
-const MotionDiv = motion.div as React.FC<MotionDivProps>;
+const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
 
 type WheelMode = 'yesno' | 'custom';
 

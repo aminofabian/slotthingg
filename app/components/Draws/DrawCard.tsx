@@ -14,7 +14,7 @@ type MotionSpanProps = HTMLMotionProps<"span"> & {
   children?: React.ReactNode;
 };
 
-const MotionDiv = motion.div as React.FC<MotionDivProps>;
+const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
 const MotionSpan = motion.span as React.FC<MotionSpanProps>;
 
 interface DrawCardProps {

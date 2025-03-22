@@ -10,7 +10,7 @@ type MotionDivProps = HTMLMotionProps<"div"> & {
   children?: React.ReactNode;
 };
 
-const MotionDiv = motion.div as React.FC<MotionDivProps>;
+const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
 
 const prizes = [
   { name: '500 XP', color: '#00ffff', weight: 15 },
