@@ -1,8 +1,21 @@
 'use client';
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
 import { BiTime, BiInfoCircle } from 'react-icons/bi';
 import { FaTicketAlt } from 'react-icons/fa';
+
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+type MotionSpanProps = HTMLMotionProps<"span"> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
+const MotionSpan = motion.span as React.FC<MotionSpanProps>;
 
 interface DrawCardProps {
   type: 'Weekly' | 'Monthly';
@@ -64,14 +77,14 @@ const DrawCard = ({ type, days, hours, minutes, seconds }: DrawCardProps) => {
               <div className="bg-[#00ffff]/10 rounded-xl p-3 backdrop-blur-sm
                 border border-[#00ffff]/20 group-hover:border-[#00ffff]/30 
                 transition-all duration-300">
-                <motion.span 
+                <MotionSpan 
                   key={block.value}
                   initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   className="block text-2xl font-bold text-white mb-1"
                 >
                   {block.value.toString().padStart(2, '0')}
-                </motion.span>
+                </MotionSpan>
                 <span className="text-xs text-[#00ffff]/70">{block.label}</span>
               </div>
             </div>
@@ -96,7 +109,7 @@ const DrawCard = ({ type, days, hours, minutes, seconds }: DrawCardProps) => {
       {/* Info Panel */}
       <AnimatePresence>
         {showInfo && (
-          <motion.div
+          <MotionDiv
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -157,7 +170,7 @@ const DrawCard = ({ type, days, hours, minutes, seconds }: DrawCardProps) => {
                 </button>
               </div>
             </div>
-          </motion.div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </div>
