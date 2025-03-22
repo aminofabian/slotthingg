@@ -1,21 +1,22 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import Logo from '../Logo/Logo';
+
 import { motion, HTMLMotionProps } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
+import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { fetchDashboardData } from '@/lib/auth';
-import { useRouter, useSearchParams } from 'next/navigation';
+import Logo from '../Logo/Logo';
 
 type MotionDivProps = HTMLMotionProps<"div"> & {
   className?: string;
   children?: React.ReactNode;
 };
 
-const MotionDiv = MotionDiv as React.FC<MotionDivProps>;
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
