@@ -6,9 +6,16 @@ import { useMutation } from '@tanstack/react-query';
 import { formSchema, type FormData } from '../../lib/query';
 import { setFormData, setErrors } from '../store/formSlice';
 import { RootState } from '@/app/store/store';
-import { motion } from 'framer-motion';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import Logo from './Logo/Logo';
 import toast from 'react-hot-toast';
+
+type MotionDivProps = HTMLMotionProps<"div"> & {
+  className?: string;
+  children?: React.ReactNode;
+};
+
+const MotionDiv = motion.div as React.FC<MotionDivProps>;
 
 export default function Form() {
   const dispatch = useDispatch();
@@ -76,7 +83,7 @@ export default function Form() {
       </div>
 
       <div className="relative flex min-h-screen items-center justify-center p-4">
-        <motion.div
+        <MotionDiv
           className="w-full max-w-lg relative"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -84,9 +91,9 @@ export default function Form() {
         >
           <div className="absolute left-1/2 -translate-x-1/2 -top-24 z-10">
             <div className="relative">
-              <motion.div className="relative z-10 scale-150">
+              <MotionDiv className="relative z-10 scale-150">
                 <Logo />
-              </motion.div>
+              </MotionDiv>
               <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-[#00ffff]/5 rounded-full blur-[100px]" />
             </div>
           </div>
@@ -225,19 +232,19 @@ export default function Form() {
                     group overflow-hidden`}
                 >
                   {mutation.isPending && (
-                    <motion.div
+                    <MotionDiv
                       className="absolute bottom-0 left-0 h-[2px] bg-[#00ffff]/30"
                       initial={{ width: 0 }}
                       animate={{ width: '100%' }}
                       transition={{ duration: 1, ease: 'easeInOut' }}
                     >
-                      <motion.div
+                      <MotionDiv
                         className="absolute top-0 left-0 h-full bg-[#00ffff]"
                         initial={{ width: '0%' }}
                         animate={{ width: '100%' }}
                         transition={{ duration: 1, ease: 'easeInOut' }}
                       />
-                    </motion.div>
+                    </MotionDiv>
                   )}
                   <span className="relative flex items-center justify-center">
                     {mutation.isPending ? 'Submitting...' : 'Submit'}
@@ -246,7 +253,7 @@ export default function Form() {
               </form>
             </div>
           </div>
-        </motion.div>
+        </MotionDiv>
       </div>
     </div>
   );
