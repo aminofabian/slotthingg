@@ -14,7 +14,7 @@ import { GiCash, GiMoneyStack } from 'react-icons/gi';
 import toast from 'react-hot-toast';
 import ChatModal from '../Chat/ChatModal';
 import PurchaseModal from '../Dashboard/PurchaseModal';
-import CashoutModal from '../Chat/CashoutModal';
+import CashoutModal from './CashoutModal';
 
 const navItems = [
   { label: 'Purchase', icon: BiMoney, isPurchase: true },
@@ -30,6 +30,7 @@ export default function MobileNavbar() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isCashoutModalOpen, setIsCashoutModalOpen] = useState(false);
+  const [currentBalance, setCurrentBalance] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -88,9 +89,10 @@ export default function MobileNavbar() {
         isOpen={isPurchaseModalOpen}
         onClose={() => setIsPurchaseModalOpen(false)}
       />
-      <CashoutModal 
+      <CashoutModal
         isOpen={isCashoutModalOpen}
         onClose={() => setIsCashoutModalOpen(false)}
+        currentBalance={currentBalance}
       />
       
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40">

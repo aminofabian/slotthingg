@@ -1,11 +1,12 @@
 'use client';
 
 import { Fragment, useState } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
-import { FaBitcoin, FaEthereum, FaMoneyBillWave } from 'react-icons/fa';
+import { AnimatePresence, motion } from 'framer-motion';
+import { FaBitcoin, FaMoneyBillWave } from 'react-icons/fa';
 import { SiLitecoin } from 'react-icons/si';
-import { BsCashStack, BsShieldCheck, BsArrowRight, BsInfoCircle, BsExclamationTriangle, BsArrowLeft, BsCheckLg } from 'react-icons/bs';
-import Image from 'next/image';
+import { IoClose } from 'react-icons/io5';
+import { BsCashStack, BsShieldCheck, BsInfoCircle } from 'react-icons/bs';
+import { MotionDiv } from '@/app/types/motion';
 
 interface CashoutModalProps {
   isOpen: boolean;
@@ -17,307 +18,349 @@ const paymentMethods = [
   { 
     id: 'bitcoin', 
     name: 'Bitcoin', 
-    icon: FaBitcoin, 
-    color: 'text-[#f7931a]',
-    image: '/crypto/bitcoin.png',
+    icon: <div className="group relative flex items-center justify-center w-6 h-6">
+      <div className="absolute inset-0 bg-[#F7931A] blur-lg opacity-20 group-hover:opacity-30 transition-opacity rounded-full" />
+      <FaBitcoin className="w-6 h-6 text-[#F7931A] relative z-10 group-hover:scale-110 transition-transform duration-200" />
+    </div>,
     description: 'Fast & secure cryptocurrency payments'
   },
   { 
     id: 'ach', 
     name: 'ACH Transfer', 
-    icon: BsCashStack, 
-    color: 'text-green-500',
-    image: '/crypto/bank.png',
+    icon: <div className="group relative flex items-center justify-center w-6 h-6">
+      <div className="absolute inset-0 bg-green-500 blur-lg opacity-20 group-hover:opacity-30 transition-opacity rounded-full" />
+      <BsCashStack className="w-6 h-6 text-green-500 relative z-10 group-hover:scale-110 transition-transform duration-200" />
+    </div>,
     description: 'Direct bank transfer (US only)'
   },
   { 
     id: 'litecoin', 
     name: 'Litecoin', 
-    icon: SiLitecoin, 
-    color: 'text-[#345d9d]',
-    image: '/crypto/litecoin.png',
+    icon: <div className="group relative flex items-center justify-center w-6 h-6">
+      <div className="absolute inset-0 bg-[#345D9D] blur-lg opacity-20 group-hover:opacity-30 transition-opacity rounded-full" />
+      <SiLitecoin className="w-6 h-6 text-[#345D9D] relative z-10 group-hover:scale-110 transition-transform duration-200" />
+    </div>,
     description: 'Lower fees, faster transactions'
   },
 ];
 
 export default function CashoutModal({ isOpen, onClose, currentBalance }: CashoutModalProps) {
-  const [step, setStep] = useState(1);
-  const [selectedMethod, setSelectedMethod] = useState('');
-  const [amount, setAmount] = useState('');
+  const [step, setStep] = useState<'method' | 'details' | 'confirm'>('method');
+  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+  const [amount, setAmount] = useState<number | ''>('');
   const [publicKey, setPublicKey] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleNext = () => {
-    if (step < 3) setStep(step + 1);
+  // Get the selected payment method object
+  const selectedPaymentMethod = paymentMethods.find(method => method.id === selectedMethod);
+  
+  // Check if amount is valid
+  const isAmountValid = typeof amount === 'number' && amount > 0;
+
+  // Reset the modal state
+  const resetModal = () => {
+    setSelectedMethod(null);
+    setAmount('');
+    setPublicKey('');
+    setError(null);
+    setStep('method');
   };
 
-  const handleBack = () => {
-    if (step > 1) setStep(step - 1);
-  };
-
-  const handleSubmit = () => {
-    // Handle cashout submission
-    console.log({ selectedMethod, amount, publicKey });
+  // Close modal and reset state
+  const handleClose = () => {
+    resetModal();
     onClose();
   };
 
+  // Handle method selection
+  const handleMethodSelect = (methodId: string) => {
+    setSelectedMethod(methodId);
+    setStep('details');
+  };
+
+  // Handle back button
+  const handleBack = () => {
+    setStep('method');
+    setAmount('');
+  };
+
+  // Handle amount change
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === '') {
+      setAmount('');
+    } else {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        setAmount(numValue);
+      }
+    }
+  };
+
+  // Handle cashout submission
+  const handleCashout = async () => {
+    if (!selectedPaymentMethod || !isAmountValid) return;
+    
+    setIsProcessing(true);
+    setError(null);
+    
+    try {
+      // Add your cashout API call here
+      console.log('Processing cashout:', {
+        method: selectedMethod,
+        amount,
+        publicKey
+      });
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Success handling
+      handleClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
+    <AnimatePresence>
+      {isOpen && (
+        <MotionDiv
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 overflow-y-auto"
+          onClick={(e) => e.target === e.currentTarget && handleClose()}
         >
-          <div className="fixed inset-0 bg-black/90" />
-        </Transition.Child>
+          <MotionDiv
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="w-full max-w-md mx-auto my-4 bg-[#0a0a0a] rounded-2xl overflow-hidden"
+          >
+            {/* Header */}
+            <div className="relative p-4 sm:p-6">
+              <div className="flex flex-col items-center">
+                <h2 className="text-xl sm:text-2xl font-bold text-white">Cashout</h2>
+                <p className="text-[#00ffff] text-sm mt-1">Request your withdrawal</p>
+              </div>
+              <button
+                onClick={handleClose}
+                className="absolute right-3 top-3 p-2 text-[#00ffff] hover:text-white
+                  rounded-lg hover:bg-white/5 transition-colors"
+              >
+                <IoClose className="w-5 h-5" />
+              </button>
 
-        <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl 
-                bg-gradient-to-br from-gray-900 via-black to-gray-900 p-6 shadow-xl 
-                transition-all border border-[#00ffff]/20">
-                {/* Header with glowing effect */}
-                <div className="relative mb-8">
-                  <div className="absolute -top-6 -left-6 -right-6 h-24 bg-[#00ffff]/5 blur-2xl" />
-                  <Dialog.Title className="relative flex items-center justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold text-white">Cashout</h2>
-                      <p className="text-[#00ffff]/60 text-sm mt-1">Request your withdrawal</p>
-                    </div>
-                    <button
-                      onClick={onClose}
-                      className="text-[#00ffff]/60 hover:text-[#00ffff] transition-colors p-2
-                        hover:bg-[#00ffff]/10 rounded-lg"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </Dialog.Title>
-                </div>
+              {/* Step Indicators */}
+              <div className="mt-6 flex items-center justify-between relative">
+                {/* Progress Line */}
+                <div className="absolute top-1/2 left-0 right-0 h-[2px] bg-[#1a2634]" />
+                
+                {/* Steps */}
+                {['Method', 'Details', 'Confirm'].map((label, index) => {
+                  const stepNumber = index + 1;
+                  const isActive = (
+                    (step === 'method' && stepNumber === 1) ||
+                    (step === 'details' && stepNumber === 2) ||
+                    (step === 'confirm' && stepNumber === 3)
+                  );
+                  const isPast = (
+                    (step === 'details' && stepNumber === 1) ||
+                    (step === 'confirm' && stepNumber <= 2)
+                  );
 
-                {/* Steps indicator with animations */}
-                <div className="flex justify-between mb-8 relative">
-                  <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-700 -translate-y-1/2" />
-                  <div className="absolute top-1/2 left-0 h-0.5 bg-[#00ffff] -translate-y-1/2 transition-all duration-500"
-                    style={{ width: `${((step - 1) / 2) * 100}%` }} />
-                  {[1, 2, 3].map((num) => (
-                    <div key={num} className="relative z-10 flex flex-col items-center">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center 
-                        transition-all duration-300 ${
-                        step >= num 
-                          ? 'bg-[#00ffff] text-black ring-4 ring-[#00ffff]/20' 
-                          : 'bg-gray-700 text-gray-300'
-                        }`}>
-                        {num}
+                  return (
+                    <div key={label} className="relative z-10 flex flex-col items-center">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm
+                        ${isActive ? 'bg-[#00ffff] text-black' : 
+                          isPast ? 'bg-[#1a2634] text-[#00ffff]' : 
+                          'bg-[#1a2634] text-gray-500'}`}>
+                        {stepNumber}
                       </div>
-                      <span className={`text-xs mt-2 font-medium transition-colors duration-300 ${
-                        step >= num ? 'text-[#00ffff]' : 'text-gray-500'
-                      }`}>
-                        {num === 1 ? 'Method' : num === 2 ? 'Details' : 'Confirm'}
+                      <span className={`mt-2 text-xs
+                        ${isActive ? 'text-[#00ffff]' : 
+                          isPast ? 'text-white' : 
+                          'text-gray-500'}`}>
+                        {label}
                       </span>
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
+              </div>
+            </div>
 
-                {/* Balance Display */}
-                <div className="bg-gradient-to-r from-[#00ffff]/10 to-transparent p-4 rounded-lg mb-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[#00ffff]/70 text-sm">Available Balance</p>
-                      <p className="text-2xl font-bold text-white">${currentBalance.toFixed(2)}</p>
-                    </div>
-                    <FaMoneyBillWave className="text-4xl text-[#00ffff]/40" />
+            {/* Content */}
+            <div className="p-4 sm:p-6">
+              {/* Available Balance Card */}
+              <div className="bg-[#0f1520] rounded-xl p-4 mb-6">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Available Balance</span>
+                  <div className="w-6 h-6 text-[#00ffff]">
+                    <FaMoneyBillWave className="w-full h-full" />
                   </div>
                 </div>
+                <div className="text-2xl font-bold text-white mt-1">
+                  ${currentBalance.toFixed(2)}
+                </div>
+              </div>
 
-                {/* Step Content */}
-                <div className="min-h-[300px]">
-                  {/* Step 1: Payment Method Selection */}
-                  {step === 1 && (
-                    <div className="space-y-4">
-                      <div className="grid gap-3">
-                        {paymentMethods.map((method) => (
-                          <button
-                            key={method.id}
-                            onClick={() => setSelectedMethod(method.id)}
-                            className={`flex items-center gap-4 p-4 rounded-lg border 
-                              transition-all duration-300 group ${
-                              selectedMethod === method.id
-                                ? 'border-[#00ffff] bg-[#00ffff]/10'
-                                : 'border-gray-700 hover:border-[#00ffff]/50'
-                            }`}
-                          >
-                            <div className={`w-12 h-12 rounded-full flex items-center justify-center 
-                              ${selectedMethod === method.id ? 'bg-[#00ffff]/20' : 'bg-black/40'}`}>
-                              <method.icon className={`text-2xl ${method.color}`} />
-                            </div>
-                            <div className="flex-1 text-left">
-                              <p className="text-white font-medium group-hover:text-[#00ffff] transition-colors">
-                                {method.name}
-                              </p>
-                              <p className="text-gray-400 text-sm">{method.description}</p>
-                            </div>
-                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center
-                              transition-all duration-300 ${
-                              selectedMethod === method.id 
-                                ? 'border-[#00ffff] bg-[#00ffff]' 
-                                : 'border-gray-600'
-                              }`}
-                            >
-                              {selectedMethod === method.id && (
-                                <BsCheckLg className="text-black text-sm" />
-                              )}
-                            </div>
-                          </button>
-                        ))}
+              {step === 'method' && (
+                <div className="space-y-3">
+                  {paymentMethods.map((method) => (
+                    <button
+                      key={method.id}
+                      onClick={() => handleMethodSelect(method.id)}
+                      className="w-full p-4 rounded-xl bg-[#0f1520] hover:bg-[#1a2634] 
+                        transition-colors duration-200 flex items-center gap-4"
+                    >
+                      <div className="text-2xl">
+                        {method.icon}
+                      </div>
+                      <div className="flex-1 text-left">
+                        <h3 className="text-white font-medium">{method.name}</h3>
+                        <p className="text-gray-400 text-sm">{method.description}</p>
+                      </div>
+                      <div className="w-6 h-6 rounded-full border-2 border-gray-600" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Next Button */}
+              {step === 'method' && (
+                <div className="mt-6">
+                  <button
+                    onClick={() => setStep('details')}
+                    disabled={!selectedMethod}
+                    className={`w-full py-3 px-6 rounded-xl flex items-center justify-center gap-2
+                      ${selectedMethod 
+                        ? 'bg-[#00ffff] text-black hover:bg-[#00ffff]/90' 
+                        : 'bg-gray-800 text-gray-500 cursor-not-allowed'}
+                      transition-colors duration-200 font-medium`}
+                  >
+                    Next
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 6L15 12L9 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              )}
+
+              {/* Rest of the content for other steps */}
+              {step !== 'method' && (
+                // Amount Input Step
+                <div className="mb-6 sm:mb-8">
+                  <div className="bg-[#0f1520] border border-[#00ffff]/20 rounded-xl p-4 sm:p-5 shadow-lg shadow-[#00ffff]/5">
+                    <div className="flex items-center gap-3 mb-4">
+                      {selectedPaymentMethod?.icon}
+                      <h3 className="text-lg sm:text-xl font-bold text-white">{selectedPaymentMethod?.name}</h3>
+                    </div>
+                    
+                    <label htmlFor="amount" className="block text-white/90 text-center font-medium mb-2 sm:mb-3 text-base sm:text-lg">
+                      Enter Amount
+                    </label>
+                    
+                    <div className="relative mb-2">
+                      <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#00ffff]/10 text-[#00ffff] font-bold text-sm sm:text-base">
+                        $
+                      </div>
+                      <input
+                        id="amount"
+                        type="number"
+                        value={amount}
+                        onChange={handleAmountChange}
+                        className="w-full bg-black/40 border-2 border-[#00ffff]/20 rounded-xl py-3 sm:py-4 px-10 sm:px-14
+                          text-white text-center text-lg sm:text-xl font-bold focus:outline-none focus:border-[#00ffff]/50
+                          transition-all duration-200 hover:border-[#00ffff]/30"
+                        placeholder="Enter amount"
+                      />
+                      <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-white/60 text-xs sm:text-sm">
+                        USD
                       </div>
                     </div>
-                  )}
 
-                  {/* Step 2: Amount and Key */}
-                  {step === 2 && (
-                    <div className="space-y-6">
-                      <div>
-                        <label className="block text-white mb-2 font-medium">Amount in USD</label>
-                        <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00ffff]">$</span>
-                          <input
-                            type="number"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            placeholder="0.00"
-                            className="w-full bg-black/40 border border-[#00ffff]/20 rounded-lg px-4 py-3
-                              text-white placeholder-gray-400 focus:outline-none focus:border-[#00ffff]
-                              pl-8 text-lg"
-                          />
-                        </div>
-                        <div className="flex items-center gap-2 mt-2 text-[#00ffff]/60 text-sm">
-                          <BsShieldCheck className="text-lg" />
-                          <span>Min $50 - Max $600 - Every 24 hours</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-white mb-2 font-medium">Public Key (BTC)</label>
+                    {selectedPaymentMethod?.id === 'bitcoin' && (
+                      <div className="mt-4">
+                        <label className="block text-white/90 text-sm font-medium mb-2">
+                          Bitcoin Address
+                        </label>
                         <input
                           type="text"
                           value={publicKey}
                           onChange={(e) => setPublicKey(e.target.value)}
-                          placeholder="Enter your public key"
+                          placeholder="Enter your Bitcoin address"
                           className="w-full bg-black/40 border border-[#00ffff]/20 rounded-lg px-4 py-3
-                            text-white placeholder-gray-400 focus:outline-none focus:border-[#00ffff]
+                            text-white placeholder-gray-400 focus:outline-none focus:border-[#00ffff]/50
                             font-mono text-sm"
                         />
                       </div>
-
-                      <div className="bg-[#00ffff]/5 rounded-lg p-4">
-                        <p className="text-[#00ffff]/80 text-sm flex items-center gap-2">
-                          <BsInfoCircle className="text-lg" />
-                          Cashouts use the same currency as your purchase and are limited to once every 24 hours.
-                        </p>
-                      </div>
+                    )}
+                    
+                    <div className="mt-4 flex items-start gap-3 bg-[#00ffff]/5 p-3 rounded-lg">
+                      <BsInfoCircle className="text-[#00ffff] text-lg flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-white/70">
+                        Cashouts are processed within 24 hours. Minimum amount is $50.
+                      </p>
                     </div>
-                  )}
-
-                  {/* Step 3: Confirmation */}
-                  {step === 3 && (
-                    <div className="space-y-6">
-                      <div className="bg-gradient-to-br from-[#00ffff]/10 to-transparent rounded-lg p-6 border border-[#00ffff]/20">
-                        <h3 className="text-white font-bold mb-4 flex items-center gap-2">
-                          <BsShieldCheck className="text-[#00ffff] text-xl" />
-                          Confirm Your Cashout
-                        </h3>
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center py-2 border-b border-[#00ffff]/10">
-                            <span className="text-gray-400">Amount</span>
-                            <span className="text-white font-medium">${amount}</span>
-                          </div>
-                          <div className="flex justify-between items-center py-2 border-b border-[#00ffff]/10">
-                            <span className="text-gray-400">Method</span>
-                            <div className="flex items-center gap-2">
-                              {paymentMethods.find(m => m.id === selectedMethod)?.icon({ 
-                                className: `text-lg ${paymentMethods.find(m => m.id === selectedMethod)?.color}` 
-                              })}
-                              <span className="text-white font-medium">
-                                {paymentMethods.find(m => m.id === selectedMethod)?.name}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex justify-between items-center py-2">
-                            <span className="text-gray-400">Public Key</span>
-                            <span className="text-white font-mono text-sm truncate max-w-[200px]">
-                              {publicKey}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-yellow-500/10 rounded-lg p-4 border border-yellow-500/20">
-                        <p className="text-yellow-500/80 text-sm flex items-center gap-2">
-                          <BsExclamationTriangle className="text-lg flex-shrink-0" />
-                          Please verify all details carefully. This action cannot be undone.
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
+              )}
 
-                {/* Navigation Buttons */}
-                <div className="flex justify-end items-center gap-4 mt-6 pt-4 border-t border-[#00ffff]/10">
-                  {step > 1 && (
-                    <button
-                      onClick={handleBack}
-                      className="px-4 py-2 text-[#00ffff]/70 hover:text-[#00ffff] 
-                        font-medium rounded-lg transition-colors duration-300
-                        hover:bg-[#00ffff]/10 flex items-center gap-2"
-                    >
-                      <BsArrowLeft className="text-lg" />
-                      Back
-                    </button>
-                  )}
+              {/* Error message */}
+              {error && (
+                <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs sm:text-sm text-center">
+                  {error}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 sm:p-6 border-t border-white/10 flex gap-2 sm:gap-3">
+              {step === 'method' ? (
+                <button
+                  onClick={handleClose}
+                  className="flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl border border-white/10 
+                    text-white hover:bg-white/5 transition-colors text-sm sm:text-base"
+                >
+                  Cancel
+                </button>
+              ) : (
+                <>
                   <button
-                    onClick={step === 3 ? handleSubmit : handleNext}
-                    disabled={
-                      (step === 1 && !selectedMethod) ||
-                      (step === 2 && (!amount || !publicKey))
-                    }
-                    className="px-6 py-2 bg-[#00ffff] text-[#003333] font-bold 
-                      rounded-lg transition-all duration-300 flex items-center gap-2
-                      hover:bg-[#7ffdfd] shadow-lg hover:shadow-[#00ffff]/20
-                      disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleBack}
+                    className="flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl border border-white/10 
+                      text-white hover:bg-white/5 transition-colors text-sm sm:text-base"
                   >
-                    {step === 3 ? (
-                      <>
-                        Confirm Cashout
-                        <BsShieldCheck className="text-lg" />
-                      </>
+                    Back
+                  </button>
+                  <button
+                    onClick={handleCashout}
+                    disabled={!isAmountValid || isProcessing || (selectedPaymentMethod?.id === 'bitcoin' && !publicKey)}
+                    className={`flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl flex items-center justify-center
+                      ${isAmountValid && !isProcessing && (selectedPaymentMethod?.id !== 'bitcoin' || publicKey)
+                        ? 'bg-[#00ffff]/10 text-[#00ffff] hover:bg-[#00ffff]/20'
+                        : 'bg-white/5 text-white/40 cursor-not-allowed'
+                      }
+                      border border-[#00ffff]/30
+                      transition-all duration-200 text-sm sm:text-base
+                      disabled:bg-white/5 disabled:text-white/40 disabled:cursor-not-allowed disabled:border-white/10`}
+                  >
+                    {isProcessing ? (
+                      <span className="inline-block w-4 h-4 sm:w-5 sm:h-5 border-2 border-[#00ffff]/30 border-t-[#00ffff] rounded-full animate-spin"></span>
                     ) : (
-                      <>
-                        Next
-                        <BsArrowRight className="text-lg" />
-                      </>
+                      'Process Cashout'
                     )}
                   </button>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
-          </div>
-        </div>
-      </Dialog>
-    </Transition>
+                </>
+              )}
+            </div>
+          </MotionDiv>
+        </MotionDiv>
+      )}
+    </AnimatePresence>
   );
 } 
