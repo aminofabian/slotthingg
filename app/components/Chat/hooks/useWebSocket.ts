@@ -174,45 +174,24 @@ export const useWebSocket = ({
 
               console.log('Constructed message object:', newMessage);
 
-              // Update messages while preventing duplicates
+              // Update messages with a simpler duplicate check
               setMessages(prev => {
-                // Create a unique key using sender, timestamp and message content
-                const messageKey = `${data.sender_id}-${data.sent_time}-${data.message}`;
+                // Create a unique key using message ID or a composite of critical fields
+                const messageKey = data.id || `${data.sender_id}-${data.sent_time}-${data.message}`;
                 
-                // Find if this message already exists in the state using the composite key
-                const existingMsgIndex = prev.findIndex(msg => 
-                  msg.sender === newMessage.sender && 
-                  msg.sent_time === newMessage.sent_time && 
-                  msg.message === newMessage.message
-                );
-                
-                if (existingMsgIndex >= 0) {
-                  console.log('Updating existing message:', messageKey);
-                  // If message exists, update it with the server version
-                  const updatedMessages = [...prev];
-                  updatedMessages[existingMsgIndex] = {
-                    ...updatedMessages[existingMsgIndex],
-                    status: 'delivered'
-                  };
-                  return updatedMessages;
-                }
-                
-                // Check if we've already processed this message
-                if (sharedMessageTracker.has(messageKey)) {
-                  console.log('Message already processed:', messageKey);
+                // Quick check for exact duplicate by ID or composite key
+                if (prev.some(msg => msg.id === messageId) || sharedMessageTracker.has(messageKey)) {
+                  console.log('Duplicate message detected:', messageKey);
                   return prev;
                 }
                 
-                // Add new message and mark as processed
-                console.log('Adding new message to state:', messageKey);
+                // Mark message as processed
                 sharedMessageTracker.set(messageKey);
                 
-                // Add new message and sort
-                const updatedMessages = [...prev, newMessage].sort((a, b) => 
+                // Add new message and maintain chronological order
+                return [...prev, newMessage].sort((a, b) => 
                   new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
                 );
-                
-                return updatedMessages;
               });
               break;
 
