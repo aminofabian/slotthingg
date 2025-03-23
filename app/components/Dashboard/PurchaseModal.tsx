@@ -49,7 +49,7 @@ const paymentMethods: PaymentMethod[] = [
     title: 'Bitcoin Lightning',
     icon: <TbBolt className="w-6 h-6" />,
     icons: [
-      <div key="btc-ln" className="relative group">
+      <div key="btc-ln" className="relative group flex items-center justify-center w-6 h-6">
         <div className="absolute inset-0 bg-gradient-to-r from-[#F7931A] to-[#FFD700] blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
         <BsLightningChargeFill className="w-6 h-6 text-[#F7931A] relative z-10 group-hover:scale-110 transition-transform duration-200" />
       </div>
@@ -88,7 +88,7 @@ const paymentMethods: PaymentMethod[] = [
     id: 'bitcoin',
     apiValue: 'BTC-CHAIN',
     title: 'Bitcoin',
-    icon: <div className="group relative">
+    icon: <div className="group relative flex items-center justify-center w-6 h-6">
       <div className="absolute inset-0 bg-[#F7931A] blur-lg opacity-20 group-hover:opacity-30 transition-opacity rounded-full" />
       <FaBitcoin className="w-6 h-6 text-[#F7931A] relative z-10 group-hover:scale-110 transition-transform duration-200" />
     </div>
@@ -97,7 +97,7 @@ const paymentMethods: PaymentMethod[] = [
     id: 'litecoin',
     apiValue: 'LTC-CHAIN',
     title: 'Litecoin',
-    icon: <div className="group relative">
+    icon: <div className="group relative flex items-center justify-center w-6 h-6">
       <div className="absolute inset-0 bg-[#345D9D] blur-lg opacity-20 group-hover:opacity-30 transition-opacity rounded-full" />
       <SiLitecoin className="w-6 h-6 text-[#345D9D] relative z-10 group-hover:scale-110 transition-transform duration-200" />
     </div>
@@ -113,6 +113,7 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(true);
+  const [step, setStep] = useState<'method' | 'amount'>('method');
   const [profileData, setProfileData] = useState<{
     balance: string;
     cashable_balance: string;
@@ -298,12 +299,25 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
     setAmount('');
     setPaymentUrl(null);
     setError(null);
+    setStep('method');
   };
 
   // Close modal and reset state
   const handleClose = () => {
     resetModal();
     onClose();
+  };
+
+  // Handle method selection
+  const handleMethodSelect = (methodId: string) => {
+    setSelectedMethod(methodId);
+    setStep('amount');
+  };
+
+  // Handle back button
+  const handleBack = () => {
+    setStep('method');
+    setAmount('');
   };
 
   return (
@@ -442,124 +456,122 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                     </div>
                   </div>
                 </div>
-              ) : (
-                <>
-                  {/* Amount Input - Show only when payment method is selected */}
-                  {selectedMethod && (
-                    <div className="mb-6 sm:mb-8">
-                      <div className="bg-[#0f1520] border border-[#00ffff]/20 rounded-xl p-4 sm:p-5 shadow-lg shadow-[#00ffff]/5">
-                        <label htmlFor="amount" className="block text-white/90 text-center font-medium mb-2 sm:mb-3 text-base sm:text-lg">
-                          Enter Amount
-                        </label>
-                        
-                        <div className="relative mb-2">
-                          <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#00ffff]/10 text-[#00ffff] font-bold text-sm sm:text-base">
-                            $
-                          </div>
-                          <input
-                            id="amount"
-                            type="number"
-                            value={amount}
-                            onChange={handleAmountChange}
-                            className="w-full bg-black/40 border-2 border-[#00ffff]/20 rounded-xl py-3 sm:py-4 px-10 sm:px-14
-                              text-white text-center text-lg sm:text-xl font-bold focus:outline-none focus:border-[#00ffff]/50
-                              transition-all duration-200 hover:border-[#00ffff]/30"
-                            placeholder="Enter amount"
-                          />
-                          <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-white/60 text-xs sm:text-sm">
-                            USD
-                          </div>
-                        </div>
-                        
-                        {selectedPaymentMethod?.bonus && (
-                          <div className="mt-2 sm:mt-3 text-center flex items-center justify-center gap-1 sm:gap-2 text-[#00ffff] bg-[#00ffff]/5 py-1.5 sm:py-2 px-3 sm:px-4 rounded-lg text-xs sm:text-sm">
-                            <HiSparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-                            <span className="font-medium">
-                              +{selectedPaymentMethod.bonus}% bonus will be applied
-                            </span>
-                          </div>
-                        )}
-                        
-                        {typeof amount === 'number' && amount > 0 && (
-                          <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-[#00ffff]/5 rounded-lg text-center">
-                            <p className="text-xs sm:text-sm text-white/70 mb-0.5 sm:mb-1">You will receive:</p>
-                            <p className="text-[#00ffff] text-lg sm:text-xl font-bold">
-                              ${amount}{selectedPaymentMethod?.bonus ? ` + ${(amount * selectedPaymentMethod.bonus / 100).toFixed(2)} bonus` : ''}
-                            </p>
-                          </div>
-                        )}
+              ) : step === 'amount' ? (
+                // Amount Input Step
+                <div className="mb-6 sm:mb-8">
+                  <div className="bg-[#0f1520] border border-[#00ffff]/20 rounded-xl p-4 sm:p-5 shadow-lg shadow-[#00ffff]/5">
+                    <div className="flex items-center gap-3 mb-4">
+                      {selectedPaymentMethod?.icons?.[0] || selectedPaymentMethod?.icon}
+                      <h3 className="text-lg sm:text-xl font-bold text-white">{selectedPaymentMethod?.title}</h3>
+                    </div>
+                    
+                    <label htmlFor="amount" className="block text-white/90 text-center font-medium mb-2 sm:mb-3 text-base sm:text-lg">
+                      Enter Amount
+                    </label>
+                    
+                    <div className="relative mb-2">
+                      <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#00ffff]/10 text-[#00ffff] font-bold text-sm sm:text-base">
+                        $
+                      </div>
+                      <input
+                        id="amount"
+                        type="number"
+                        value={amount}
+                        onChange={handleAmountChange}
+                        className="w-full bg-black/40 border-2 border-[#00ffff]/20 rounded-xl py-3 sm:py-4 px-10 sm:px-14
+                          text-white text-center text-lg sm:text-xl font-bold focus:outline-none focus:border-[#00ffff]/50
+                          transition-all duration-200 hover:border-[#00ffff]/30"
+                        placeholder="Enter amount"
+                      />
+                      <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-white/60 text-xs sm:text-sm">
+                        USD
                       </div>
                     </div>
-                  )}
+                    
+                    {selectedPaymentMethod?.bonus && (
+                      <div className="mt-2 sm:mt-3 text-center flex items-center justify-center gap-1 sm:gap-2 text-[#00ffff] bg-[#00ffff]/5 py-1.5 sm:py-2 px-3 sm:px-4 rounded-lg text-xs sm:text-sm">
+                        <HiSparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span className="font-medium">
+                          +{selectedPaymentMethod.bonus}% bonus will be applied
+                        </span>
+                      </div>
+                    )}
+                    
+                    {typeof amount === 'number' && amount > 0 && (
+                      <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-[#00ffff]/5 rounded-lg text-center">
+                        <p className="text-xs sm:text-sm text-white/70 mb-0.5 sm:mb-1">You will receive:</p>
+                        <p className="text-[#00ffff] text-lg sm:text-xl font-bold">
+                          ${amount}{selectedPaymentMethod?.bonus ? ` + ${(amount * selectedPaymentMethod.bonus / 100).toFixed(2)} bonus` : ''}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                // Payment Method Selection Step
+                <div className="space-y-3 sm:space-y-4">
+                  <p className="text-sm sm:text-base text-white/80 text-center font-medium">
+                    Choose your payment method:
+                  </p>
+                  <p className="text-xs sm:text-sm text-white/40 text-center">
+                    All purchases are processed automatically
+                  </p>
 
-                  {/* Payment Methods */}
-                  <div className="space-y-3 sm:space-y-4">
-                    <p className="text-sm sm:text-base text-white/80 text-center font-medium">
-                      {selectedMethod ? 'Selected Payment Method:' : 'Choose your payment method:'}
-                    </p>
-                    <p className="text-xs sm:text-sm text-white/40 text-center">
-                      All purchases are processed automatically
-                    </p>
-
-                    <div className="space-y-2 sm:space-y-3 mt-4 sm:mt-6">
-                      {paymentMethods.map((method) => (
-                        <button
-                          key={method.id}
-                          onClick={() => setSelectedMethod(method.id)}
-                          className={`w-full p-3 sm:p-4 rounded-xl border transition-all duration-200
-                            flex items-center gap-3 sm:gap-4 group relative
-                            ${selectedMethod === method.id
-                              ? 'bg-[#00ffff]/10 border-[#00ffff]/30'
-                              : 'bg-black/40 border-white/10 hover:bg-white/5 hover:border-white/20'
-                            }`}
-                        >
-                          {/* Icon */}
-                          <div className="text-[#00ffff]">
-                            {method.icons ? (
-                              <div className="flex items-center gap-1 sm:gap-2">
-                                {method.icons.map((icon, index) => (
-                                  <div key={index} className="text-base sm:text-xl relative">
-                                    {icon}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="text-base sm:text-xl">{method.icon}</div>
-                            )}
-                          </div>
-
-                          {/* Info */}
-                          <div className="flex-1 text-left">
-                            <p className="text-sm sm:text-base text-white font-medium">{method.title}</p>
-                          </div>
-
-                          {/* Service Icons - Moved to right */}
-                          {method.serviceIcons && (
-                            <div className="flex items-center gap-4 mr-3">
-                              {method.serviceIcons.map((icon, index) => (
-                                <div key={index}>
+                  <div className="space-y-2 sm:space-y-3 mt-4 sm:mt-6">
+                    {paymentMethods.map((method) => (
+                      <button
+                        key={method.id}
+                        onClick={() => handleMethodSelect(method.id)}
+                        className={`w-full p-3 sm:p-4 rounded-xl border transition-all duration-200
+                          flex items-center gap-3 sm:gap-4 group relative
+                          bg-black/40 border-white/10 hover:bg-white/5 hover:border-white/20`}
+                      >
+                        {/* Icon */}
+                        <div className="text-[#00ffff]">
+                          {method.icons ? (
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              {method.icons.map((icon, index) => (
+                                <div key={index} className="text-base sm:text-xl relative">
                                   {icon}
                                 </div>
                               ))}
                             </div>
+                          ) : (
+                            <div className="text-base sm:text-xl">{method.icon}</div>
                           )}
+                        </div>
 
-                          {/* Bonus Badge */}
-                          {method.bonus && (
-                            <div className="absolute top-1 sm:top-2 right-1 sm:right-2 bg-gradient-to-r from-[#00ffff]/10 to-[#00ffff]/5 
-                              backdrop-blur-sm px-2 sm:px-3 py-0.5 sm:py-1 rounded-full flex items-center gap-1 sm:gap-1.5 
-                              border border-[#00ffff]/20 shadow-lg shadow-[#00ffff]/5">
-                              <HiSparkles className="w-4 h-4 text-[#00ffff]" />
-                              <span className="text-[#00ffff] text-xs sm:text-sm font-medium">
-                                +{method.bonus}% BONUS
-                              </span>
-                            </div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                        {/* Info */}
+                        <div className="flex-1 text-left">
+                          <p className="text-sm sm:text-base text-white font-medium">{method.title}</p>
+                        </div>
+
+                        {/* Service Icons */}
+                        {method.serviceIcons && (
+                          <div className="flex items-center gap-4 mr-3">
+                            {method.serviceIcons.map((icon, index) => (
+                              <div key={index}>
+                                {icon}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Bonus Badge */}
+                        {method.bonus && (
+                          <div className="absolute top-1 sm:top-2 right-1 sm:right-2 bg-gradient-to-r from-[#00ffff]/10 to-[#00ffff]/5 
+                            backdrop-blur-sm px-2 sm:px-3 py-0.5 sm:py-1 rounded-full flex items-center gap-1 sm:gap-1.5 
+                            border border-[#00ffff]/20 shadow-lg shadow-[#00ffff]/5">
+                            <HiSparkles className="w-4 h-4 text-[#00ffff]" />
+                            <span className="text-[#00ffff] text-xs sm:text-sm font-medium">
+                              +{method.bonus}% BONUS
+                            </span>
+                          </div>
+                        )}
+                      </button>
+                    ))}
                   </div>
-                </>
+                </div>
               )}
 
               {/* Error message */}
@@ -572,31 +584,40 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
 
             {/* Footer */}
             <div className="p-4 sm:p-6 border-t border-white/10 flex gap-2 sm:gap-3">
-              <button
-                onClick={handleClose}
-                className="flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl border border-white/10 
-                  text-white hover:bg-white/5 transition-colors text-sm sm:text-base"
-              >
-                {paymentUrl ? 'Close' : 'Cancel'}
-              </button>
-              
-              {isAuthenticated && !paymentUrl && (
+              {step === 'amount' ? (
+                <>
+                  <button
+                    onClick={handleBack}
+                    className="flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl border border-white/10 
+                      text-white hover:bg-white/5 transition-colors text-sm sm:text-base"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handlePayment}
+                    disabled={!isAmountValid || isProcessing}
+                    className={`flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl flex items-center justify-center
+                      ${isAmountValid && !isProcessing
+                        ? 'bg-[#00ffff]/10 text-[#00ffff] hover:bg-[#00ffff]/20'
+                        : 'bg-white/5 text-white/40 cursor-not-allowed'
+                      }
+                      border border-[#00ffff]/30
+                      transition-all duration-200 text-sm sm:text-base`}
+                  >
+                    {isProcessing ? (
+                      <span className="inline-block w-4 h-4 sm:w-5 sm:h-5 border-2 border-[#00ffff]/30 border-t-[#00ffff] rounded-full animate-spin"></span>
+                    ) : (
+                      'Process Payment'
+                    )}
+                  </button>
+                </>
+              ) : (
                 <button
-                  onClick={handlePayment}
-                  disabled={!selectedMethod || !isAmountValid || isProcessing}
-                  className={`flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl flex items-center justify-center
-                    ${selectedMethod && isAmountValid && !isProcessing
-                      ? 'bg-[#00ffff]/10 text-[#00ffff] hover:bg-[#00ffff]/20'
-                      : 'bg-white/5 text-white/40 cursor-not-allowed'
-                    }
-                    border border-[#00ffff]/30
-                    transition-all duration-200 text-sm sm:text-base`}
+                  onClick={handleClose}
+                  className="flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl border border-white/10 
+                    text-white hover:bg-white/5 transition-colors text-sm sm:text-base"
                 >
-                  {isProcessing ? (
-                    <span className="inline-block w-4 h-4 sm:w-5 sm:h-5 border-2 border-[#00ffff]/30 border-t-[#00ffff] rounded-full animate-spin"></span>
-                  ) : (
-                    'Process Payment'
-                  )}
+                  Cancel
                 </button>
               )}
             </div>
