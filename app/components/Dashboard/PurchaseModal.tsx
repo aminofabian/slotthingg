@@ -51,7 +51,7 @@ const paymentMethods: PaymentMethod[] = [
     icons: [
       <div key="btc-ln" className="relative group">
         <div className="absolute inset-0 bg-gradient-to-r from-[#F7931A] to-[#FFD700] blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
-        <BsLightningChargeFill className="w-8 h-8 text-[#F7931A] relative z-10 group-hover:scale-110 transition-transform duration-200" />
+        <BsLightningChargeFill className="w-6 h-6 text-[#F7931A] relative z-10 group-hover:scale-110 transition-transform duration-200" />
       </div>
     ],
     serviceIcons: [
