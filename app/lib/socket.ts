@@ -46,6 +46,9 @@ const maxReconnectAttempts = 5;
 export let connectionStatus: 'connected' | 'connecting' | 'disconnected' = 'disconnected';
 export let isWebSocketConnected = false;
 
+// Store the latest callbacks to use for reconnections
+let latestMessageCallback: ((message: any) => void) | null = null;
+
 // Connect to the main socket
 export const connectSocket = () => {
   if (!socket.connected) {
@@ -85,13 +88,19 @@ export const initializeChatWebSocket = (
   userName: string,
   onMessageReceived: (message: any) => void
 ) => {
+  // Store the latest callback for reuse
+  latestMessageCallback = onMessageReceived;
+  
   if (isConnecting || (chatWs && chatWs.readyState === WebSocket.CONNECTING)) {
     console.log('Chat connection already in progress, skipping...');
     return;
   }
 
+  // If we're already connected, just return
   if (chatWs && chatWs.readyState === WebSocket.OPEN) {
     console.log('Chat WebSocket already connected');
+    isWebSocketConnected = true;
+    connectionStatus = 'connected';
     return;
   }
 
@@ -105,6 +114,7 @@ export const initializeChatWebSocket = (
   connectionStatus = 'connecting';
 
   try {
+    // Close any existing connection first
     if (chatWs) {
       chatWs.close();
       chatWs = null;
@@ -159,6 +169,12 @@ export const initializeChatWebSocket = (
         const data = JSON.parse(event.data);
         console.log('Parsed message data:', data);
         
+        // Skip processing if no callback is available
+        if (!latestMessageCallback) {
+          console.warn('No message callback available, message will not be processed');
+          return;
+        }
+        
         // Handle different message types
         switch (data.type) {
           case 'pong':
@@ -188,8 +204,25 @@ export const initializeChatWebSocket = (
             // Mark message as processed
             sharedMessageTracker.set(messageKey);
             
-            // Pass the message to the callback
-            onMessageReceived(data);
+            // Ensure the message has all required fields
+            const enhancedMessage = {
+              ...data,
+              id: messageId,
+              type: data.type || 'message',
+              message: data.message || '',
+              sender: data.sender_id || data.sender || '0',
+              sender_name: data.sender_name || 'Unknown',
+              sent_time: data.sent_time || new Date().toISOString(),
+              is_file: !!data.is_file,
+              file: data.file || null,
+              is_player_sender: !!data.is_player_sender,
+              is_admin_sender: !data.is_player_sender || !!data.is_admin_sender,
+              status: data.status || 'delivered'
+            };
+            
+            // Pass the enhanced message to the callback
+            console.log('Passing processed message to component:', enhancedMessage);
+            latestMessageCallback(enhancedMessage);
             break;
 
           case 'presence':
@@ -208,6 +241,7 @@ export const initializeChatWebSocket = (
     chatWs.onerror = (error) => {
       console.error('Chat WebSocket error:', error);
       connectionStatus = 'disconnected';
+      isWebSocketConnected = false;
       isConnecting = false;
     };
 
@@ -222,7 +256,11 @@ export const initializeChatWebSocket = (
         reconnectAttempts += 1;
         const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000);
         console.log(`Scheduling reconnection attempt in ${backoffDelay}ms`);
-        setTimeout(() => initializeChatWebSocket(playerId, userId, userName, onMessageReceived), backoffDelay);
+        setTimeout(() => {
+          if (latestMessageCallback) {
+            initializeChatWebSocket(playerId, userId, userName, latestMessageCallback);
+          }
+        }, backoffDelay);
       } else {
         console.log('Max reconnection attempts reached');
       }
@@ -231,6 +269,7 @@ export const initializeChatWebSocket = (
   } catch (error) {
     console.error('Error initializing WebSocket:', error);
     connectionStatus = 'disconnected';
+    isWebSocketConnected = false;
     isConnecting = false;
   }
 };

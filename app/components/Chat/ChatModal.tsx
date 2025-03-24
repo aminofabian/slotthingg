@@ -73,52 +73,6 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const wsInitialized = useRef(false);
 
-  // Handle incoming messages
-  const handleMessageReceived = useCallback((data: any) => {
-    // Generate a message ID if one isn't provided
-    const messageId = data.id ? 
-      (typeof data.id === 'string' ? parseInt(data.id) : data.id) :
-      Date.now() + Math.floor(Math.random() * 1000);
-    
-    // Create the message object with all possible fields
-    const newMessage: ChatMessageData = {
-      id: messageId,
-      type: data.type,
-      message: data.message || '',
-      sender: parseInt(data.sender_id || data.sender || '0'),
-      sender_name: data.sender_name || 'Unknown',
-      sent_time: data.sent_time || new Date().toISOString(),
-      is_file: Boolean(data.is_file),
-      file: data.file || null,
-      is_player_sender: Boolean(data.is_player_sender),
-      is_tip: Boolean(data.is_tip),
-      is_comment: Boolean(data.is_comment),
-      status: 'delivered',
-      attachments: Array.isArray(data.attachments) ? data.attachments : [],
-      recipient_id: data.recipient_id ? parseInt(data.recipient_id) : undefined,
-      is_admin_recipient: Boolean(data.is_admin_recipient)
-    };
-
-    console.log('Received new message:', newMessage);
-
-    // Update messages
-    setMessages(prev => {
-      // Check if message already exists to prevent duplicates
-      const messageExists = prev.some(msg => msg.id === messageId);
-      if (messageExists) {
-        console.log('Message already exists in state, skipping:', messageId);
-        return prev;
-      }
-
-      // Add new message and maintain chronological order
-      const updatedMessages = [...prev, newMessage].sort((a, b) => 
-        new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
-      );
-      
-      return updatedMessages;
-    });
-  }, []);
-
   const {
     showScrollToBottom,
     hasNewMessages,
@@ -130,122 +84,127 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     messagesEndRef
   });
 
-  // Handle auto-scrolling and new message indicators when messages update
-  useEffect(() => {
-    // Only run if we have messages and the chat is open
-    if (messages.length > 0 && isOpen) {
-      // Check if user has scrolled up
-      if (chatContainerRef.current) {
-        const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
-        const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 100;
-        
-        if (isScrolledToBottom) {
-          // If user is at the bottom, scroll to show new messages
-          setTimeout(() => scrollToBottom(), 100);
-        } else {
-          // If user has scrolled up, show new message indicator
-          setHasNewMessages(true);
-        }
-      }
-    }
-  }, [messages, isOpen, scrollToBottom, setHasNewMessages]);
-
-  const {
-    isTyping,
-    isAdminTyping,
-    setIsAdminTyping,
-    handleTyping: handleTypingIndicator
-  } = useTyping({
-    userId,
-    userName,
-    selectedAdmin,
-    sendTypingIndicator
-  });
-
-  // Initialize WebSocket when user info is available
-  useEffect(() => {
-    if (playerId && userId && !wsInitialized.current) {
-      console.log('Initializing chat WebSocket with:', { playerId, userId, userName });
-      initializeChatWebSocket(playerId, userId, userName, handleMessageReceived);
-      wsInitialized.current = true;
-    }
-    
-    // Re-initialize WebSocket if connection is lost
-    const checkConnectionInterval = setInterval(() => {
-      if (playerId && userId && !isWebSocketConnected) {
-        console.log('WebSocket disconnected, attempting to reconnect...');
-        initializeChatWebSocket(playerId, userId, userName, handleMessageReceived);
-      }
-    }, 10000); // Check every 10 seconds
-    
-    return () => {
-      clearInterval(checkConnectionInterval);
-    };
-  }, [playerId, userId, userName, handleMessageReceived, isWebSocketConnected]);
-
-  useEffect(() => {
-    if (isOpen) {
-      loadUserInfo();
-      fetchChatHistory();
+  // Fetch chat history - defined as useCallback so it can be used in dependency arrays
+  const fetchChatHistory = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
       
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
-
-  // Load user and player IDs from localStorage
-  useEffect(() => {
-    // Check if localStorage is available (for SSR compatibility)
-    const isLocalStorageAvailable = typeof window !== 'undefined' && window.localStorage;
-    
-    if (isLocalStorageAvailable) {
+      console.log('Fetching chat history with params:', {
+        whitelabel_admin_uuid,
+        userId,
+        playerId,
+        userName
+      });
+      
       try {
-        // Try to get user info from user_profile first
-        const userProfileStr = localStorage.getItem('user_profile');
-        if (userProfileStr) {
-          const userProfile = JSON.parse(userProfileStr);
-          if (userProfile) {
-            // Get the user's actual ID
-            const id = String(userProfile.id || userProfile.user_id);
-            console.log('Setting user info from profile:', { id, name: userProfile.username });
-            
-            setUserId(id);
-            setPlayerId(id); // Use the same ID for both
-            setUserName(userProfile.username || userProfile.name || '');
-            return; // Exit if we found the info
-          }
-        }
+        const response = await fetch(
+          `/api/chat/history?whitelabel_admin_uuid=${whitelabel_admin_uuid}&limit=1000`, 
+          { credentials: 'include' }
+        );
 
-        // Fallback to individual storage items if profile not found
-        const storedUserId = localStorage.getItem('user_id');
-        const storedPlayerId = localStorage.getItem('player_id');
-        
-        if (storedUserId) {
-          console.log('Setting user ID from storage:', storedUserId);
-          setUserId(storedUserId);
-        }
-        
-        if (storedPlayerId) {
-          console.log('Setting player ID from storage:', storedPlayerId);
-          setPlayerId(storedPlayerId);
-        } else if (storedUserId) {
-          // If no player_id but we have user_id, use that
-          console.log('Using user ID as player ID:', storedUserId);
-          setPlayerId(storedUserId);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Chat history response:', data);
+
+          if (Array.isArray(data.results)) {
+            // Create a Map to track unique messages by ID and content
+            const uniqueMessages = new Map();
+            
+            // Process each message and only keep the latest version
+            data.results.forEach((msg: ChatMessageData) => {
+              const messageId = typeof msg.id === 'string' ? parseInt(msg.id) : msg.id;
+              const messageKey = `${messageId}`;
+              
+              // Only add if we haven't seen this message before
+              if (!uniqueMessages.has(messageKey)) {
+                uniqueMessages.set(messageKey, {
+                  ...msg,
+                  id: messageId,
+                  sender: typeof msg.sender === 'string' ? parseInt(msg.sender) : msg.sender,
+                  sent_time: msg.sent_time || new Date().toISOString(),
+                  is_file: msg.is_file || false,
+                  is_tip: msg.is_tip || false,
+                  is_comment: msg.is_comment || false,
+                  status: msg.status || 'delivered',
+                  attachments: msg.attachments || [],
+                  recipient_id: msg.recipient_id ? String(msg.recipient_id) : undefined,
+                });
+              }
+            });
+
+            // Convert Map back to array and sort by timestamp
+            const processedMessages = Array.from(uniqueMessages.values()).sort((a, b) => 
+              new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
+            );
+
+            console.log(`Loaded ${processedMessages.length} unique messages`);
+            
+            // Store the current time as the last message update time in localStorage
+            localStorage.setItem('last_message_time', Date.now().toString());
+            
+            // Merge with existing messages to avoid UI flicker, only adding new ones
+            setMessages(prevMessages => {
+              // Create a map of existing messages by ID for quick lookup
+              const existingMessageMap = new Map();
+              prevMessages.forEach(msg => {
+                existingMessageMap.set(`${msg.id}`, msg);
+              });
+              
+              // Build a new array with all uniquified messages
+              const mergedMessages = [...prevMessages];
+              let addedCount = 0;
+              
+              processedMessages.forEach(msg => {
+                const msgKey = `${msg.id}`;
+                // Only add the message if it doesn't already exist
+                if (!existingMessageMap.has(msgKey)) {
+                  mergedMessages.push(msg);
+                  addedCount++;
+                  
+                  // Also add to sentMessageIds to prevent duplicate processing from WebSocket
+                  setSentMessageIds(prev => new Set(prev).add(msgKey));
+                }
+              });
+              
+              console.log(`Added ${addedCount} new messages from history`);
+              
+              // Sort by timestamp
+              return mergedMessages.sort((a, b) => 
+                new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
+              );
+            });
+            
+            // Mark all loaded messages as processed in the shared tracker
+            processedMessages.forEach(msg => {
+              const messageKey = `${msg.id}`;
+              sharedMessageTracker.set(messageKey);
+            });
+          } else {
+            console.warn('Invalid chat history format:', data);
+            setMessages([]);
+          }
+        } else {
+          console.warn('Chat history response error:', {
+            status: response.status,
+            statusText: response.statusText
+          });
+          setMessages([]);
         }
       } catch (error) {
-        console.error('Error loading user/player IDs:', error);
+        console.warn('Chat history endpoint error:', error);
+        setMessages([]);
       }
+    } catch (error) {
+      console.error('Error fetching chat history:', error);
+      setMessages([]);
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
-
+  }, [playerId, userId, userName]); // Include dependencies here
+  
   // Load user information from localStorage
-  const loadUserInfo = () => {
+  const loadUserInfo = useCallback(() => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         // First try to get the name from the auth token or user session
@@ -302,93 +261,225 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     } catch (error) {
       console.error('Error loading user info:', error);
     }
-  };
+  }, []);
+  
+  // Handle incoming messages
+  const handleMessageReceived = useCallback((data: any) => {
+    console.log('Message received in component:', data);
+    
+    // Generate a message ID if one isn't provided
+    const messageId = data.id ? 
+      (typeof data.id === 'string' ? parseInt(data.id) : data.id) :
+      Date.now() + Math.floor(Math.random() * 1000);
+    
+    // Create a unique key for this message to check for duplicates
+    const messageKey = `${messageId}`;
+    
+    // Skip if we've already processed this exact message in our component
+    if (sentMessageIds.has(messageKey)) {
+      console.log('Already processed this message in component, skipping:', messageKey);
+      return;
+    }
+    
+    // Create the message object with all possible fields
+    const newMessage: ChatMessageData = {
+      id: messageId,
+      type: data.type || 'message',
+      message: data.message || '',
+      sender: typeof data.sender === 'string' ? parseInt(data.sender) : data.sender,
+      sender_name: data.sender_name || 'Unknown',
+      sent_time: data.sent_time || new Date().toISOString(),
+      is_file: Boolean(data.is_file),
+      file: data.file || null,
+      is_player_sender: Boolean(data.is_player_sender),
+      is_tip: Boolean(data.is_tip),
+      is_comment: Boolean(data.is_comment),
+      status: 'delivered',
+      attachments: Array.isArray(data.attachments) ? data.attachments : [],
+      recipient_id: data.recipient_id ? parseInt(data.recipient_id) : undefined,
+      is_admin_recipient: Boolean(data.is_admin_recipient)
+    };
 
-  const fetchChatHistory = async () => {
-    try {
-      setIsLoading(true);
-      const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
+    console.log('Processed new message:', newMessage);
+    
+    // Add to sentMessageIds to prevent duplicate processing
+    setSentMessageIds(prev => new Set(prev).add(messageKey));
+
+    // Update messages - using functional update to avoid race conditions
+    setMessages(prev => {
+      // Double-check if message already exists to prevent duplicates
+      const messageExists = prev.some(msg => msg.id === messageId);
+      if (messageExists) {
+        console.log('Message already exists in state, skipping:', messageId);
+        return prev;
+      }
+
+      console.log('Adding new message to state:', newMessage);
       
-      console.log('Fetching chat history with params:', {
-        whitelabel_admin_uuid,
-        userId,
-        playerId,
-        userName
-      });
+      // Add new message and maintain chronological order
+      const updatedMessages = [...prev, newMessage].sort((a, b) => 
+        new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
+      );
       
-      try {
-        const response = await fetch(
-          `/api/chat/history?whitelabel_admin_uuid=${whitelabel_admin_uuid}&limit=1000`, 
-          { credentials: 'include' }
-        );
+      return updatedMessages;
+    });
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Chat history response:', data);
-
-          if (Array.isArray(data.results)) {
-            // Create a Map to track unique messages by ID and content
-            const uniqueMessages = new Map();
-            
-            // Process each message and only keep the latest version
-            data.results.forEach((msg: ChatMessageData) => {
-              const messageId = typeof msg.id === 'string' ? parseInt(msg.id) : msg.id;
-              const messageKey = `${messageId}`;
-              
-              // Only add if we haven't seen this message before
-              if (!uniqueMessages.has(messageKey)) {
-                uniqueMessages.set(messageKey, {
-                  ...msg,
-                  id: messageId,
-                  sender: typeof msg.sender === 'string' ? parseInt(msg.sender) : msg.sender,
-                  sent_time: msg.sent_time || new Date().toISOString(),
-                  is_file: msg.is_file || false,
-                  is_tip: msg.is_tip || false,
-                  is_comment: msg.is_comment || false,
-                  status: msg.status || 'delivered',
-                  attachments: msg.attachments || [],
-                  recipient_id: msg.recipient_id ? String(msg.recipient_id) : undefined,
-                });
-              }
-            });
-
-            // Convert Map back to array and sort by timestamp
-            const processedMessages = Array.from(uniqueMessages.values()).sort((a, b) => 
-              new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
-            );
-
-            console.log(`Loaded ${processedMessages.length} unique messages`);
-            
-            // Clear any existing messages to prevent duplicates
-            setMessages(processedMessages);
-            
-            // Mark all loaded messages as processed
-            processedMessages.forEach(msg => {
-              const messageKey = `${msg.id}`;
-              sharedMessageTracker.set(messageKey);
-            });
-          } else {
-            console.warn('Invalid chat history format:', data);
-            setMessages([]);
-          }
+    // Force scroll to bottom when new messages arrive from admin
+    if (!newMessage.is_player_sender) {
+      setTimeout(() => scrollToBottom(), 100);
+    }
+  }, [sentMessageIds, scrollToBottom]);
+  
+  // Handle auto-scrolling and new message indicators when messages update
+  useEffect(() => {
+    // Only run if we have messages and the chat is open
+    if (messages.length > 0 && isOpen) {
+      // Check if user has scrolled up
+      if (chatContainerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+        const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 100;
+        
+        if (isScrolledToBottom) {
+          // If user is at the bottom, scroll to show new messages
+          setTimeout(() => scrollToBottom(), 100);
         } else {
-          console.warn('Chat history response error:', {
-            status: response.status,
-            statusText: response.statusText
-          });
-          setMessages([]);
+          // If user has scrolled up, show new message indicator
+          setHasNewMessages(true);
+        }
+      }
+    }
+  }, [messages, isOpen, scrollToBottom, setHasNewMessages]);
+
+  const {
+    isTyping,
+    isAdminTyping,
+    setIsAdminTyping,
+    handleTyping: handleTypingIndicator
+  } = useTyping({
+    userId,
+    userName,
+    selectedAdmin,
+    sendTypingIndicator
+  });
+
+  // Initialize WebSocket when user info is available
+  useEffect(() => {
+    if (playerId && userId && !wsInitialized.current) {
+      console.log('Initializing chat WebSocket with:', { playerId, userId, userName });
+      initializeChatWebSocket(playerId, userId, userName, handleMessageReceived);
+      wsInitialized.current = true;
+      
+      // To verify WebSocket is working, log connection status change
+      const connectionStatusInterval = setInterval(() => {
+        const status = isWebSocketConnected ? 'connected' : 'disconnected';
+        console.log(`[Status Check] WebSocket currently ${status}`);
+      }, 5000);
+      
+      return () => {
+        clearInterval(connectionStatusInterval);
+      };
+    }
+    
+    // Re-initialize WebSocket if connection is lost
+    const checkConnectionInterval = setInterval(() => {
+      if (playerId && userId && !isWebSocketConnected && wsInitialized.current) {
+        console.log('WebSocket disconnected, attempting to reconnect...');
+        // Reset initialized flag to force a complete reconnection
+        wsInitialized.current = false;
+        // Re-initialize
+        initializeChatWebSocket(playerId, userId, userName, handleMessageReceived);
+        wsInitialized.current = true;
+      }
+    }, 10000); // Check every 10 seconds
+    
+    return () => {
+      clearInterval(checkConnectionInterval);
+    };
+  }, [playerId, userId, userName, handleMessageReceived, isWebSocketConnected]);
+  
+  // Implement a periodic refresh to ensure we haven't missed any messages
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    // Set up a timer to periodically refresh messages if the connection is problematic
+    const refreshInterval = setInterval(() => {
+      // Only refresh if messages haven't updated in a while and we're open
+      const lastMessageUpdate = localStorage.getItem('last_message_time');
+      const now = Date.now();
+      const timeSinceLastUpdate = lastMessageUpdate ? now - parseInt(lastMessageUpdate) : Infinity;
+      
+      // If it's been more than 30 seconds since we got a message and we're connected, do a refresh
+      if (timeSinceLastUpdate > 30000) {
+        console.log('No recent message updates, refreshing chat history');
+        fetchChatHistory();
+      }
+    }, 30000); // Check every 30 seconds
+    
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, [isOpen, fetchChatHistory]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadUserInfo();
+      fetchChatHistory();
+      
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, loadUserInfo, fetchChatHistory]);
+
+  // Load user and player IDs from localStorage
+  useEffect(() => {
+    // Check if localStorage is available (for SSR compatibility)
+    const isLocalStorageAvailable = typeof window !== 'undefined' && window.localStorage;
+    
+    if (isLocalStorageAvailable) {
+      try {
+        // Try to get user info from user_profile first
+        const userProfileStr = localStorage.getItem('user_profile');
+        if (userProfileStr) {
+          const userProfile = JSON.parse(userProfileStr);
+          if (userProfile) {
+            // Get the user's actual ID
+            const id = String(userProfile.id || userProfile.user_id);
+            console.log('Setting user info from profile:', { id, name: userProfile.username });
+            
+            setUserId(id);
+            setPlayerId(id); // Use the same ID for both
+            setUserName(userProfile.username || userProfile.name || '');
+            return; // Exit if we found the info
+          }
+        }
+
+        // Fallback to individual storage items if profile not found
+        const storedUserId = localStorage.getItem('user_id');
+        const storedPlayerId = localStorage.getItem('player_id');
+        
+        if (storedUserId) {
+          console.log('Setting user ID from storage:', storedUserId);
+          setUserId(storedUserId);
+        }
+        
+        if (storedPlayerId) {
+          console.log('Setting player ID from storage:', storedPlayerId);
+          setPlayerId(storedPlayerId);
+        } else if (storedUserId) {
+          // If no player_id but we have user_id, use that
+          console.log('Using user ID as player ID:', storedUserId);
+          setPlayerId(storedUserId);
         }
       } catch (error) {
-        console.warn('Chat history endpoint error:', error);
-        setMessages([]);
+        console.error('Error loading user/player IDs:', error);
       }
-    } catch (error) {
-      console.error('Error fetching chat history:', error);
-      setMessages([]);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
