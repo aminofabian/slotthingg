@@ -11,7 +11,7 @@ interface ChatInputProps {
   isUsingMockWebSocket: boolean;
   selectedAdmin: string | null;
   availableAdmins: { id: string; name: string }[];
-  handleTyping: () => void;
+  handleTyping: (message: string) => void;
 }
 
 const ChatInput = ({
@@ -69,7 +69,7 @@ const ChatInput = ({
                   setNewMessage(value);
                   // Only trigger typing indicator if there's actual content
                   if (value.trim().length > 0) {
-                    handleTyping();
+                    handleTyping(value);
                   }
                 }}
                 placeholder="Type a message..."

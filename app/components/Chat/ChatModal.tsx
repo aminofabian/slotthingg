@@ -1,6 +1,6 @@
 'use client';
 import { AnimatePresence, LazyMotion, domMax, m } from 'framer-motion';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { IoClose, IoSend, IoChatbubbleEllipses, IoAttach, IoCheckmarkDone, IoAlert, IoRefresh, IoDocument, IoArrowDown } from 'react-icons/io5';
 import { format } from 'date-fns';
 import {
@@ -11,7 +11,7 @@ import {
   TypingIndicator,
   ChatMessageData
 } from './components';
-import { useWebSocket } from './hooks/useWebSocket';
+import { initializeChatWebSocket, sendChatMessage, sendTypingIndicator, connectionStatus as wsConnectionStatus, isWebSocketConnected, sharedMessageTracker } from '@/app/lib/socket';
 import { useTyping } from './hooks/useTyping';
 import { useScroll } from './hooks/useScroll';
 import { MotionDiv } from '@/app/types/motion';
@@ -65,44 +65,59 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
   const [userName, setUserName] = useState<string>('');
   const [selectedAdmin] = useState<string>('1'); // Default admin ID
   const [sentMessageIds, setSentMessageIds] = useState<Set<string>>(new Set());
+  const [showConnectionToast, setShowConnectionToast] = useState(false);
 
   // Create properly typed refs
   const messagesEndRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const chatContainerRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const wsInitialized = useRef(false);
 
-  // Custom hooks
-  const {
-    ws,
-    isWebSocketConnected,
-    isUsingMockWebSocket,
-    connectionStatus,
-    showConnectionToast: wsShowConnectionToast,
-    setShowConnectionToast: wsSetShowConnectionToast,
-    initializeWebSocket,
-    hasProcessedMessage,
-    markMessageAsProcessed
-  } = useWebSocket({
-    userId,
-    userName,
-    playerId,
-    selectedAdmin,
-    setMessages
-  });
+  // Handle incoming messages
+  const handleMessageReceived = useCallback((data: any) => {
+    // Generate a message ID if one isn't provided
+    const messageId = data.id ? 
+      (typeof data.id === 'string' ? parseInt(data.id) : data.id) :
+      Date.now() + Math.floor(Math.random() * 1000);
+    
+    // Create the message object with all possible fields
+    const newMessage: ChatMessageData = {
+      id: messageId,
+      type: data.type,
+      message: data.message || '',
+      sender: parseInt(data.sender_id || data.sender || '0'),
+      sender_name: data.sender_name || 'Unknown',
+      sent_time: data.sent_time || new Date().toISOString(),
+      is_file: Boolean(data.is_file),
+      file: data.file || null,
+      is_player_sender: Boolean(data.is_player_sender),
+      is_tip: Boolean(data.is_tip),
+      is_comment: Boolean(data.is_comment),
+      status: 'delivered',
+      attachments: Array.isArray(data.attachments) ? data.attachments : [],
+      recipient_id: data.recipient_id ? parseInt(data.recipient_id) : undefined,
+      is_admin_recipient: Boolean(data.is_admin_recipient)
+    };
 
-  const {
-    isTyping,
-    isAdminTyping,
-    setIsAdminTyping,
-    handleTyping: handleTypingIndicator
-  } = useTyping({
-    ws,
-    userId,
-    userName,
-    selectedAdmin,
-    isWebSocketConnected,
-    isUsingMockWebSocket
-  });
+    console.log('Received new message:', newMessage);
+
+    // Update messages
+    setMessages(prev => {
+      // Check if message already exists to prevent duplicates
+      const messageExists = prev.some(msg => msg.id === messageId);
+      if (messageExists) {
+        console.log('Message already exists in state, skipping:', messageId);
+        return prev;
+      }
+
+      // Add new message and maintain chronological order
+      const updatedMessages = [...prev, newMessage].sort((a, b) => 
+        new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
+      );
+      
+      return updatedMessages;
+    });
+  }, []);
 
   const {
     showScrollToBottom,
@@ -114,6 +129,59 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     chatContainerRef,
     messagesEndRef
   });
+
+  // Handle auto-scrolling and new message indicators when messages update
+  useEffect(() => {
+    // Only run if we have messages and the chat is open
+    if (messages.length > 0 && isOpen) {
+      // Check if user has scrolled up
+      if (chatContainerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+        const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 100;
+        
+        if (isScrolledToBottom) {
+          // If user is at the bottom, scroll to show new messages
+          setTimeout(() => scrollToBottom(), 100);
+        } else {
+          // If user has scrolled up, show new message indicator
+          setHasNewMessages(true);
+        }
+      }
+    }
+  }, [messages, isOpen, scrollToBottom, setHasNewMessages]);
+
+  const {
+    isTyping,
+    isAdminTyping,
+    setIsAdminTyping,
+    handleTyping: handleTypingIndicator
+  } = useTyping({
+    userId,
+    userName,
+    selectedAdmin,
+    sendTypingIndicator
+  });
+
+  // Initialize WebSocket when user info is available
+  useEffect(() => {
+    if (playerId && userId && !wsInitialized.current) {
+      console.log('Initializing chat WebSocket with:', { playerId, userId, userName });
+      initializeChatWebSocket(playerId, userId, userName, handleMessageReceived);
+      wsInitialized.current = true;
+    }
+    
+    // Re-initialize WebSocket if connection is lost
+    const checkConnectionInterval = setInterval(() => {
+      if (playerId && userId && !isWebSocketConnected) {
+        console.log('WebSocket disconnected, attempting to reconnect...');
+        initializeChatWebSocket(playerId, userId, userName, handleMessageReceived);
+      }
+    }, 10000); // Check every 10 seconds
+    
+    return () => {
+      clearInterval(checkConnectionInterval);
+    };
+  }, [playerId, userId, userName, handleMessageReceived, isWebSocketConnected]);
 
   useEffect(() => {
     if (isOpen) {
@@ -129,14 +197,6 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
-
-  // Ensure messages are scrolled into view when new ones arrive
-  useEffect(() => {
-    if (messages.length > 0) {
-      scrollToBottom();
-      setHasNewMessages(false);
-    }
-  }, [messages, scrollToBottom]);
 
   // Load user and player IDs from localStorage
   useEffect(() => {
@@ -273,7 +333,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
             // Process each message and only keep the latest version
             data.results.forEach((msg: ChatMessageData) => {
               const messageId = typeof msg.id === 'string' ? parseInt(msg.id) : msg.id;
-              const messageKey = `${messageId}-${msg.sent_time}-${msg.message}`;
+              const messageKey = `${messageId}`;
               
               // Only add if we haven't seen this message before
               if (!uniqueMessages.has(messageKey)) {
@@ -304,8 +364,8 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
             
             // Mark all loaded messages as processed
             processedMessages.forEach(msg => {
-              const messageKey = `${msg.id}-${msg.sent_time}`;
-              markMessageAsProcessed(messageKey);
+              const messageKey = `${msg.id}`;
+              sharedMessageTracker.set(messageKey);
             });
           } else {
             console.warn('Invalid chat history format:', data);
@@ -385,11 +445,11 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       )
     );
     
-    if (ws.current?.readyState === WebSocket.OPEN || isUsingMockWebSocket) {
+    if (isWebSocketConnected) {
       try {
-        markMessageAsProcessed(messageId.toString());
+        sharedMessageTracker.set(messageId.toString());
         
-        ws.current?.send(JSON.stringify({
+        sendChatMessage({
           type: "message",
           id: failedMessage.id,
           message: failedMessage.message,
@@ -401,7 +461,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
           file: failedMessage.file,
           recipient_id: failedMessage.recipient_id,
           is_admin_recipient: failedMessage.is_admin_recipient
-        }));
+        });
       } catch (error) {
         console.error('Error retrying message:', error);
         setMessages(prev => 
@@ -414,9 +474,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       }
     } else {
       console.error('WebSocket is not connected');
-      if (!isUsingMockWebSocket) {
-        initializeWebSocket();
-      }
+      initializeChatWebSocket(playerId, userId, userName, handleMessageReceived);
       setMessages(prev => 
         prev.map(msg => 
           msg.id === messageId 
@@ -424,7 +482,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
             : msg
         )
       );
-      wsSetShowConnectionToast(true);
+      setShowConnectionToast(true);
     }
   };
 
@@ -472,7 +530,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
           console.log('File upload successful:', { fileUrl, attachments });
         } catch (error) {
           console.error('Error uploading file:', error);
-          wsSetShowConnectionToast(true);
+          setShowConnectionToast(true);
           return;
         }
       }
@@ -483,7 +541,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       const messageTimestamp = new Date().toISOString();
 
       // Skip if we've already processed this message
-      if (hasProcessedMessage(messageId.toString())) {
+      if (sharedMessageTracker.has(messageId.toString())) {
         console.log('Preventing duplicate message send:', messageText);
         return;
       }
@@ -495,8 +553,8 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       setSelectedFile(null);
 
       // Mark this message as processed immediately
-      const messageKey = `${messageId}-${messageTimestamp}`;
-      markMessageAsProcessed(messageKey);
+      const messageKey = `${messageId}`;
+      sharedMessageTracker.set(messageKey);
 
       // Create a message object for the local state
       const localMessage: ChatMessage = {
@@ -519,13 +577,11 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
 
       // Add the message to the local state, checking for duplicates
       setMessages(prev => {
-        // Check if message already exists
-        const messageExists = prev.some(msg => 
-          msg.id === messageId || 
-          (msg.sent_time === messageTimestamp && msg.message === currentMessage)
-        );
+        // Check if message already exists by ID
+        const messageExists = prev.some(msg => msg.id === messageId);
         
         if (messageExists) {
+          console.log('Message already in state, skipping:', messageId);
           return prev;
         }
         
@@ -556,9 +612,9 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       console.log('Sending WebSocket message:', messagePayload);
 
       // Send the message via WebSocket
-      if (ws.current?.readyState === WebSocket.OPEN || isUsingMockWebSocket) {
+      if (isWebSocketConnected) {
         try {
-          ws.current?.send(JSON.stringify(messagePayload));
+          sendChatMessage(messagePayload);
           console.log('WebSocket message sent successfully');
         } catch (error) {
           console.error('Error sending message via WebSocket:', error);
@@ -569,11 +625,11 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
                 : msg
             )
           );
-          wsSetShowConnectionToast(true);
+          setShowConnectionToast(true);
         }
       } else {
         console.error('WebSocket is not connected');
-        initializeWebSocket();
+        initializeChatWebSocket(playerId, userId, userName, handleMessageReceived);
         setMessages(prev => 
           prev.map(msg => 
             msg.id === messageId 
@@ -581,11 +637,11 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
               : msg
           )
         );
-        wsSetShowConnectionToast(true);
+        setShowConnectionToast(true);
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      wsSetShowConnectionToast(true);
+      setShowConnectionToast(true);
     }
   };
 
@@ -593,10 +649,10 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     return format(new Date(timestamp), 'h:mm a');
   };
 
-  // Create a wrapper for handleTypingIndicator to match the expected type
-  const handleTypingWrapper = () => {
-    if (newMessage) {
-      handleTypingIndicator(newMessage);
+  // Handle typing wrapper function
+  const handleTypingWrapper = (message: string) => {
+    if (message) {
+      sendTypingIndicator(userId, playerId, selectedAdmin);
     }
   };
 
@@ -617,12 +673,12 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
             
             {/* Connection Status Toast */}
             <ConnectionStatus 
-              showConnectionToast={wsShowConnectionToast}
-              connectionStatus={connectionStatus}
-              onClose={() => wsSetShowConnectionToast(false)}
+              showConnectionToast={showConnectionToast}
+              connectionStatus={wsConnectionStatus}
+              onClose={() => setShowConnectionToast(false)}
               onRetry={() => {
-                initializeWebSocket();
-                wsSetShowConnectionToast(false);
+                initializeChatWebSocket(playerId, userId, userName, handleMessageReceived);
+                setShowConnectionToast(false);
               }}
             />
             
@@ -640,7 +696,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
               {/* Chat Header */}
               <ChatHeader 
                 isWebSocketConnected={isWebSocketConnected}
-                isUsingMockWebSocket={isUsingMockWebSocket}
+                isUsingMockWebSocket={false}
                 onClose={onClose}
               />
 
@@ -729,7 +785,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
                 setSelectedFile={setSelectedFile}
                 handleSendMessage={handleSendMessage}
                 isWebSocketConnected={isWebSocketConnected}
-                isUsingMockWebSocket={isUsingMockWebSocket}
+                isUsingMockWebSocket={false}
                 selectedAdmin={selectedAdmin}
                 handleTyping={handleTypingWrapper}
                 availableAdmins={[{ id: selectedAdmin, name: 'Support' }]}

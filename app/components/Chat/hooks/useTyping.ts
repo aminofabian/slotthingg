@@ -1,12 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 
 interface TypingHookProps {
-  ws: React.RefObject<WebSocket | null>;
   userId: string;
   userName: string;
   selectedAdmin: string | null;
-  isWebSocketConnected: boolean;
-  isUsingMockWebSocket: boolean;
+  sendTypingIndicator: (userId: string, playerId: string, recipientId?: string) => boolean;
 }
 
 interface UseTypingReturn {
@@ -17,12 +15,10 @@ interface UseTypingReturn {
 }
 
 export const useTyping = ({
-  ws,
   userId,
   userName,
   selectedAdmin,
-  isWebSocketConnected,
-  isUsingMockWebSocket
+  sendTypingIndicator
 }: TypingHookProps): UseTypingReturn => {
   const [isTyping, setIsTyping] = useState(false);
   const [isAdminTyping, setIsAdminTyping] = useState(false);
@@ -47,28 +43,24 @@ export const useTyping = ({
     if (!isTyping && message.trim().length > 0) {
       setIsTyping(true);
       
-      if (ws.current && (ws.current.readyState === WebSocket.OPEN || isUsingMockWebSocket) && selectedAdmin) {
+      if (selectedAdmin) {
         try {
-          ws.current.send(JSON.stringify({
-            type: "typing",
-            sender: userId,
-            sender_name: userName || 'User',
-            recipient_id: selectedAdmin ? parseInt(selectedAdmin) : undefined,
-            is_admin_recipient: true
-          }));
+          // Send typing indicator via the unified socket implementation
+          sendTypingIndicator(userId, userId, selectedAdmin);
         } catch (error) {
           console.error('Error sending typing indicator:', error);
         }
       }
+
+      // Reset typing status after a delay
+      if (typingIndicatorTimeoutRef.current) {
+        clearTimeout(typingIndicatorTimeoutRef.current);
+      }
+      
+      typingIndicatorTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+      }, 3000);
     }
-    
-    if (typingIndicatorTimeoutRef.current) {
-      clearTimeout(typingIndicatorTimeoutRef.current);
-    }
-    
-    typingIndicatorTimeoutRef.current = setTimeout(() => {
-      setIsTyping(false);
-    }, 2000);
   };
 
   useEffect(() => {
@@ -85,4 +77,4 @@ export const useTyping = ({
     setIsAdminTyping,
     handleTyping
   };
-}; 
+};
