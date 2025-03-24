@@ -7,17 +7,25 @@ interface SocketContextType {
   socket: typeof socket;
   isConnected: boolean;
   lastMessage: any;
+  sendMessage: (message: any) => void;
 }
 
 const SocketContext = createContext<SocketContextType>({
   socket,
   isConnected: false,
   lastMessage: null,
+  sendMessage: () => {},
 });
 
 export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState(null);
+
+  const sendMessage = (message: any) => {
+    if (isConnected) {
+      socket.emit('message', message);
+    }
+  };
 
   useEffect(() => {
     // Connect to socket when component mounts
@@ -51,7 +59,7 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   return (
-    <SocketContext.Provider value={{ socket, isConnected, lastMessage }}>
+    <SocketContext.Provider value={{ socket, isConnected, lastMessage, sendMessage }}>
       {children}
     </SocketContext.Provider>
   );
