@@ -295,7 +295,7 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Chat Button */}
+          {/* Chat Button - Updated for drawer style */}
           <div className="px-6">
             <button
               onClick={openChat}
@@ -305,10 +305,18 @@ const Navbar = () => {
                 text-[#00ffff] transition-all duration-300 group"
             >
               <div className="p-2.5 rounded-lg bg-[#00ffff]/10 
-                group-hover:bg-[#00ffff]/20 transition-all duration-300">
-                <IoChatbubbleEllipses className="text-2xl sm:text-3xl" />
+                group-hover:bg-[#00ffff]/20 transition-all duration-300 
+                relative overflow-hidden">
+                <IoChatbubbleEllipses className="text-2xl sm:text-3xl relative z-10" />
+                {/* Slide animation hint */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#00ffff]/20 to-transparent 
+                  opacity-0 group-hover:opacity-100 -translate-x-full group-hover:translate-x-full 
+                  transition-all duration-1000 ease-in-out" />
               </div>
-              <span className="text-sm">Support Chat</span>
+              <div className="flex flex-col items-start">
+                <span className="text-sm font-medium">Support Chat</span>
+                <span className="text-xs text-[#00ffff]/60">Slide from left</span>
+              </div>
             </button>
           </div>
 
@@ -355,12 +363,16 @@ const Navbar = () => {
                 <span className="text-[0.6rem] whitespace-nowrap">{item.label}</span>
               </Link>
             ))}
-            {/* Mobile Chat Button */}
+            {/* Mobile Chat Button - Updated for drawer style */}
             <button
               onClick={openChat}
-              className="flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 text-[#00ffff]/70 hover:text-[#00ffff] transition-colors"
+              className="flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 text-[#00ffff]/70 hover:text-[#00ffff] transition-colors relative"
             >
-              <IoChatbubbleEllipses className="w-5 h-5" />
+              <div className="relative">
+                <IoChatbubbleEllipses className="w-5 h-5" />
+                {/* Left edge indicator to suggest drawer */}
+                <div className="absolute -left-2 top-1/2 -translate-y-1/2 h-2 w-0.5 bg-[#00ffff]/70 rounded-full" />
+              </div>
               <span className="text-[0.6rem] whitespace-nowrap">Chat</span>
             </button>
             {/* Mobile Logout Button */}

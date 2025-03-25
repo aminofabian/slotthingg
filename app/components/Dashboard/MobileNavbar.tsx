@@ -12,7 +12,7 @@ import { FaMoneyBill, FaMoneyBill1 } from 'react-icons/fa6';
 import { BsCash } from 'react-icons/bs';
 import { GiCash, GiMoneyStack } from 'react-icons/gi';
 import toast from 'react-hot-toast';
-import ChatModal from '../Chat/ChatModal';
+import ChatDrawer from '../Chat/ChatDrawer';
 import PurchaseModal from '../Dashboard/PurchaseModal';
 import CashoutModal from './CashoutModal';
 
@@ -81,10 +81,7 @@ export default function MobileNavbar() {
         onLogout={handleLogout}
         isLoggingOut={isLoggingOut}
       />
-      <ChatModal 
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-      />
+      <ChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       <PurchaseModal 
         isOpen={isPurchaseModalOpen}
         onClose={() => setIsPurchaseModalOpen(false)}
@@ -144,6 +141,11 @@ export default function MobileNavbar() {
                     onClick={() => setIsChatOpen(true)}
                     className="flex flex-col items-center relative group py-2 px-3 transform transition-transform active:scale-95"
                   >
+                    {/* Drawer indicator line */}
+                    <div className="absolute left-[2px] top-1/2 -translate-y-1/2 h-8 w-0.5 
+                      bg-gradient-to-b from-transparent via-[#00ffff]/70 to-transparent rounded-full 
+                      opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    
                     {/* Enhanced active indicator line */}
                     {isChatOpen && (
                       <div className="absolute -top-[2px] left-1/2 -translate-x-1/2 w-12 h-[2px]
@@ -170,6 +172,9 @@ export default function MobileNavbar() {
                         : 'text-gray-400 group-hover:text-[#00ffff]/90'}`}
                     >
                       {item.label}
+                      {!isChatOpen && (
+                        <span className="block text-[0.5rem] opacity-60 mt-0.5">slide in</span>
+                      )}
                     </span>
                   </button>
                 );

@@ -8,7 +8,7 @@ import DashboardContent from '../components/Dashboard/DashboardContent';
 import MobileNavbar from '../components/Dashboard/MobileNavbar';
 import { BiMoney } from 'react-icons/bi';
 import { GiDiamonds } from 'react-icons/gi';
-import ChatModal from '../components/Chat/ChatModal';
+import ChatDrawer from '../components/Chat/ChatDrawer';
 import useChatStore from '../store/useChatStore';
 
 export default function DashboardPage() {
@@ -54,8 +54,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Chat Modal */}
-      <ChatModal isOpen={isChatOpen} onClose={closeChat} />
+      {/* Chat Drawer */}
+      <ChatDrawer isOpen={isChatOpen} onClose={closeChat} />
     </div>
   );
 }
