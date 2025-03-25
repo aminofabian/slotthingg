@@ -12,9 +12,9 @@ import { FaMoneyBill, FaMoneyBill1 } from 'react-icons/fa6';
 import { BsCash } from 'react-icons/bs';
 import { GiCash, GiMoneyStack } from 'react-icons/gi';
 import toast from 'react-hot-toast';
-import ChatDrawer from '../Chat/ChatDrawer';
 import PurchaseModal from '../Dashboard/PurchaseModal';
 import CashoutModal from './CashoutModal';
+import useChatStore from '@/app/store/useChatStore';
 
 const navItems = [
   { label: 'Purchase', icon: BiMoney, isPurchase: true },
@@ -27,10 +27,13 @@ const navItems = [
 export default function MobileNavbar() {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isCashoutModalOpen, setIsCashoutModalOpen] = useState(false);
   const [currentBalance, setCurrentBalance] = useState(0);
+  
+  // Use the shared chat store instead of local state
+  const { isOpen: isChatOpen, open: openChat, close: closeChat } = useChatStore();
+  
   const pathname = usePathname();
   const router = useRouter();
 
@@ -81,7 +84,6 @@ export default function MobileNavbar() {
         onLogout={handleLogout}
         isLoggingOut={isLoggingOut}
       />
-      <ChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       <PurchaseModal 
         isOpen={isPurchaseModalOpen}
         onClose={() => setIsPurchaseModalOpen(false)}
@@ -138,7 +140,7 @@ export default function MobileNavbar() {
                 return (
                   <button
                     key="support-chat"
-                    onClick={() => setIsChatOpen(true)}
+                    onClick={openChat}
                     className="flex flex-col items-center relative group py-2 px-3 transform transition-transform active:scale-95"
                   >
                     {/* Drawer indicator line */}
