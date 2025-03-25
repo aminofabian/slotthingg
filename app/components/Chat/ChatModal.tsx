@@ -72,6 +72,8 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
   const chatContainerRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const wsInitialized = useRef(false);
+  const localSentMessageIds = useRef<Set<string>>(new Set());  // Track message IDs we've sent locally
+  const recentIncomingMessages = useRef<Map<string, number>>(new Map()); // Track recently received incoming messages by content
 
   const {
     showScrollToBottom,
@@ -157,13 +159,31 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
               
               processedMessages.forEach(msg => {
                 const msgKey = `${msg.id}`;
-                // Only add the message if it doesn't already exist
+                
+                // Only add if we don't have this exact ID already
                 if (!existingMessageMap.has(msgKey)) {
-                  mergedMessages.push(msg);
-                  addedCount++;
+                  // For content messages, check for near-duplicates with slightly different IDs
+                  let isDuplicate = false;
+                  if (msg.message) {
+                    // Look for very similar existing messages
+                    isDuplicate = prevMessages.some(existingMsg => 
+                      existingMsg.message === msg.message && 
+                      existingMsg.sender === msg.sender &&
+                      Math.abs(new Date(existingMsg.sent_time).getTime() - new Date(msg.sent_time).getTime()) < 5000
+                    );
+                  }
                   
-                  // Also add to sentMessageIds to prevent duplicate processing from WebSocket
-                  setSentMessageIds(prev => new Set(prev).add(msgKey));
+                  if (!isDuplicate) {
+                    mergedMessages.push(msg);
+                    addedCount++;
+                    
+                    // Track this ID to avoid duplicate processing
+                    existingMessageMap.set(msgKey, msg);
+                    
+                    // Add to sentMessageIds to prevent duplicate processing from WebSocket
+                    // but only add to the component's set, not the shared tracker
+                    setSentMessageIds(prev => new Set(prev).add(msgKey));
+                  }
                 }
               });
               
@@ -175,11 +195,9 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
               );
             });
             
-            // Mark all loaded messages as processed in the shared tracker
-            processedMessages.forEach(msg => {
-              const messageKey = `${msg.id}`;
-              sharedMessageTracker.set(messageKey);
-            });
+            // We no longer mark history messages in the shared tracker at all
+            // This prevents history loading from blocking real-time messages
+            console.log('Not adding history messages to shared tracker to allow real-time messages');
           } else {
             console.warn('Invalid chat history format:', data);
             setMessages([]);
@@ -263,72 +281,221 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     }
   }, []);
   
-  // Handle incoming messages
+  // Handler for incoming messages (from WebSocket)
   const handleMessageReceived = useCallback((data: any) => {
-    console.log('Message received in component:', data);
+    // Check if this is a real-time message from the WebSocket (not from history)
+    const isRealTimeMessage = data.is_realtime === true;
     
-    // Generate a message ID if one isn't provided
-    const messageId = data.id ? 
-      (typeof data.id === 'string' ? parseInt(data.id) : data.id) :
-      Date.now() + Math.floor(Math.random() * 1000);
+    // Determine if this is a player-sent message early in the process
+    const isPlayerSender = data.is_player_sender === true || 
+                          data.sender_id === userId || 
+                          data.sender === userId;
     
-    // Create a unique key for this message to check for duplicates
-    const messageKey = `${messageId}`;
-    
-    // Skip if we've already processed this exact message in our component
-    if (sentMessageIds.has(messageKey)) {
-      console.log('Already processed this message in component, skipping:', messageKey);
+    // *ULTRA AGGRESSIVE CHECK* - If it's a player message, we already have it in the UI
+    // This prevents ANY duplicate display of outgoing messages completely
+    if (isRealTimeMessage && isPlayerSender) {
+      console.log('[OUTGOING] Player message received from server, ignoring to prevent duplicates');
       return;
     }
     
-    // Create the message object with all possible fields
-    const newMessage: ChatMessageData = {
-      id: messageId,
-      type: data.type || 'message',
-      message: data.message || '',
-      sender: typeof data.sender === 'string' ? parseInt(data.sender) : data.sender,
-      sender_name: data.sender_name || 'Unknown',
-      sent_time: data.sent_time || new Date().toISOString(),
-      is_file: Boolean(data.is_file),
-      file: data.file || null,
-      is_player_sender: Boolean(data.is_player_sender),
-      is_tip: Boolean(data.is_tip),
-      is_comment: Boolean(data.is_comment),
-      status: 'delivered',
-      attachments: Array.isArray(data.attachments) ? data.attachments : [],
-      recipient_id: data.recipient_id ? parseInt(data.recipient_id) : undefined,
-      is_admin_recipient: Boolean(data.is_admin_recipient)
-    };
-
-    console.log('Processed new message:', newMessage);
+    // Quick check for message echoes - immediately discard them
+    if (data._isEcho === true) {
+      console.log('[ECHO] Server confirmed this is an echo of our own message, ignoring');
+      return;
+    }
     
-    // Add to sentMessageIds to prevent duplicate processing
-    setSentMessageIds(prev => new Set(prev).add(messageKey));
-
-    // Update messages - using functional update to avoid race conditions
-    setMessages(prev => {
-      // Double-check if message already exists to prevent duplicates
-      const messageExists = prev.some(msg => msg.id === messageId);
-      if (messageExists) {
-        console.log('Message already exists in state, skipping:', messageId);
-        return prev;
+    if (isRealTimeMessage) {
+      console.log('%c[REALTIME] Received real-time message', 'background: #ff00ff; color: white', {
+        message: data.message?.substring(0, 20) + (data.message?.length > 20 ? '...' : ''),
+        sender: data.sender_name || 'Unknown'
+      });
+    } else {
+      console.log('[HISTORY] Processing history message');
+    }
+    
+    try {
+      // Generate a message ID if one isn't provided
+      const messageId = data.id ? 
+        (typeof data.id === 'string' ? parseInt(data.id) : data.id) :
+        Date.now() + Math.floor(Math.random() * 1000);
+      
+      // SPECIAL CHECK FOR INCOMING MESSAGES: If not from player and has content, check for duplicates
+      if (!isPlayerSender && data.message) {
+        // Create a normalized content hash without timestamp
+        const senderKey = `${data.sender || data.sender_id || '0'}`; 
+        const normalizedContent = `${senderKey}-${data.message.trim()}`;
+        
+        // Check if we've seen this content recently
+        const now = Date.now();
+        const lastSeen = recentIncomingMessages.current.get(normalizedContent);
+        
+        if (lastSeen && (now - lastSeen < 120000)) { // 2 minute window for duplicates
+          console.log('[INCOMING] Duplicate message content detected within 2 minutes, ignoring:', data.message.substring(0, 30));
+          return;
+        }
+        
+        // Track this message content
+        recentIncomingMessages.current.set(normalizedContent, now);
+        
+        // Cleanup old messages to prevent memory leaks (keep only last 100)
+        if (recentIncomingMessages.current.size > 100) {
+          const oldestKeys = Array.from(recentIncomingMessages.current.entries())
+            .sort((a, b) => a[1] - b[1])
+            .slice(0, recentIncomingMessages.current.size - 100)
+            .map(entry => entry[0]);
+            
+          oldestKeys.forEach(key => recentIncomingMessages.current.delete(key));
+        }
+      }
+      
+      // Continue with standard message processing
+      // Create a unique key for this message to check for duplicates
+      const messageKey = `${messageId}`;
+      
+      // FIRST CHECK: Do we have this exact message ID in our localSentMessageIds?
+      // If yes, this is an echo of our own message, so skip it entirely
+      if (localSentMessageIds.current.has(messageKey)) {
+        console.log('[REALTIME] Message was sent by us locally, ignoring echo:', messageKey);
+        return;
+      }
+      
+      const contentKey = data._contentFingerprint || `${data.sender || data.sender_id}-${data.message}-${data.sent_time}`;
+      
+      // Skip if we've already processed this exact message ID in our component
+      // For history messages, strictly check the ID
+      if (!isRealTimeMessage && sentMessageIds.has(messageKey)) {
+        console.log('[HISTORY] Already processed this message ID, skipping');
+        return;
+      }
+      
+      // Even for real-time messages, avoid exact duplicates by ID
+      if (isRealTimeMessage && sentMessageIds.has(messageKey)) {
+        console.log('[REALTIME] Already processed exact message ID, skipping');
+        return;
       }
 
-      console.log('Adding new message to state:', newMessage);
+      // More aggressive checking for outgoing messages that come back from server
+      // This is specifically for messages the user just sent
+      if (isRealTimeMessage && sharedMessageTracker.has(messageKey)) {
+        console.log('[REALTIME] Message ID exists in shared tracker, likely an echo of our own message, skipping');
+        return;
+      }
       
-      // Add new message and maintain chronological order
-      const updatedMessages = [...prev, newMessage].sort((a, b) => 
-        new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
-      );
+      // Check content fingerprint for real-time messages
+      if (isRealTimeMessage && contentKey && sentMessageIds.has(contentKey)) {
+        console.log('[REALTIME] Content fingerprint match, skipping duplicate message');
+        return;
+      }
       
-      return updatedMessages;
-    });
+      // Extra duplication check for ALL messages - check if we already have a recent message
+      // with identical content, regardless of sender
+      if (data.message) {
+        // Use a longer window for checking duplicate incoming messages
+        // This will catch messages that are sent within a minute of each other with same content
+        const timeWindow = isPlayerSender ? 5000 : 60000; // 5 seconds for player messages, 60 seconds for incoming
+        
+        const duplicateExists = messages.some(msg => 
+          msg.message === data.message &&
+          msg.sender === (data.sender || data.sender_id) &&
+          Math.abs(new Date().getTime() - new Date(msg.sent_time).getTime()) < timeWindow
+        );
+        
+        if (duplicateExists) {
+          console.log(`[${isRealTimeMessage ? 'REALTIME' : 'HISTORY'}] Found recent duplicate message content, skipping`);
+          return;
+        }
+      }
+      
+      // Determine sender name with fallbacks
+      let senderName = data.sender_name;
+      if (!senderName || senderName === "Unknown") {
+        if (isPlayerSender) {
+          senderName = userName || 'You';
+        } else {
+          senderName = 'Support';
+        }
+      }
+      
+      // Create the message object with all possible fields
+      const newMessage: ChatMessageData = {
+        id: messageId,
+        type: data.type || 'message',
+        message: data.message || '',
+        sender: typeof data.sender === 'string' ? parseInt(data.sender) : (data.sender || (data.sender_id ? parseInt(data.sender_id) : 0)),
+        sender_name: senderName,
+        sent_time: data.sent_time || new Date().toISOString(),
+        is_file: Boolean(data.is_file),
+        file: data.file || null,
+        is_player_sender: isPlayerSender,
+        is_tip: Boolean(data.is_tip),
+        is_comment: Boolean(data.is_comment),
+        status: 'delivered',
+        attachments: Array.isArray(data.attachments) ? data.attachments : [],
+        recipient_id: data.recipient_id ? parseInt(data.recipient_id) : undefined,
+        is_admin_recipient: Boolean(data.is_admin_recipient)
+      };
 
-    // Force scroll to bottom when new messages arrive from admin
-    if (!newMessage.is_player_sender) {
-      setTimeout(() => scrollToBottom(), 100);
+      // Add to sentMessageIds to prevent duplicate processing
+      setSentMessageIds(prev => {
+        const updated = new Set(prev);
+        updated.add(messageKey);
+        // Also track by content for real-time messages
+        if (isRealTimeMessage && contentKey) {
+          updated.add(contentKey);
+        }
+        return updated;
+      });
+
+      // Update messages - using functional update to avoid race conditions
+      setMessages(prev => {
+        // Check for exact duplicates by ID
+        if (prev.some(msg => msg.id === messageId)) {
+          console.log(`[${isRealTimeMessage ? 'REALTIME' : 'HISTORY'}] Message with this ID already exists, skipping:`, messageId);
+          return prev;
+        }
+
+        // Additional check for content duplicates, but less strict for real-time messages
+        let isDuplicate = false;
+        
+        if (newMessage.message && !isRealTimeMessage) {
+          // For history messages, be more strict about duplicates
+          isDuplicate = prev.some(msg => 
+            msg.message === newMessage.message && 
+            msg.sender === newMessage.sender &&
+            Math.abs(new Date(msg.sent_time).getTime() - new Date(newMessage.sent_time).getTime()) < 5000
+          );
+        } else if (newMessage.message && isRealTimeMessage) {
+          // For real-time messages, only check for very recent exact duplicates
+          isDuplicate = prev.some(msg => 
+            msg.message === newMessage.message && 
+            msg.sender === newMessage.sender &&
+            Math.abs(new Date(msg.sent_time).getTime() - new Date(newMessage.sent_time).getTime()) < 1000 // Much smaller window
+          );
+        }
+        
+        if (isDuplicate) {
+          console.log(`[${isRealTimeMessage ? 'REALTIME' : 'HISTORY'}] Similar message exists, skipping`);
+          return prev;
+        }
+
+        console.log(`[${isRealTimeMessage ? 'REALTIME' : 'HISTORY'}] Adding message to state:`, newMessage.message);
+        
+        // Add new message and maintain chronological order
+        const updatedMessages = [...prev, newMessage].sort((a, b) => 
+          new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
+        );
+        
+        return updatedMessages;
+      });
+
+      // For real-time messages or admin messages, ensure we scroll to show the new message
+      if (isRealTimeMessage || !newMessage.is_player_sender) {
+        setTimeout(() => scrollToBottom(), 100);
+      }
+    } catch (error) {
+      console.error('Error processing message:', error, data);
     }
-  }, [sentMessageIds, scrollToBottom]);
+  }, [sentMessageIds, scrollToBottom, userId, userName]);
   
   // Handle auto-scrolling and new message indicators when messages update
   useEffect(() => {
@@ -364,76 +531,173 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
 
   // Initialize WebSocket when user info is available
   useEffect(() => {
-    if (playerId && userId && !wsInitialized.current) {
-      console.log('Initializing chat WebSocket with:', { playerId, userId, userName });
-      initializeChatWebSocket(playerId, userId, userName, handleMessageReceived);
-      wsInitialized.current = true;
-      
-      // To verify WebSocket is working, log connection status change
-      const connectionStatusInterval = setInterval(() => {
-        const status = isWebSocketConnected ? 'connected' : 'disconnected';
-        console.log(`[Status Check] WebSocket currently ${status}`);
-      }, 5000);
-      
-      return () => {
-        clearInterval(connectionStatusInterval);
-      };
+    // Only try to connect if we have the required data
+    if (!playerId || !userId) {
+      console.log('Missing player ID or user ID, skipping WebSocket initialization');
+      return;
     }
     
-    // Re-initialize WebSocket if connection is lost
-    const checkConnectionInterval = setInterval(() => {
-      if (playerId && userId && !isWebSocketConnected && wsInitialized.current) {
+    // Prevent multiple initialization attempts
+    if (wsInitialized.current) {
+      console.log('WebSocket already initialized, skipping');
+      return;
+    }
+    
+    // Mark as initialized immediately to prevent multiple connections
+    wsInitialized.current = true;
+    
+    // Create a unique identifier for this connection
+    const connectionId = `conn-${Date.now()}`;
+    console.log(`Creating WebSocket connection with ID: ${connectionId}`);
+    
+    console.log('Initializing chat WebSocket with:', { 
+      playerId, 
+      userId, 
+      userName
+    });
+    
+    // Create a direct message handler specifically for this connection
+    const handleIncomingMessage = (message: any) => {
+      console.log(`WebSocket message received:`, message);
+      
+      // Force execution on the next tick to avoid React state update issues
+      setTimeout(() => {
+        // Enhance the message with better sender name if available
+        if (message.sender_name === "Unknown" && userName) {
+          if (message.is_player_sender) {
+            message.sender_name = userName;
+          }
+        }
+        
+        handleMessageReceived(message);
+      }, 0);
+    };
+    
+    // Initialize the connection with our handler
+    initializeChatWebSocket(playerId, userId, userName || 'User', handleIncomingMessage);
+    
+    // Only check connection status every 10 seconds to reduce server load
+    const connectionStatusInterval = setInterval(() => {
+      const status = isWebSocketConnected ? 'connected' : 'disconnected';
+      console.log(`[Status Check] WebSocket connection status: ${status}`);
+      
+      // Only attempt to reconnect if we're explicitly disconnected
+      if (!isWebSocketConnected && wsInitialized.current) {
         console.log('WebSocket disconnected, attempting to reconnect...');
-        // Reset initialized flag to force a complete reconnection
-        wsInitialized.current = false;
-        // Re-initialize
-        initializeChatWebSocket(playerId, userId, userName, handleMessageReceived);
-        wsInitialized.current = true;
+        initializeChatWebSocket(playerId, userId, userName || 'User', handleIncomingMessage);
       }
     }, 10000); // Check every 10 seconds
     
+    // Clean up function
     return () => {
-      clearInterval(checkConnectionInterval);
+      console.log(`Cleaning up WebSocket connection`);
+      clearInterval(connectionStatusInterval);
     };
-  }, [playerId, userId, userName, handleMessageReceived, isWebSocketConnected]);
+  }, [playerId, userId, userName, handleMessageReceived]);
   
-  // Implement a periodic refresh to ensure we haven't missed any messages
+  // Load history only when chat is opened
+  useEffect(() => {
+    if (isOpen) {
+      // Load user info
+      loadUserInfo();
+      
+      // Set a flag to track initial load
+      const initialLoadFlag = 'chat_initial_load_complete';
+      const hasInitiallyLoaded = localStorage.getItem(initialLoadFlag);
+      
+      // Only load history if we haven't already loaded it during this session
+      if (!hasInitiallyLoaded) {
+        console.log('Performing initial history load');
+        fetchChatHistory();
+        localStorage.setItem(initialLoadFlag, 'true');
+      } else {
+        console.log('Initial load already complete, skipping duplicate fetch');
+      }
+      
+      document.body.style.overflow = 'hidden';
+      
+      // When the modal closes, clear the initial load flag
+      return () => {
+        document.body.style.overflow = 'unset';
+        localStorage.removeItem(initialLoadFlag);
+      };
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [isOpen, loadUserInfo, fetchChatHistory]);
+  
+  // Clean up message tracking sets periodically to prevent memory leaks
+  useEffect(() => {
+    // Don't clean up if chat is not open
+    if (!isOpen) return;
+    
+    // Clean up every 5 minutes
+    const cleanupInterval = setInterval(() => {
+      // Only keep the last 200 sent message IDs to prevent memory leaks
+      if (localSentMessageIds.current.size > 200) {
+        console.log('Cleaning up localSentMessageIds');
+        const idsArray = Array.from(localSentMessageIds.current);
+        const newSet = new Set(idsArray.slice(idsArray.length - 200));
+        localSentMessageIds.current = newSet;
+      }
+      
+      // Also clean up shared message tracker
+      if (sharedMessageTracker.size() > 500) {
+        console.log('Cleaning up sharedMessageTracker');
+        sharedMessageTracker.cleanup();
+      }
+      
+      // Clean up recentIncomingMessages - remove messages older than 2 hours
+      if (recentIncomingMessages.current.size > 0) {
+        console.log('Cleaning up recentIncomingMessages');
+        const now = Date.now();
+        const twoHoursAgo = now - (2 * 60 * 60 * 1000);
+        
+        Array.from(recentIncomingMessages.current.entries())
+          .filter(([_, timestamp]) => timestamp < twoHoursAgo)
+          .forEach(([key, _]) => recentIncomingMessages.current.delete(key));
+      }
+    }, 300000); // Every 5 minutes
+    
+    return () => {
+      clearInterval(cleanupInterval);
+    };
+  }, [isOpen]);
+  
+  // Implement a periodic refresh to ensure we haven't missed any messages but at a much lower frequency
   useEffect(() => {
     if (!isOpen) return;
     
-    // Set up a timer to periodically refresh messages if the connection is problematic
+    // Track the last time we manually refreshed
+    const refreshTimeKey = 'last_manual_chat_refresh';
+    
+    // Initialize with current time if not set
+    if (!localStorage.getItem(refreshTimeKey)) {
+      localStorage.setItem(refreshTimeKey, Date.now().toString());
+    }
+    
+    // Refresh much less frequently to reduce server load
     const refreshInterval = setInterval(() => {
       // Only refresh if messages haven't updated in a while and we're open
       const lastMessageUpdate = localStorage.getItem('last_message_time');
+      const lastManualRefresh = localStorage.getItem(refreshTimeKey);
       const now = Date.now();
-      const timeSinceLastUpdate = lastMessageUpdate ? now - parseInt(lastMessageUpdate) : Infinity;
       
-      // If it's been more than 30 seconds since we got a message and we're connected, do a refresh
-      if (timeSinceLastUpdate > 30000) {
-        console.log('No recent message updates, refreshing chat history');
+      const timeSinceLastUpdate = lastMessageUpdate ? now - parseInt(lastMessageUpdate) : Infinity;
+      const timeSinceLastRefresh = lastManualRefresh ? now - parseInt(lastManualRefresh) : Infinity;
+      
+      // Only refresh if we haven't had messages for a while AND we haven't refreshed recently
+      if (timeSinceLastUpdate > 120000 && timeSinceLastRefresh > 300000) {
+        console.log('No recent message updates, performing background refresh');
+        localStorage.setItem(refreshTimeKey, now.toString());
         fetchChatHistory();
       }
-    }, 30000); // Check every 30 seconds
+    }, 120000); // Check every 2 minutes
     
     return () => {
       clearInterval(refreshInterval);
     };
   }, [isOpen, fetchChatHistory]);
-
-  useEffect(() => {
-    if (isOpen) {
-      loadUserInfo();
-      fetchChatHistory();
-      
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, loadUserInfo, fetchChatHistory]);
 
   // Load user and player IDs from localStorage
   useEffect(() => {
@@ -582,21 +846,8 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     if (!newMessage.trim() && !selectedFile) return;
 
     try {
-      // Debug logging for user context
-      console.log('Sending message with context:', {
-        userId,
-        playerId,
-        userName,
-        selectedAdmin,
-        localStorage: {
-          user_session: localStorage.getItem('user_session'),
-          user_profile: localStorage.getItem('user_profile'),
-          username: localStorage.getItem('username'),
-          current_username: localStorage.getItem('current_username'),
-          user_name: localStorage.getItem('user_name'),
-          whitelabel_admin_uuid: localStorage.getItem('whitelabel_admin_uuid')
-        }
-      });
+      // Debug logging - keep this minimal to reduce console spam
+      console.log('Sending message');
 
       let isFile = false;
       let fileUrl = null;
@@ -604,11 +855,6 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
       
       if (selectedFile) {
         try {
-          console.log('Uploading file:', {
-            name: selectedFile.name,
-            type: selectedFile.type,
-            size: selectedFile.size
-          });
           fileUrl = await uploadFile(selectedFile);
           isFile = true;
           attachments.push({
@@ -618,7 +864,6 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
             name: selectedFile.name,
             size: selectedFile.size
           });
-          console.log('File upload successful:', { fileUrl, attachments });
         } catch (error) {
           console.error('Error uploading file:', error);
           setShowConnectionToast(true);
@@ -633,25 +878,51 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
 
       // Skip if we've already processed this message
       if (sharedMessageTracker.has(messageId.toString())) {
-        console.log('Preventing duplicate message send:', messageText);
+        console.log('Preventing duplicate message send');
+        return;
+      }
+      
+      // TEMPORARY: Extra check for very recent duplicate outgoing message with same content
+      // This prevents duplicates that happen within the same second
+      const duplicateExists = messages.some(msg => 
+        msg.message === messageText && 
+        msg.is_player_sender && 
+        Math.abs(new Date().getTime() - new Date(msg.sent_time).getTime()) < 1000
+      );
+      
+      if (duplicateExists) {
+        console.log('Detected very recent duplicate outgoing message, skipping');
         return;
       }
 
       // Clear input fields first to prevent double-sending if the user types quickly
-      const currentMessage = messageText;
-      const currentFile = selectedFile;
       setNewMessage('');
       setSelectedFile(null);
 
       // Mark this message as processed immediately
       const messageKey = `${messageId}`;
+      
+      // CRITICALLY IMPORTANT - add this message ID to our local sent messages tracker
+      // so we completely ignore it if it comes back from the server
+      localSentMessageIds.current.add(messageKey);
+      
       sharedMessageTracker.set(messageKey);
+      
+      // Also add a content fingerprint to prevent echoed messages
+      const contentFingerprint = `${userId}-${messageText}-${messageTimestamp}`;
+      sharedMessageTracker.set(contentFingerprint);
+      setSentMessageIds(prev => {
+        const updated = new Set(prev);
+        updated.add(messageKey);
+        updated.add(contentFingerprint);
+        return updated;
+      });
 
       // Create a message object for the local state
       const localMessage: ChatMessage = {
         id: messageId,
         type: 'message',
-        message: currentMessage,
+        message: messageText,
         sender: parseInt(userId),
         sender_name: userName || 'User',
         sent_time: messageTimestamp,
@@ -666,29 +937,21 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
         is_admin_recipient: !!selectedAdmin
       };
 
-      // Add the message to the local state, checking for duplicates
-      setMessages(prev => {
-        // Check if message already exists by ID
-        const messageExists = prev.some(msg => msg.id === messageId);
-        
-        if (messageExists) {
-          console.log('Message already in state, skipping:', messageId);
-          return prev;
-        }
-        
-        // Sort messages by timestamp to maintain order
-        const updatedMessages = [...prev, localMessage].sort((a, b) => 
-          new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
-        );
-        return updatedMessages;
-      });
-      scrollToBottom();
+      // IMPORTANT: Create a direct state update rather than using the functional update pattern
+      // This avoids race conditions that can cause duplicate messages
+      const updatedMessages = [...messages, localMessage].sort((a, b) => 
+        new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
+      );
+      setMessages(updatedMessages);
+      
+      // Force a scroll after adding the message
+      setTimeout(() => scrollToBottom(), 100);
 
       // Create the message payload
       const messagePayload = {
         type: "message",
         id: messageId,
-        message: currentMessage,
+        message: messageText,
         sender_id: userId,
         sender_name: userName || localStorage.getItem('current_username') || 'Unknown User',
         sent_time: messageTimestamp,
@@ -700,13 +963,10 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
         attachments
       };
 
-      console.log('Sending WebSocket message:', messagePayload);
-
       // Send the message via WebSocket
       if (isWebSocketConnected) {
         try {
           sendChatMessage(messagePayload);
-          console.log('WebSocket message sent successfully');
         } catch (error) {
           console.error('Error sending message via WebSocket:', error);
           setMessages(prev => 
@@ -740,55 +1000,43 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     return format(new Date(timestamp), 'h:mm a');
   };
 
-  // Handle typing wrapper function
-  const handleTypingWrapper = (message: string) => {
+  // Handler for typing wrapper function with throttling
+  const handleTypingWrapper = useCallback((message: string) => {
+    // Only send typing indicators for messages with content, and only send occasionally
     if (message) {
-      sendTypingIndicator(userId, playerId, selectedAdmin);
+      // Throttle typing indicator to reduce server load
+      const now = Date.now();
+      const lastTypingSent = parseInt(localStorage.getItem('last_typing_sent') || '0');
+      
+      // Only send typing indicator every 3 seconds at most
+      if (now - lastTypingSent > 3000) {
+        sendTypingIndicator(userId, playerId, selectedAdmin);
+        localStorage.setItem('last_typing_sent', now.toString());
+      }
     }
-  };
+  }, [userId, playerId, selectedAdmin]);
 
   return (
     <LazyMotion features={domMax}>
       <AnimatePresence>
         {isOpen && (
-          <>
-            {/* Backdrop */}
-            <div onClick={onClose}>
-              <MotionDiv
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] lg:bg-black/20"
-              />
-            </div>
-            
-            {/* Connection Status Toast */}
-            <ConnectionStatus 
-              showConnectionToast={showConnectionToast}
-              connectionStatus={wsConnectionStatus}
-              onClose={() => setShowConnectionToast(false)}
-              onRetry={() => {
-                initializeChatWebSocket(playerId, userId, userName, handleMessageReceived);
-                setShowConnectionToast(false);
-              }}
-            />
-            
-            {/* Chat Modal */}
-            <MotionDiv
-              initial={{ x: '-100%', opacity: 0.5 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: '-100%', opacity: 0.5 }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed left-0 top-0 bottom-0 w-full sm:w-[400px] md:w-[450px] lg:w-[500px] 
-                bg-gradient-to-br from-[#001a1a] to-[#002f2f]
-                shadow-2xl shadow-[#00ffff]/5 border-r border-[#00ffff]/10 
-                overflow-hidden flex flex-col z-[61]"
-            >
-              {/* Chat Header */}
-              <ChatHeader 
+          <MotionDiv
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          >
+            <div className="relative w-full max-w-2xl h-[80vh] bg-gray-900 rounded-xl shadow-xl flex flex-col overflow-hidden border border-[#00ffff]/20">
+              <ChatHeader
                 isWebSocketConnected={isWebSocketConnected}
                 isUsingMockWebSocket={false}
                 onClose={onClose}
+                onRefresh={() => {
+                  console.log('Manual refresh requested');
+                  localStorage.setItem('last_manual_refresh', Date.now().toString());
+                  fetchChatHistory();
+                }}
               />
 
               {/* Messages */}
@@ -881,8 +1129,8 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
                 handleTyping={handleTypingWrapper}
                 availableAdmins={[{ id: selectedAdmin, name: 'Support' }]}
               />
-            </MotionDiv>
-          </>
+            </div>
+          </MotionDiv>
         )}
       </AnimatePresence>
     </LazyMotion>
