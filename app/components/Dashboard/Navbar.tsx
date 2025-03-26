@@ -315,7 +315,6 @@ const Navbar = () => {
               </div>
               <div className="flex flex-col items-start">
                 <span className="text-sm font-medium">Support Chat</span>
-                <span className="text-xs text-[#00ffff]/60">Slide from left</span>
               </div>
             </button>
           </div>

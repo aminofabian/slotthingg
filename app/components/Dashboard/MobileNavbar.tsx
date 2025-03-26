@@ -174,9 +174,6 @@ export default function MobileNavbar() {
                         : 'text-gray-400 group-hover:text-[#00ffff]/90'}`}
                     >
                       {item.label}
-                      {!isChatOpen && (
-                        <span className="block text-[0.5rem] opacity-60 mt-0.5">slide in</span>
-                      )}
                     </span>
                   </button>
                 );

@@ -3,14 +3,8 @@ import { AnimatePresence, LazyMotion, domMax, m } from 'framer-motion';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { IoClose, IoSend, IoChatbubbleEllipses, IoAttach, IoCheckmarkDone, IoAlert, IoRefresh, IoDocument, IoArrowDown } from 'react-icons/io5';
 import { format } from 'date-fns';
-import {
-  ChatHeader,
-  ChatInput,
-  ChatMessages,
-  ConnectionStatus,
-  TypingIndicator,
-  ChatMessageData
-} from './components';
+import { ChatHeader, ChatInput, TypingIndicator } from './components';
+import type { ChatMessageData } from './components';
 import { initializeChatWebSocket, sendChatMessage, sendTypingIndicator, connectionStatus as wsConnectionStatus, isWebSocketConnected, sharedMessageTracker } from '@/app/lib/socket';
 import { useTyping } from './hooks/useTyping';
 import { useScroll } from './hooks/useScroll';
