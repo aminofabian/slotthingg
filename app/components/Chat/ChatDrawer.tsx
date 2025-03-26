@@ -66,6 +66,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
   const [selectedAdmin] = useState<string>('1'); // Default admin ID
   const [sentMessageIds, setSentMessageIds] = useState<Set<string>>(new Set());
   const [showConnectionToast, setShowConnectionToast] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
 
   // Create properly typed refs
   const messagesEndRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
@@ -85,6 +86,24 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
     chatContainerRef,
     messagesEndRef
   });
+
+  // Detect mobile view
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 640);
+    };
+    
+    // Initial check
+    checkMobileView();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkMobileView);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', checkMobileView);
+    };
+  }, []);
 
   // Fetch chat history - defined as useCallback so it can be used in dependency arrays
   const fetchChatHistory = useCallback(async () => {
@@ -1031,13 +1050,25 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
               onClick={onClose}
             />
             
-            {/* Left-side drawer */}
+            {/* Left-side drawer, full screen on mobile */}
             <MotionDiv
-              initial={{ opacity: 0, x: -300 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -300 }}
+              initial={{ 
+                opacity: 0, 
+                x: isMobileView ? 0 : -300,
+                y: isMobileView ? 300 : 0
+              }}
+              animate={{ 
+                opacity: 1, 
+                x: 0,
+                y: 0
+              }}
+              exit={{ 
+                opacity: 0, 
+                x: isMobileView ? 0 : -300,
+                y: isMobileView ? 300 : 0
+              }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="fixed left-0 top-0 bottom-0 z-50 w-[90%] sm:w-[400px] md:w-[450px] h-full bg-gray-900 shadow-xl flex flex-col overflow-hidden border-r border-[#00ffff]/20"
+              className="fixed left-0 top-0 bottom-0 z-50 w-full sm:w-[400px] md:w-[450px] h-full bg-gray-900 shadow-xl flex flex-col overflow-hidden sm:border-r border-[#00ffff]/20"
             >
               <ChatHeader
                 isWebSocketConnected={isWebSocketConnected}
@@ -1048,6 +1079,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
                   localStorage.setItem('last_manual_refresh', Date.now().toString());
                   fetchChatHistory();
                 }}
+                isMobileView={isMobileView}
               />
 
               {/* Messages */}
@@ -1057,7 +1089,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
                   bg-gradient-to-b from-black/20 via-transparent to-transparent
                   scrollbar-thin scrollbar-thumb-[#00ffff]/10 scrollbar-track-transparent
                   flex flex-col"
-                style={{ maxHeight: 'calc(100vh - 140px)' }}
+                style={{ maxHeight: isMobileView ? 'calc(100vh - 160px)' : 'calc(100vh - 140px)' }}
                 onScroll={handleScroll}
               >
                 {isLoading ? (
@@ -1169,6 +1201,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
                 selectedAdmin={selectedAdmin}
                 handleTyping={handleTypingWrapper}
                 availableAdmins={[{ id: selectedAdmin, name: 'Support' }]}
+                isMobileView={isMobileView}
               />
               
               {/* File input (hidden) */}

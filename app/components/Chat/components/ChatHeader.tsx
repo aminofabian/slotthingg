@@ -6,13 +6,15 @@ export interface ChatHeaderProps {
   isUsingMockWebSocket: boolean;
   onClose: () => void;
   onRefresh?: () => void;
+  isMobileView?: boolean;
 }
 
 const ChatHeader = ({
   isWebSocketConnected,
   isUsingMockWebSocket,
   onClose,
-  onRefresh
+  onRefresh,
+  isMobileView = false
 }: ChatHeaderProps) => {
   return (
     <div className="flex items-center justify-between p-4 border-b border-[#00ffff]/10 bg-black/30 backdrop-blur-sm">
@@ -22,7 +24,11 @@ const ChatHeader = ({
           className="p-2 rounded-lg hover:bg-[#00ffff]/10 transition-colors -ml-2"
           aria-label="Close chat"
         >
-          <IoChevronBack className="w-5 h-5 text-[#00ffff]" />
+          {isMobileView ? (
+            <IoClose className="w-5 h-5 text-[#00ffff]" />
+          ) : (
+            <IoChevronBack className="w-5 h-5 text-[#00ffff]" />
+          )}
         </button>
         <h2 className="text-lg font-semibold text-[#00ffff]">Live Support</h2>
         <div 

@@ -12,6 +12,7 @@ interface ChatInputProps {
   selectedAdmin: string | null;
   availableAdmins: { id: string; name: string }[];
   handleTyping: (message: string) => void;
+  isMobileView?: boolean;
 }
 
 const ChatInput = ({
@@ -25,6 +26,7 @@ const ChatInput = ({
   selectedAdmin,
   availableAdmins,
   handleTyping,
+  isMobileView = false
 }: ChatInputProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -40,8 +42,8 @@ const ChatInput = ({
   };
 
   return (
-    <form onSubmit={handleSendMessage} className="p-4 sm:p-5 border-t border-[#00ffff]/10 
-      bg-gradient-to-r from-black/30 to-black/20 backdrop-blur-sm">
+    <form onSubmit={handleSendMessage} className={`p-3 ${isMobileView ? 'pb-5 pt-4' : 'p-4 sm:p-5'} border-t border-[#00ffff]/10 
+      bg-gradient-to-r from-black/30 to-black/20 backdrop-blur-sm`}>
       {selectedAdmin ? (
         <>
           {/* Show who the user is chatting with */}
