@@ -208,6 +208,11 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
               );
             });
             
+            // Scroll to bottom after history load
+            setTimeout(() => {
+              scrollToBottom();
+            }, 300);
+            
             // We no longer mark history messages in the shared tracker at all
             // This prevents history loading from blocking real-time messages
             console.log('Not adding history messages to shared tracker to allow real-time messages');
@@ -232,7 +237,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
     } finally {
       setIsLoading(false);
     }
-  }, [playerId, userId, userName]); // Include dependencies here
+  }, [playerId, userId, userName]);
   
   // Load user information from localStorage
   const loadUserInfo = useCallback(() => {
@@ -1028,6 +1033,17 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
       }
     }
   }, [userId, playerId, selectedAdmin]);
+
+  // Handle auto-scrolling when messages change
+  useEffect(() => {
+    if (messages.length > 0 && !isLoading && isOpen) {
+      // Scroll to bottom when messages update
+      requestAnimationFrame(() => {
+        scrollToBottom();
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length, isLoading, isOpen]);
 
   return (
     <LazyMotion features={domMax}>

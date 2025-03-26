@@ -17,6 +17,7 @@ export const useScroll = ({
   chatContainerRef,
   messagesEndRef
 }: UseScrollProps): UseScrollReturn => {
+  // Always show the button but we'll auto-scroll too
   const [showScrollToBottom, setShowScrollToBottom] = useState(true);
   const [hasNewMessages, setHasNewMessages] = useState(false);
 
@@ -32,17 +33,29 @@ export const useScroll = ({
     }
   };
 
+  // Modified to ensure more reliable scrolling
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      // Force immediate scroll without animation for more reliability
+      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+      
+      // Then do a smooth scroll for better UX
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    }
   };
 
+  // Initial setup and scroll event listener
   useEffect(() => {
     const chatContainer = chatContainerRef.current;
     if (chatContainer) {
       chatContainer.addEventListener('scroll', handleScroll);
+      
+      // Initial scroll with a slightly longer delay to ensure content is loaded
       setTimeout(() => {
         scrollToBottom();
-      }, 300);
+      }, 500);
       
       return () => {
         chatContainer.removeEventListener('scroll', handleScroll);
