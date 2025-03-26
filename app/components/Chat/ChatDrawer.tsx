@@ -1167,10 +1167,10 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
               {/* Show scroll to bottom button when needed */}
               {showScrollToBottom && (
                 <button
-                  className="absolute bottom-[80px] right-4 bg-[#00ffff]/20 p-2 rounded-full shadow-lg border border-[#00ffff]/30 hover:bg-[#00ffff]/30 transition-colors"
+                  className="absolute bottom-[80px] right-4 bg-[#00ffff] text-black p-2 rounded-full shadow-lg border border-[#00ffff]/30 hover:opacity-90 transition-all z-50"
                   onClick={scrollToBottom}
                 >
-                  <IoArrowDown className="text-[#00ffff] w-5 h-5" />
+                  <IoArrowDown className="w-5 h-5" />
                   {hasNewMessages && (
                     <span className="absolute -top-1 -right-1 bg-[#ff00ff] text-white text-xs w-4 h-4 flex items-center justify-center rounded-full" />
                   )}
