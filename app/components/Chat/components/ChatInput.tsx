@@ -42,21 +42,21 @@ const ChatInput = ({
   };
 
   return (
-    <form onSubmit={handleSendMessage} className={`p-3 ${isMobileView ? 'pb-5 pt-4' : 'p-4 sm:p-5'} border-t border-[#00ffff]/10 
-      bg-gradient-to-r from-black/30 to-black/20 backdrop-blur-sm`}>
+    <form onSubmit={handleSendMessage} className={`${isMobileView ? 'pb-5 pt-4 px-4' : 'p-4 sm:p-5'} border-t border-[#00ffff]/10 
+      bg-gradient-to-b from-black/40 to-black/30 backdrop-blur-md shadow-inner`}>
       {selectedAdmin ? (
         <>
           {/* Show who the user is chatting with */}
-          <div className="mb-2 text-xs text-[#00ffff]/60 flex items-center gap-2">
+          <div className="mb-2 text-xs text-[#00ffff]/70 flex items-center gap-2 font-light tracking-wide">
             <div className="w-2 h-2 rounded-full bg-[#00ffff] animate-pulse"></div>
-            Chatting with: {availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin'}
+            Chatting with: <span className="font-medium">{availableAdmins.find(a => a.id === selectedAdmin)?.name || 'Admin'}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleAttachmentClick}
-              className="p-2.5 rounded-xl bg-[#00ffff]/10 text-[#00ffff] 
-                hover:bg-[#00ffff]/20 transition-all duration-300 active:scale-95"
+              className="p-2.5 rounded-xl bg-[#00ffff]/10 text-[#00ffff] hover:bg-[#00ffff]/15 
+                transition-all duration-200 active:scale-95 border border-[#00ffff]/5"
               aria-label="Attach file"
             >
               <IoAttach className="w-5 h-5" />
@@ -75,8 +75,9 @@ const ChatInput = ({
                   }
                 }}
                 placeholder="Type a message..."
-                className="w-full p-3 rounded-xl bg-black/30 border border-[#00ffff]/20 text-white 
-                  placeholder-white/40 focus:outline-none focus:border-[#00ffff]/50 transition-all"
+                className="w-full p-3 rounded-xl bg-black/30 border border-[#00ffff]/15 text-white 
+                  placeholder-white/50 focus:outline-none focus:border-[#00ffff]/40 focus:ring-1 focus:ring-[#00ffff]/10
+                  transition-all font-light tracking-wide shadow-inner"
                 disabled={!isWebSocketConnected && !isUsingMockWebSocket}
               />
             </div>
@@ -86,9 +87,9 @@ const ChatInput = ({
               disabled={!newMessage.trim() && !selectedFile && (!isWebSocketConnected && !isUsingMockWebSocket)}
               className={`p-3 rounded-xl ${
                 newMessage.trim() || selectedFile
-                  ? 'bg-[#00ffff]/20 text-[#00ffff] hover:bg-[#00ffff]/30 active:scale-95'
+                  ? 'bg-gradient-to-br from-[#00ffff]/25 to-[#00ffff]/15 text-[#00ffff] hover:from-[#00ffff]/30 hover:to-[#00ffff]/20 active:scale-95 border border-[#00ffff]/10 shadow-md'
                   : 'bg-gray-800/50 text-gray-500 cursor-not-allowed'
-              } transition-all duration-300 flex items-center justify-center`}
+              } transition-all duration-200 flex items-center justify-center`}
               aria-label="Send message"
             >
               <IoSend className="w-5 h-5" />
@@ -97,15 +98,15 @@ const ChatInput = ({
           
           {/* File upload preview */}
           {selectedFile && (
-            <div className="mt-3 p-2 bg-black/20 rounded-lg flex items-center justify-between">
+            <div className="mt-3 p-2.5 bg-black/30 rounded-lg flex items-center justify-between border border-[#00ffff]/10">
               <div className="flex items-center gap-2 text-sm text-white/80">
                 <IoDocument className="text-[#00ffff]" />
-                <span className="truncate max-w-[200px]">{selectedFile.name}</span>
+                <span className="truncate max-w-[200px] font-light">{selectedFile.name}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedFile(null)}
-                className="text-white/60 hover:text-white/90 p-1"
+                className="text-white/60 hover:text-white/90 p-1.5 rounded-full hover:bg-black/20 transition-colors"
                 aria-label="Remove file"
               >
                 <IoClose className="w-4 h-4" />
@@ -122,7 +123,7 @@ const ChatInput = ({
           />
         </>
       ) : (
-        <div className="text-center text-[#00ffff]/60 py-2">
+        <div className="text-center text-[#00ffff]/60 py-2 font-light tracking-wide">
           <p>Select an admin to start chatting</p>
         </div>
       )}
