@@ -17,7 +17,7 @@ export const useScroll = ({
   chatContainerRef,
   messagesEndRef
 }: UseScrollProps): UseScrollReturn => {
-  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(true);
   const [hasNewMessages, setHasNewMessages] = useState(false);
 
   const handleScroll = () => {
@@ -40,6 +40,10 @@ export const useScroll = ({
     const chatContainer = chatContainerRef.current;
     if (chatContainer) {
       chatContainer.addEventListener('scroll', handleScroll);
+      setTimeout(() => {
+        scrollToBottom();
+      }, 300);
+      
       return () => {
         chatContainer.removeEventListener('scroll', handleScroll);
       };
