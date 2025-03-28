@@ -1,4 +1,4 @@
-import { useState, useEffect, RefObject, useRef } from 'react';
+import React, { useState, useEffect, RefObject, useRef } from 'react';
 
 interface UseScrollProps {
   chatContainerRef: RefObject<HTMLDivElement | null> | RefObject<HTMLDivElement>;
@@ -17,14 +17,14 @@ export const useScroll = ({
   chatContainerRef,
   messagesEndRef
 }: UseScrollProps): UseScrollReturn => {
-  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-  const [hasNewMessages, setHasNewMessages] = useState(false);
-  const [userHasScrolled, setUserHasScrolled] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState<boolean>(false);
+  const [hasNewMessages, setHasNewMessages] = useState<boolean>(false);
+  const [userHasScrolled, setUserHasScrolled] = useState<boolean>(false);
   const lastUserInteraction = useRef<number>(0);
   const preventAutoScroll = useRef<boolean>(false);
   
   // Handler for user-initiated scroll events
-  const handleScroll = () => {
+  const handleScroll = React.useCallback(() => {
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
       
@@ -51,10 +51,10 @@ export const useScroll = ({
         setHasNewMessages(false);
       }
     }
-  };
+  }, [chatContainerRef, userHasScrolled]);
 
   // Scroll to bottom - but only if user initiated or it's been a while since last interaction
-  const scrollToBottom = (force = false) => {
+  const scrollToBottom = React.useCallback((force = false) => {
     // Skip auto-scrolling if user recently scrolled, unless force=true
     const now = Date.now();
     const timeSinceLastInteraction = now - lastUserInteraction.current;
@@ -76,7 +76,7 @@ export const useScroll = ({
       const behavior = force ? 'auto' : 'smooth';
       messagesEndRef.current.scrollIntoView({ behavior });
     }
-  };
+  }, [messagesEndRef]);
 
   // Set up scroll event listener only once
   useEffect(() => {
@@ -95,13 +95,13 @@ export const useScroll = ({
         chatContainer.removeEventListener('scroll', handleScroll);
       };
     }
-  }, []);
+  }, [chatContainerRef, handleScroll, scrollToBottom]);
 
   return {
     showScrollToBottom,
     hasNewMessages,
     setHasNewMessages,
     handleScroll,
-    scrollToBottom: () => scrollToBottom(true) // Force scroll when button clicked
+    scrollToBottom: (force = true) => scrollToBottom(force) // Force scroll when button clicked
   };
 }; 

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { AnimatePresence, LazyMotion, domMax, m } from 'framer-motion';
 import { IoRefresh } from 'react-icons/io5';
 import { ChatHeader, ChatInput, TypingIndicator, ChatMessageData } from './components';
@@ -10,6 +10,7 @@ import { useMessages } from './hooks/useMessages';
 import { useTyping } from './hooks/useTyping';
 import { sendChatMessage, isWebSocketConnected, sharedMessageTracker } from '@/app/lib/socket';
 import { MotionDiv } from '@/app/types/motion';
+import { withStableRefs } from '@/app/hooks/withStableRefs';
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -336,7 +337,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
   // Handler for typing wrapper function with throttling
   const handleTypingWrapper = useCallback((message: string) => {
     // Only send typing indicators for messages with content
-    if (message) {
+    if (message && handleTypingIndicator) {
       handleTypingIndicator(message);
     }
   }, [handleTypingIndicator]);
@@ -441,4 +442,5 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
   );
 };
 
-export default ChatModal; 
+// Export with stability wrapper for production
+export default withStableRefs(ChatModal); 

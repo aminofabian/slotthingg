@@ -1002,7 +1002,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
   // Handler for typing wrapper function with throttling
   const handleTypingWrapper = useCallback((message: string) => {
     // Only send typing indicators for messages with content
-    if (message) {
+    if (message && handleTypingIndicator) {
       handleTypingIndicator(message);
     }
   }, [handleTypingIndicator]);

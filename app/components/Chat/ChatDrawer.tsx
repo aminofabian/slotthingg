@@ -1,6 +1,6 @@
 'use client';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, LazyMotion, domMax, m } from 'framer-motion';
-import { useState, useEffect, useRef, useCallback } from 'react';
 import { IoClose, IoSend, IoChatbubbleEllipses, IoAttach, IoCheckmarkDone, IoAlert, IoRefresh, IoDocument, IoArrowDown } from 'react-icons/io5';
 import { format } from 'date-fns';
 import { ChatHeader, ChatInput, TypingIndicator } from './components';
@@ -1020,7 +1020,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
   // Handler for typing wrapper function with throttling
   const handleTypingWrapper = useCallback((message: string) => {
     // Only send typing indicators for messages with content
-    if (message) {
+    if (message && handleTypingIndicator) {
       handleTypingIndicator(message);
     }
   }, [handleTypingIndicator]);

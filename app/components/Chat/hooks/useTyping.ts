@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { sendTypingIndicator } from '@/app/lib/socket';
 
 interface TypingHookProps {
@@ -19,8 +19,8 @@ export const useTyping = ({
   userName,
   selectedAdmin
 }: TypingHookProps): UseTypingReturn => {
-  const [isTyping, setIsTyping] = useState(false);
-  const [isAdminTyping, setIsAdminTyping] = useState(false);
+  const [isTyping, setIsTyping] = useState<boolean>(false);
+  const [isAdminTyping, setIsAdminTyping] = useState<boolean>(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -38,7 +38,7 @@ export const useTyping = ({
     };
   }, [isAdminTyping]);
 
-  const handleTyping = (message: string) => {
+  const handleTyping = React.useCallback((message: string) => {
     if (!isTyping && message.trim().length > 0) {
       setIsTyping(true);
       
@@ -60,7 +60,7 @@ export const useTyping = ({
         setIsTyping(false);
       }, 3000);
     }
-  };
+  }, [isTyping, selectedAdmin, userId]);
 
   useEffect(() => {
     return () => {
