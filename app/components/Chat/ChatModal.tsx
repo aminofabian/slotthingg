@@ -1001,19 +1001,11 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
 
   // Handler for typing wrapper function with throttling
   const handleTypingWrapper = useCallback((message: string) => {
-    // Only send typing indicators for messages with content, and only send occasionally
+    // Only send typing indicators for messages with content
     if (message) {
-      // Throttle typing indicator to reduce server load
-      const now = Date.now();
-      const lastTypingSent = parseInt(localStorage.getItem('last_typing_sent') || '0');
-      
-      // Only send typing indicator every 3 seconds at most
-      if (now - lastTypingSent > 3000) {
-        sendTypingIndicator(userId, playerId, selectedAdmin);
-        localStorage.setItem('last_typing_sent', now.toString());
-      }
+      handleTypingIndicator(message);
     }
-  }, [userId, playerId, selectedAdmin]);
+  }, [handleTypingIndicator]);
 
   return (
     <LazyMotion features={domMax}>
