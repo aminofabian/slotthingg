@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { sendTypingIndicator } from '@/app/lib/socket';
 
 interface TypingHookProps {
@@ -24,8 +24,13 @@ export const useTyping = ({
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingIndicatorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Clear admin typing state after a delay
   useEffect(() => {
     if (isAdminTyping) {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
       typingTimeoutRef.current = setTimeout(() => {
         setIsAdminTyping(false);
       }, 3000);
@@ -38,7 +43,7 @@ export const useTyping = ({
     };
   }, [isAdminTyping]);
 
-  const handleTyping = React.useCallback((message: string) => {
+  const handleTyping = useCallback((message: string) => {
     if (!isTyping && message.trim().length > 0) {
       setIsTyping(true);
       
@@ -62,10 +67,14 @@ export const useTyping = ({
     }
   }, [isTyping, selectedAdmin, userId]);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (typingIndicatorTimeoutRef.current) {
         clearTimeout(typingIndicatorTimeoutRef.current);
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
       }
     };
   }, []);

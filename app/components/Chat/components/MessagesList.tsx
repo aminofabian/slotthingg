@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useEffect, forwardRef } from 'react';
+import React, { useRef, useEffect, forwardRef } from 'react';
 import { ChatMessageData } from '.';
 import { ChatMessage } from '.';
 import { AnimatePresence, m } from 'framer-motion';

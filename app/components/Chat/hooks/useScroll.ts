@@ -1,4 +1,4 @@
-import React, { useState, useEffect, RefObject, useRef } from 'react';
+import React, { useState, useEffect, RefObject, useRef, useCallback } from 'react';
 
 interface UseScrollProps {
   chatContainerRef: RefObject<HTMLDivElement | null> | RefObject<HTMLDivElement>;
@@ -10,7 +10,7 @@ interface UseScrollReturn {
   hasNewMessages: boolean;
   setHasNewMessages: (value: boolean) => void;
   handleScroll: () => void;
-  scrollToBottom: () => void;
+  scrollToBottom: (force?: boolean) => void;
 }
 
 export const useScroll = ({
@@ -24,7 +24,7 @@ export const useScroll = ({
   const preventAutoScroll = useRef<boolean>(false);
   
   // Handler for user-initiated scroll events
-  const handleScroll = React.useCallback(() => {
+  const handleScroll = useCallback(() => {
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
       
@@ -54,7 +54,7 @@ export const useScroll = ({
   }, [chatContainerRef, userHasScrolled]);
 
   // Scroll to bottom - but only if user initiated or it's been a while since last interaction
-  const scrollToBottom = React.useCallback((force = false) => {
+  const scrollToBottom = useCallback((force = false) => {
     // Skip auto-scrolling if user recently scrolled, unless force=true
     const now = Date.now();
     const timeSinceLastInteraction = now - lastUserInteraction.current;
@@ -102,6 +102,6 @@ export const useScroll = ({
     hasNewMessages,
     setHasNewMessages,
     handleScroll,
-    scrollToBottom: (force = true) => scrollToBottom(force) // Force scroll when button clicked
+    scrollToBottom
   };
 }; 

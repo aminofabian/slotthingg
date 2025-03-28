@@ -1,4 +1,5 @@
-import { useRef } from 'react';
+'use client';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { IoSend, IoAttach, IoDocument, IoClose } from 'react-icons/io5';
 
 interface ChatInputProps {
@@ -28,19 +29,55 @@ const ChatInput = ({
   handleTyping,
   isMobileView = false
 }: ChatInputProps) => {
+  const [lastTypingTime, setLastTypingTime] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Handle typing indicator with throttling
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setNewMessage(value);
+    
+    // Only send typing indicator if there's content and we throttle requests
+    // to avoid overwhelming the server with typing events
+    const now = Date.now();
+    if (value.trim().length > 0 && now - lastTypingTime > 3000) {
+      handleTyping(value);
+      setLastTypingTime(now);
+    }
+  }, [setNewMessage, handleTyping, lastTypingTime]);
+  
+  // Attach a file
+  const handleAttachmentClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+  
+  // Handle file selection
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
     }
-  };
+  }, [setSelectedFile]);
+  
+  // Auto-resize textarea as user types
+  useEffect(() => {
+    const textarea = chatInputRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`;
+    }
+  }, [newMessage]);
 
-  const handleAttachmentClick = () => {
-    fileInputRef.current?.click();
-  };
-
+  // Focus input on mount for better UX
+  useEffect(() => {
+    if (chatInputRef.current) {
+      setTimeout(() => {
+        chatInputRef.current?.focus();
+      }, 500);
+    }
+  }, []);
+  
   return (
     <form onSubmit={handleSendMessage} className={`${isMobileView ? 'pb-5 pt-4 px-4' : 'p-4 sm:p-5'} border-t border-[#00ffff]/10 
       bg-gradient-to-b from-black/40 to-black/30 backdrop-blur-md shadow-inner`}>
@@ -63,32 +100,34 @@ const ChatInput = ({
             </button>
             
             <div className="relative flex-1">
-              <input
-                type="text"
+              <textarea
+                ref={chatInputRef}
                 value={newMessage}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setNewMessage(value);
-                  // Only trigger typing indicator if there's actual content
-                  if (value.trim().length > 0) {
-                    handleTyping(value);
-                  }
-                }}
+                onChange={handleChange}
                 placeholder="Type a message..."
                 className="w-full p-3 rounded-xl bg-black/30 border border-[#00ffff]/15 text-white 
                   placeholder-white/50 focus:outline-none focus:border-[#00ffff]/40 focus:ring-1 focus:ring-[#00ffff]/10
                   transition-all font-light tracking-wide shadow-inner"
-                disabled={!isWebSocketConnected && !isUsingMockWebSocket}
+                rows={1}
+                style={{ height: 'auto' }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (newMessage.trim() || selectedFile) {
+                      handleSendMessage(e);
+                    }
+                  }
+                }}
               />
             </div>
             
             <button
               type="submit"
-              disabled={!newMessage.trim() && !selectedFile && (!isWebSocketConnected && !isUsingMockWebSocket)}
+              disabled={(!newMessage.trim() && !selectedFile) || !isWebSocketConnected}
               className={`p-3 rounded-xl ${
-                newMessage.trim() || selectedFile
-                  ? 'bg-gradient-to-br from-[#00ffff]/25 to-[#00ffff]/15 text-[#00ffff] hover:from-[#00ffff]/30 hover:to-[#00ffff]/20 active:scale-95 border border-[#00ffff]/10 shadow-md'
-                  : 'bg-gray-800/50 text-gray-500 cursor-not-allowed'
+                (!newMessage.trim() && !selectedFile) || !isWebSocketConnected
+                  ? 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
+                  : 'bg-[#00ffff]/70 text-black hover:bg-[#00ffff] active:bg-[#00ffff]/90'
               } transition-all duration-200 flex items-center justify-center`}
               aria-label="Send message"
             >
@@ -120,11 +159,21 @@ const ChatInput = ({
             ref={fileInputRef}
             onChange={handleFileSelect}
             className="hidden"
+            accept="image/*,.pdf,.doc,.docx,.txt"
           />
         </>
       ) : (
         <div className="text-center text-[#00ffff]/60 py-2 font-light tracking-wide">
           <p>Select an admin to start chatting</p>
+        </div>
+      )}
+      
+      {/* Optional: Connection status indicator */}
+      {!isWebSocketConnected && (
+        <div className="mt-2 text-xs text-red-400 text-center">
+          {isUsingMockWebSocket 
+            ? 'Using offline mode. Messages will not be sent to the server.'
+            : 'Disconnected. Reconnecting...'}
         </div>
       )}
     </form>

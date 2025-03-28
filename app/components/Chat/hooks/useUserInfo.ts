@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface UseUserInfoReturn {
   userId: string;
@@ -18,7 +18,6 @@ export const useUserInfo = (): UseUserInfoReturn => {
       if (typeof window !== 'undefined' && window.localStorage) {
         // First try to get the name from the auth token or user session
         const userSession = localStorage.getItem('user_session');
-        const authToken = localStorage.getItem('auth_token');
         
         if (userSession) {
           try {
@@ -48,12 +47,12 @@ export const useUserInfo = (): UseUserInfoReturn => {
 
         // Finally, try individual keys in a specific order of priority
         const nameKeys = [
-          'current_username',    // Add this as highest priority
-          'username',           // Then check username
-          'user_name',         // Then user_name
-          'display_name',      // Then display_name
-          'name',             // Then just name
-          'player_name'       // Finally player_name
+          'current_username',
+          'username',
+          'user_name',
+          'display_name',
+          'name',
+          'player_name'
         ];
 
         for (const key of nameKeys) {
@@ -82,16 +81,19 @@ export const useUserInfo = (): UseUserInfoReturn => {
         // Try to get user info from user_profile first
         const userProfileStr = localStorage.getItem('user_profile');
         if (userProfileStr) {
-          const userProfile = JSON.parse(userProfileStr);
-          if (userProfile) {
-            // Get the user's actual ID
-            const id = String(userProfile.id || userProfile.user_id);
-            console.log('Setting user info from profile:', { id, name: userProfile.username });
-            
-            setUserId(id);
-            setPlayerId(id); // Use the same ID for both
-            setUserName(userProfile.username || userProfile.name || '');
-            return; // Exit if we found the info
+          try {
+            const userProfile = JSON.parse(userProfileStr);
+            if (userProfile) {
+              // Get the user's actual ID
+              const id = String(userProfile.id || userProfile.user_id);
+              
+              setUserId(id);
+              setPlayerId(id); // Use the same ID for both
+              setUserName(userProfile.username || userProfile.name || '');
+              return; // Exit if we found the info
+            }
+          } catch (e) {
+            console.warn('Failed to parse user profile');
           }
         }
 
@@ -100,16 +102,13 @@ export const useUserInfo = (): UseUserInfoReturn => {
         const storedPlayerId = localStorage.getItem('player_id');
         
         if (storedUserId) {
-          console.log('Setting user ID from storage:', storedUserId);
           setUserId(storedUserId);
         }
         
         if (storedPlayerId) {
-          console.log('Setting player ID from storage:', storedPlayerId);
           setPlayerId(storedPlayerId);
         } else if (storedUserId) {
           // If no player_id but we have user_id, use that
-          console.log('Using user ID as player ID:', storedUserId);
           setPlayerId(storedUserId);
         }
       } catch (error) {

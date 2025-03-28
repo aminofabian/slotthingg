@@ -1,3 +1,5 @@
+'use client';
+import React from 'react';
 import { IoClose, IoRefresh, IoChevronBack } from 'react-icons/io5';
 
 // Define the interface for header props

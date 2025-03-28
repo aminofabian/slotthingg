@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { IoArrowDown } from 'react-icons/io5';
 import MessagesList from './MessagesList';
 import { useScroll } from '../hooks/useScroll';
@@ -56,7 +56,7 @@ const ChatMessagesContainer = ({
   });
 
   // Custom scroll handler to detect when user scrolls to the top
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     // Call the base scroll handler from useScroll
     baseHandleScroll();
     
@@ -96,7 +96,7 @@ const ChatMessagesContainer = ({
           });
       }
     }
-  };
+  }, [baseHandleScroll, loadMoreMessages, hasMoreMessages, isLoadingOlderMessages]);
 
   // Maintain scroll position when new messages are loaded at the top
   useEffect(() => {
