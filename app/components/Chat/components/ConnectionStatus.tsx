@@ -1,3 +1,5 @@
+'use client';
+import React from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { IoClose, IoAlert, IoRefresh } from 'react-icons/io5';
 import { MotionDiv } from '@/app/types/motion';
