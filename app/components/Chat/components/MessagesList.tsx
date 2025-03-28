@@ -1,7 +1,7 @@
 'use client';
 import React, { useRef, useEffect, forwardRef } from 'react';
 import { ChatMessageData } from '.';
-import { ChatMessage } from '.';
+import ChatMessage from './ChatMessage';
 import { AnimatePresence, m } from 'framer-motion';
 import { IoChatbubbleEllipses } from 'react-icons/io5';
 import { MotionDiv } from '@/app/types/motion';
