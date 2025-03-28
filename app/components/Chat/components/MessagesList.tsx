@@ -13,7 +13,7 @@ interface MessagesListProps {
   selectedAdmin: string;
   retryMessage: (messageId: number) => void;
   onScroll: () => void;
-  messagesEndRef: React.RefObject<HTMLDivElement>;
+  messagesEndRef: React.RefObject<HTMLDivElement | null>;
   isMobileView: boolean;
 }
 
@@ -35,7 +35,10 @@ const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(({
         bg-gradient-to-b from-black/30 via-transparent to-transparent
         scrollbar-thin scrollbar-thumb-[#00ffff]/10 scrollbar-track-transparent
         flex flex-col"
-      style={{ maxHeight: isMobileView ? 'calc(100vh - 160px)' : 'calc(100vh - 140px)' }}
+      style={{ 
+        maxHeight: isMobileView ? 'calc(100vh - 160px)' : 'calc(100vh - 140px)',
+        overscrollBehavior: 'contain' // Prevent scroll chaining
+      }}
       onScroll={onScroll}
     >
       {isLoading ? (
@@ -52,6 +55,9 @@ const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(({
         </div>
       ) : (
         <>
+          {/* Add padding to allow scrolling to top */}
+          <div className="pt-2"></div>
+          
           <AnimatePresence initial={false}>
             {messages.map((msg, index) => {
               // Check if this message is part of a consecutive group from the same sender
@@ -81,7 +87,12 @@ const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(({
               );
             })}
           </AnimatePresence>
-          <div ref={messagesEndRef} />
+          
+          {/* This div is the target for scrollToBottom */}
+          <div ref={messagesEndRef} className="h-1" />
+          
+          {/* Add padding at bottom to allow space for scroll */}
+          <div className="pb-2"></div>
         </>
       )}
     </div>

@@ -30,6 +30,10 @@ const ChatMessagesContainer = ({
   // Create properly typed refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const initialLoadDone = useRef<boolean>(false);
+  
+  // Track the previous messages length to detect new messages
+  const [previousMessagesLength, setPreviousMessagesLength] = useState(0);
   
   // Use scrolling logic from the useScroll hook
   const {
@@ -43,32 +47,39 @@ const ChatMessagesContainer = ({
     messagesEndRef
   });
 
+  // Only scroll to bottom for the initial load of messages
+  useEffect(() => {
+    if (!isLoading && messages.length > 0 && !initialLoadDone.current) {
+      // Only scroll on initial load
+      initialLoadDone.current = true;
+      scrollToBottom();
+    }
+  }, [isLoading, messages.length, scrollToBottom]);
+
   // Handle auto-scrolling and new message indicators when messages update
   useEffect(() => {
-    // Only run if we have messages and not loading
-    if (messages.length > 0 && !isLoading) {
-      // Check if user has scrolled up
-      if (chatContainerRef.current) {
+    // Only run this for message updates, not initial load
+    if (messages.length > 0 && !isLoading && initialLoadDone.current) {
+      // Check if new messages were added
+      const hasReceivedNewMessages = messages.length > previousMessagesLength;
+      setPreviousMessagesLength(messages.length);
+      
+      // Only if new messages arrived
+      if (hasReceivedNewMessages && chatContainerRef.current) {
         const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
         const isScrolledToBottom = scrollHeight - scrollTop - clientHeight < 100;
         
+        // Only auto-scroll if user is already at the bottom
         if (isScrolledToBottom) {
           // If user is at the bottom, scroll to show new messages
           setTimeout(() => scrollToBottom(), 100);
         } else {
-          // If user has scrolled up, show new message indicator
+          // If user has scrolled up and new messages arrived, show new message indicator
           setHasNewMessages(true);
         }
       }
     }
-  }, [messages, isLoading, scrollToBottom, setHasNewMessages]);
-
-  // Scroll to bottom when component mounts or on refresh
-  useEffect(() => {
-    if (!isLoading && messages.length > 0) {
-      setTimeout(() => scrollToBottom(), 300);
-    }
-  }, [isLoading, messages.length, scrollToBottom]);
+  }, [messages, isLoading, scrollToBottom, setHasNewMessages, previousMessagesLength]);
 
   return (
     <div className="relative flex-1 flex flex-col">
