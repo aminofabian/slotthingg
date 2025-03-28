@@ -12,16 +12,132 @@ export const useMessages = ({ userId, userName, selectedAdmin }: UseMessagesProp
   const [messages, setMessages] = useState<ChatMessageData[]>([]);
   const [sentMessageIds, setSentMessageIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalMessages, setTotalMessages] = useState(0);
+  
+  // Store the next and previous URLs for pagination
+  const nextPageUrl = useRef<string | null>(null);
+  const previousPageUrl = useRef<string | null>(null);
   
   // Create refs for tracking messages
   const localSentMessageIds = useRef<Set<string>>(new Set());
   const recentIncomingMessages = useRef<Map<string, number>>(new Map());
 
+  // Process messages helper function
+  const processMessages = useCallback((data: any, isPrepend = false) => {
+    if (Array.isArray(data.results)) {
+      // Store pagination info
+      nextPageUrl.current = data.next;
+      previousPageUrl.current = data.previous;
+      setHasMoreMessages(!!data.next);
+      setTotalMessages(data.count || 0);
+      
+      // Create a Map to track unique messages by ID and content
+      const uniqueMessages = new Map();
+      
+      // Process each message and only keep the latest version
+      data.results.forEach((msg: ChatMessageData) => {
+        const messageId = typeof msg.id === 'string' ? parseInt(msg.id) : msg.id;
+        const messageKey = `${messageId}`;
+        
+        // Only add if we haven't seen this message before
+        if (!uniqueMessages.has(messageKey)) {
+          uniqueMessages.set(messageKey, {
+            ...msg,
+            id: messageId,
+            sender: typeof msg.sender === 'string' ? parseInt(msg.sender) : msg.sender,
+            sender_name: msg.sender_name || (msg.is_player_sender ? userName : 'Support'),
+            sent_time: msg.sent_time || new Date().toISOString(),
+            is_file: msg.is_file || false,
+            is_tip: msg.is_tip || false,
+            is_comment: msg.is_comment || false,
+            status: msg.status || 'delivered',
+            attachments: msg.attachments || [],
+            recipient_id: msg.recipient_id ? String(msg.recipient_id) : undefined,
+          });
+        }
+      });
+
+      // Convert Map back to array and sort by timestamp
+      const processedMessages = Array.from(uniqueMessages.values()).sort((a, b) => 
+        new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
+      );
+
+      console.log(`Loaded ${processedMessages.length} unique messages`);
+      
+      // Store the current time as the last message update time in localStorage
+      localStorage.setItem('last_message_time', Date.now().toString());
+      
+      // Merge with existing messages to avoid UI flicker, only adding new ones
+      setMessages(prevMessages => {
+        // Create a map of existing messages by ID for quick lookup
+        const existingMessageMap = new Map();
+        prevMessages.forEach(msg => {
+          existingMessageMap.set(`${msg.id}`, msg);
+        });
+        
+        // Build a new array with all uniquified messages
+        let mergedMessages = [...prevMessages];
+        let addedCount = 0;
+        
+        processedMessages.forEach(msg => {
+          const msgKey = `${msg.id}`;
+          
+          // Only add if we don't have this exact ID already
+          if (!existingMessageMap.has(msgKey)) {
+            // For content messages, check for near-duplicates with slightly different IDs
+            let isDuplicate = false;
+            if (msg.message) {
+              // Look for very similar existing messages
+              isDuplicate = prevMessages.some(existingMsg => 
+                existingMsg.message === msg.message && 
+                existingMsg.sender === msg.sender &&
+                Math.abs(new Date(existingMsg.sent_time).getTime() - new Date(msg.sent_time).getTime()) < 5000
+              );
+            }
+            
+            if (!isDuplicate) {
+              if (isPrepend) {
+                // If we're prepending (loading older messages at the top), add to the beginning
+                mergedMessages = [msg, ...mergedMessages];
+              } else {
+                // Otherwise append to the end
+                mergedMessages.push(msg);
+              }
+              addedCount++;
+              
+              // Track this ID to avoid duplicate processing
+              existingMessageMap.set(msgKey, msg);
+              
+              // Add to sentMessageIds to prevent duplicate processing from WebSocket
+              // but only add to the component's set, not the shared tracker
+              setSentMessageIds(prev => new Set(prev).add(msgKey));
+            }
+          }
+        });
+        
+        console.log(`Added ${addedCount} new messages from ${isPrepend ? 'history (prepend)' : 'history'}`);
+        
+        // Sort by timestamp
+        return mergedMessages.sort((a, b) => 
+          new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
+        );
+      });
+      
+      return true;
+    } else {
+      console.warn('Invalid chat history format:', data);
+      return false;
+    }
+  }, [userName]);
+
   // Fetch chat history
   const fetchChatHistory = useCallback(async () => {
     try {
       setIsLoading(true);
-      const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
+      const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid') || 'c0945d59-d796-402d-8bb5-d1b2029b9eea';
       
       console.log('Fetching chat history with params:', {
         whitelabel_admin_uuid,
@@ -30,104 +146,17 @@ export const useMessages = ({ userId, userName, selectedAdmin }: UseMessagesProp
       });
       
       try {
+        // Use our own API endpoint to proxy the request to the server
         const response = await fetch(
-          `/api/chat/history?whitelabel_admin_uuid=${whitelabel_admin_uuid}&limit=1000`, 
+          `/api/chat/history?whitelabel_admin_uuid=${whitelabel_admin_uuid}&page=1&limit=10`, 
           { credentials: 'include' }
         );
 
         if (response.ok) {
           const data = await response.json();
           console.log('Chat history response:', data);
-
-          if (Array.isArray(data.results)) {
-            // Create a Map to track unique messages by ID and content
-            const uniqueMessages = new Map();
-            
-            // Process each message and only keep the latest version
-            data.results.forEach((msg: ChatMessageData) => {
-              const messageId = typeof msg.id === 'string' ? parseInt(msg.id) : msg.id;
-              const messageKey = `${messageId}`;
-              
-              // Only add if we haven't seen this message before
-              if (!uniqueMessages.has(messageKey)) {
-                uniqueMessages.set(messageKey, {
-                  ...msg,
-                  id: messageId,
-                  sender: typeof msg.sender === 'string' ? parseInt(msg.sender) : msg.sender,
-                  sent_time: msg.sent_time || new Date().toISOString(),
-                  is_file: msg.is_file || false,
-                  is_tip: msg.is_tip || false,
-                  is_comment: msg.is_comment || false,
-                  status: msg.status || 'delivered',
-                  attachments: msg.attachments || [],
-                  recipient_id: msg.recipient_id ? String(msg.recipient_id) : undefined,
-                });
-              }
-            });
-
-            // Convert Map back to array and sort by timestamp
-            const processedMessages = Array.from(uniqueMessages.values()).sort((a, b) => 
-              new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
-            );
-
-            console.log(`Loaded ${processedMessages.length} unique messages`);
-            
-            // Store the current time as the last message update time in localStorage
-            localStorage.setItem('last_message_time', Date.now().toString());
-            
-            // Merge with existing messages to avoid UI flicker, only adding new ones
-            setMessages(prevMessages => {
-              // Create a map of existing messages by ID for quick lookup
-              const existingMessageMap = new Map();
-              prevMessages.forEach(msg => {
-                existingMessageMap.set(`${msg.id}`, msg);
-              });
-              
-              // Build a new array with all uniquified messages
-              const mergedMessages = [...prevMessages];
-              let addedCount = 0;
-              
-              processedMessages.forEach(msg => {
-                const msgKey = `${msg.id}`;
-                
-                // Only add if we don't have this exact ID already
-                if (!existingMessageMap.has(msgKey)) {
-                  // For content messages, check for near-duplicates with slightly different IDs
-                  let isDuplicate = false;
-                  if (msg.message) {
-                    // Look for very similar existing messages
-                    isDuplicate = prevMessages.some(existingMsg => 
-                      existingMsg.message === msg.message && 
-                      existingMsg.sender === msg.sender &&
-                      Math.abs(new Date(existingMsg.sent_time).getTime() - new Date(msg.sent_time).getTime()) < 5000
-                    );
-                  }
-                  
-                  if (!isDuplicate) {
-                    mergedMessages.push(msg);
-                    addedCount++;
-                    
-                    // Track this ID to avoid duplicate processing
-                    existingMessageMap.set(msgKey, msg);
-                    
-                    // Add to sentMessageIds to prevent duplicate processing from WebSocket
-                    // but only add to the component's set, not the shared tracker
-                    setSentMessageIds(prev => new Set(prev).add(msgKey));
-                  }
-                }
-              });
-              
-              console.log(`Added ${addedCount} new messages from history`);
-              
-              // Sort by timestamp
-              return mergedMessages.sort((a, b) => 
-                new Date(a.sent_time).getTime() - new Date(b.sent_time).getTime()
-              );
-            });
-          } else {
-            console.warn('Invalid chat history format:', data);
-            setMessages([]);
-          }
+          processMessages(data);
+          setCurrentPage(1);
         } else {
           console.warn('Chat history response error:', {
             status: response.status,
@@ -145,7 +174,66 @@ export const useMessages = ({ userId, userName, selectedAdmin }: UseMessagesProp
     } finally {
       setIsLoading(false);
     }
-  }, [userId, userName]);
+  }, [userId, userName, processMessages]);
+
+  // Load more messages (older messages) when scrolling to top
+  const loadMoreMessages = useCallback(async () => {
+    if (!hasMoreMessages || isLoadingMore) return false;
+    
+    try {
+      setIsLoadingMore(true);
+      const nextPage = currentPage + 1;
+      const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid') || 'c0945d59-d796-402d-8bb5-d1b2029b9eea';
+      
+      console.log(`Loading more messages (page ${nextPage})`);
+      
+      // Use our own API endpoint to proxy the request to the server
+      // This avoids CORS issues
+      try {
+        // If we have a next URL from the API, extract the page number
+        let pageToLoad = nextPage;
+        
+        if (nextPageUrl.current) {
+          try {
+            const url = new URL(nextPageUrl.current);
+            const urlPage = url.searchParams.get('page');
+            if (urlPage) {
+              pageToLoad = parseInt(urlPage);
+            }
+          } catch (e) {
+            console.error('Error parsing next URL:', e);
+          }
+        }
+        
+        const response = await fetch(
+          `/api/chat/history?whitelabel_admin_uuid=${whitelabel_admin_uuid}&page=${pageToLoad}&limit=10`, 
+          { credentials: 'include' }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('More messages response:', data);
+          
+          const success = processMessages(data, true); // true = prepend messages
+          if (success) {
+            setCurrentPage(pageToLoad);
+            return true;
+          }
+        } else {
+          console.warn('Load more messages error:', {
+            status: response.status,
+            statusText: response.statusText
+          });
+        }
+      } catch (error) {
+        console.error('Error loading more messages:', error);
+      }
+      
+      return false;
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [currentPage, hasMoreMessages, isLoadingMore, processMessages]);
 
   // Handle message reception from WebSocket
   const handleMessageReceived = useCallback((data: any) => {
@@ -414,7 +502,12 @@ export const useMessages = ({ userId, userName, selectedAdmin }: UseMessagesProp
     messages,
     setMessages,
     isLoading,
+    isLoadingMore,
+    hasMoreMessages,
+    totalMessages,
+    currentPage,
     fetchChatHistory,
+    loadMoreMessages,
     handleMessageReceived,
     retryMessage,
     trackSentMessage,

@@ -9,6 +9,7 @@ import { MotionDiv } from '@/app/types/motion';
 interface MessagesListProps {
   messages: ChatMessageData[];
   isLoading: boolean;
+  isLoadingMore?: boolean;
   userName: string;
   selectedAdmin: string;
   retryMessage: (messageId: number) => void;
@@ -21,6 +22,7 @@ interface MessagesListProps {
 const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(({
   messages,
   isLoading,
+  isLoadingMore = false,
   userName,
   selectedAdmin,
   retryMessage,

@@ -17,14 +17,25 @@ This directory contains a complete chat system with WebSocket support. The syste
 - `ChatMessage.tsx` - Individual message component
 - `MessagesList.tsx` - Container for all messages with virtualization
 - `TypingIndicator.tsx` - Shows when someone is typing
-- `ChatMessagesContainer.tsx` - Container for messages with scroll handling
+- `ChatMessagesContainer.tsx` - Container for messages with scroll handling and infinite scrolling
 
 ### Utility Components
 - `WebSocketManager.tsx` - Manages WebSocket connection (non-visual)
 - `ConnectionStatus.tsx` - Shows connection status
 
+## Features
+
+- Real-time messaging via WebSockets
+- File uploads and image previews
+- Typing indicators
+- Message history
+- Message status indicators (sent, delivered, error)
+- Support for admin and player messages
+- Infinite scrolling - automatically loads older messages when scrolling to top
+- Responsive design for both mobile and desktop
+
 ## Hooks
-- `useMessages.ts` - Handles message state, fetching, and processing
+- `useMessages.ts` - Handles message state, fetching, and pagination of message history
 - `useScroll.ts` - Manages scrolling behavior
 - `useTyping.ts` - Handles typing indicators
 - `useUserInfo.ts` - Manages user information

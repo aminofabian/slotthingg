@@ -36,11 +36,14 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
     messages,
     setMessages,
     isLoading,
+    isLoadingMore,
+    hasMoreMessages,
     fetchChatHistory,
     handleMessageReceived,
     retryMessage,
     trackSentMessage,
-    sentMessageIds
+    sentMessageIds,
+    loadMoreMessages
   } = useMessages({
     userId,
     userName, 
@@ -432,12 +435,15 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
               <ChatMessagesContainer
                 messages={messages}
                 isLoading={isLoading}
+                isLoadingMore={isLoadingMore}
                 userName={userName}
                 userId={userId}
                 playerId={playerId}
                 selectedAdmin={selectedAdmin}
                 retryMessage={handleRetryMessage}
                 isMobileView={isMobileView}
+                loadMoreMessages={loadMoreMessages}
+                hasMoreMessages={hasMoreMessages}
               />
 
               {/* Typing Indicator */}
