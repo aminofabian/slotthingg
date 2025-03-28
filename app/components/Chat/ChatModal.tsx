@@ -1,6 +1,6 @@
 'use client';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, LazyMotion, domMax, m } from 'framer-motion';
-import { useState, useEffect, useRef, useCallback } from 'react';
 import { IoClose, IoSend, IoChatbubbleEllipses, IoAttach, IoCheckmarkDone, IoAlert, IoRefresh, IoDocument, IoArrowDown } from 'react-icons/io5';
 import { format } from 'date-fns';
 import {
@@ -48,12 +48,12 @@ interface UserStatus {
   lastSeen: string;
 }
 
-interface ChatDrawerProps {
+interface ChatModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
+const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
   // State declarations
   const [messages, setMessages] = useState<ChatMessageData[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -1178,4 +1178,4 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
   );
 };
 
-export default ChatDrawer; 
+export default ChatModal; 
