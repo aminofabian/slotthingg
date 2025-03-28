@@ -8,7 +8,7 @@ import DashboardContent from '../components/Dashboard/DashboardContent';
 import MobileNavbar from '../components/Dashboard/MobileNavbar';
 import { BiMoney } from 'react-icons/bi';
 import { GiDiamonds } from 'react-icons/gi';
-import ChatDrawer from '../components/Chat/ChatDrawer';
+import ChatDrawer from '../components/Chat/ChatDrawerRefactored';
 import useChatStore from '../store/useChatStore';
 
 export default function DashboardPage() {

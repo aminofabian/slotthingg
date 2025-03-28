@@ -543,8 +543,7 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
   } = useTyping({
     userId,
     userName,
-    selectedAdmin,
-    sendTypingIndicator
+    selectedAdmin
   });
 
   // Initialize WebSocket when user info is available

@@ -1,8 +1,8 @@
 import { useState, useEffect, RefObject } from 'react';
 
 interface UseScrollProps {
-  chatContainerRef: RefObject<HTMLDivElement>;
-  messagesEndRef: RefObject<HTMLDivElement>;
+  chatContainerRef: RefObject<HTMLDivElement | null> | RefObject<HTMLDivElement>;
+  messagesEndRef: RefObject<HTMLDivElement | null> | RefObject<HTMLDivElement>;
 }
 
 interface UseScrollReturn {

@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
+import { sendTypingIndicator } from '@/app/lib/socket';
 
 interface TypingHookProps {
   userId: string;
   userName: string;
   selectedAdmin: string | null;
-  sendTypingIndicator: (userId: string, playerId: string, recipientId?: string) => boolean;
 }
 
 interface UseTypingReturn {
@@ -17,8 +17,7 @@ interface UseTypingReturn {
 export const useTyping = ({
   userId,
   userName,
-  selectedAdmin,
-  sendTypingIndicator
+  selectedAdmin
 }: TypingHookProps): UseTypingReturn => {
   const [isTyping, setIsTyping] = useState(false);
   const [isAdminTyping, setIsAdminTyping] = useState(false);
