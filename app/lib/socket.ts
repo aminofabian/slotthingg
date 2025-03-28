@@ -46,6 +46,15 @@ const maxReconnectAttempts = 5;
 let lastHeartbeatTime = 0; 
 const heartbeatInterval = 30000; // 30 seconds between heartbeats
 
+// Fallback mode flags
+let mockModeEnabled = false;
+export let isUsingMockWebSocket = false;
+let mockModeReportedToUser = false;
+
+// Pending messages for offline mode
+const PENDING_MESSAGES_KEY = 'chat_pending_messages';
+const pendingMessages: any[] = [];
+
 // Connection status
 export let connectionStatus: 'connected' | 'connecting' | 'disconnected' = 'disconnected';
 export let isWebSocketConnected = false;
@@ -87,6 +96,122 @@ export const disconnectSocket = () => {
   }
 };
 
+// Reset mock mode to try direct connection again
+export const resetMockMode = () => {
+  console.log('Resetting mock WebSocket mode');
+  mockModeEnabled = false;
+  isUsingMockWebSocket = false;
+  mockModeReportedToUser = false;
+  reconnectAttempts = 0;
+};
+
+// Load any pending messages from localStorage
+const loadPendingMessages = (): any[] => {
+  if (typeof window === 'undefined') return [];
+  
+  try {
+    const storedMessages = localStorage.getItem(PENDING_MESSAGES_KEY);
+    if (storedMessages) {
+      return JSON.parse(storedMessages);
+    }
+  } catch (error) {
+    console.error('Error loading pending messages:', error);
+  }
+  return [];
+};
+
+// Save pending messages to localStorage
+const savePendingMessages = (messages: any[]): void => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    localStorage.setItem(PENDING_MESSAGES_KEY, JSON.stringify(messages));
+  } catch (error) {
+    console.error('Error saving pending messages:', error);
+  }
+};
+
+// Add a message to the pending queue
+const addPendingMessage = (message: any): void => {
+  // Add to in-memory queue
+  pendingMessages.push(message);
+  
+  // Save to localStorage for persistence
+  savePendingMessages(pendingMessages);
+  
+  console.log(`Added message to pending queue. Queue size: ${pendingMessages.length}`);
+};
+
+// Send all pending messages once connection is restored
+export const sendPendingMessages = (): void => {
+  if (!isWebSocketConnected || isUsingMockWebSocket) return;
+  
+  // Load messages from localStorage (in case of page refresh)
+  const storedMessages = loadPendingMessages();
+  
+  // Combine with in-memory queue
+  const allPending = [...pendingMessages, ...storedMessages.filter(msg => 
+    !pendingMessages.some(pending => pending.id === msg.id)
+  )];
+  
+  if (allPending.length === 0) return;
+  
+  console.log(`Attempting to send ${allPending.length} pending messages`);
+  
+  let successCount = 0;
+  
+  // Try to send each message
+  allPending.forEach(message => {
+    try {
+      if (chatWs && chatWs.readyState === WebSocket.OPEN) {
+        chatWs.send(JSON.stringify(message));
+        successCount++;
+      }
+    } catch (error) {
+      console.error('Error sending pending message:', error);
+    }
+  });
+  
+  console.log(`Successfully sent ${successCount}/${allPending.length} pending messages`);
+  
+  // Clear pending messages if all sent successfully
+  if (successCount === allPending.length) {
+    pendingMessages.length = 0;
+    savePendingMessages([]);
+  } else {
+    // Keep only the failed ones
+    const remainingMessages = allPending.slice(successCount);
+    pendingMessages.length = 0;
+    pendingMessages.push(...remainingMessages);
+    savePendingMessages(pendingMessages);
+  }
+  
+  // If we have a callback, send a success message to the user
+  if (successCount > 0 && latestMessageCallback) {
+    setTimeout(() => {
+      try {
+        if (latestMessageCallback) {
+          latestMessageCallback({
+            id: Date.now(),
+            type: 'message',
+            message: `Successfully sent ${successCount} message${successCount === 1 ? '' : 's'} that ${successCount === 1 ? 'was' : 'were'} queued while offline.`,
+            sender: 0,
+            sender_name: 'System',
+            sent_time: new Date().toISOString(),
+            is_file: false,
+            file: null,
+            is_player_sender: false,
+            is_system_message: true,
+            status: 'delivered'
+          });
+        }
+      } catch (error) {
+        console.error('Error sending success message:', error);
+      }
+    }, 1000);
+  }
+};
+
 // Initialize the chat WebSocket
 export const initializeChatWebSocket = (
   playerId: string, 
@@ -118,6 +243,13 @@ export const initializeChatWebSocket = (
     return;
   }
 
+  // If we're in mock mode, use that instead of real connection
+  if (mockModeEnabled) {
+    console.log('Using mock WebSocket mode due to previous connection failures');
+    setupMockWebSocket(playerId, userId, userName, onMessageReceived);
+    return;
+  }
+
   // If we're already connected but with different IDs, close it first
   if (chatWs && chatWs.readyState === WebSocket.OPEN) {
     console.log('Connected with different IDs, closing existing connection first');
@@ -135,6 +267,67 @@ export const initializeChatWebSocket = (
   connectionStatus = 'connecting';
 
   try {
+    // Before we try to connect directly, let's check server availability
+    fetch(`/api/ws/chat?player_id=${playerId}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.available === false) {
+          console.warn('Chat server is not available:', data.error);
+          
+          // Handle specific error cases
+          if (data.status === 403) {
+            // For auth errors, we should tell the user and not retry as much
+            if (latestMessageCallback) {
+              console.error('Authentication error (403 Forbidden)');
+              latestMessageCallback({
+                id: Date.now(),
+                type: 'message',
+                message: 'Authentication error: Please refresh the page or log in again to connect to chat.',
+                sender: 0,
+                sender_name: 'System',
+                sent_time: new Date().toISOString(),
+                is_file: false,
+                file: null,
+                is_player_sender: false,
+                is_system_message: true,
+                status: 'delivered'
+              });
+            }
+            
+            // Auth errors won't be fixed by retrying, so immediately switch to mock mode
+            mockModeEnabled = true;
+            setupMockWebSocket(playerId, userId, userName, onMessageReceived);
+            return;
+          }
+          
+          // For other errors, let's proceed with direct connection attempt
+          // as our backend may be having issues but the chat server might still work
+          connectWebSocketDirectly();
+        } else {
+          // Server is available, try to use the recommended WebSocket URL if provided
+          connectWebSocketDirectly(data.wsUrl);
+        }
+      })
+      .catch(error => {
+        // Error checking availability, still try direct connection as fallback
+        console.error('Error checking server availability:', error);
+        connectWebSocketDirectly();
+      });
+  } catch (error) {
+    console.error('Error initializing WebSocket:', error);
+    connectionStatus = 'disconnected';
+    isWebSocketConnected = false;
+    isConnecting = false;
+    
+    // If we've hit max attempts, switch to mock mode
+    if (reconnectAttempts >= maxReconnectAttempts) {
+      mockModeEnabled = true;
+      setupMockWebSocket(playerId, userId, userName, onMessageReceived);
+    }
+  }
+  
+  // Function to attempt direct WebSocket connection
+  function connectWebSocketDirectly(suggestedUrl?: string) {
     // Close any existing connection first
     if (chatWs) {
       try {
@@ -145,14 +338,51 @@ export const initializeChatWebSocket = (
       chatWs = null;
     }
 
-    const wsUrl = `wss://serverhub.biz/ws/cschat/P${playerId}Chat/?player_id=${playerId}`;
+    // Try to use wss URL with host-relative path first if on HTTPS
+    let wsUrl = '';
+    if (suggestedUrl) {
+      wsUrl = suggestedUrl;
+    } else if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+      wsUrl = `wss://${window.location.host}/api/ws/chat?player_id=${playerId}`;
+    } else {
+      // Direct connection as fallback
+      wsUrl = `wss://serverhub.biz/ws/cschat/P${playerId}Chat/?player_id=${playerId}`;
+    }
+    
     console.log('Connecting to WebSocket:', wsUrl);
 
     chatWs = new WebSocket(wsUrl);
+    
+    // Set a timeout to prevent hanging connections
+    const connectionTimeout = setTimeout(() => {
+      if (chatWs && chatWs.readyState !== WebSocket.OPEN) {
+        console.warn('WebSocket connection timed out');
+        
+        if (chatWs) {
+          try {
+            chatWs.close();
+          } catch (e) {
+            // Ignore
+          }
+          chatWs = null;
+        }
+        
+        isConnecting = false;
+        
+        // If we've hit max attempts, switch to mock mode
+        if (reconnectAttempts >= maxReconnectAttempts) {
+          console.log('Max reconnection attempts reached, switching to mock mode');
+          mockModeEnabled = true;
+          setupMockWebSocket(playerId, userId, userName, onMessageReceived);
+        }
+      }
+    }, 10000); // 10 second timeout
 
     chatWs.onopen = () => {
+      clearTimeout(connectionTimeout);
       console.log('Chat WebSocket connected successfully');
       isWebSocketConnected = true;
+      isUsingMockWebSocket = false;
       connectionStatus = 'connected';
       reconnectAttempts = 0;
       isConnecting = false;
@@ -168,6 +398,9 @@ export const initializeChatWebSocket = (
         
         // Send initial heartbeat and update timestamp
         sendHeartbeat(userId, playerId);
+        
+        // Attempt to send any pending messages
+        sendPendingMessages();
       } catch (error) {
         console.error('Error sending initial message:', error);
       }
@@ -175,100 +408,21 @@ export const initializeChatWebSocket = (
 
     chatWs.onmessage = (event) => {
       try {
-        // Less verbose logging to reduce console spam
-        if (event.data.includes('"type":"heartbeat"') || event.data.includes('"type":"pong"')) {
-          console.log('Received heartbeat/pong message');
-        } else {
-          console.log('[SOCKET] Message received:', event.data.substring(0, 100) + (event.data.length > 100 ? '...' : ''));
-        }
-        
-        let data;
-        try {
-          data = JSON.parse(event.data);
-        } catch (parseError) {
-          console.error('Failed to parse message data:', parseError);
-          return;
-        }
-        
-        // Skip processing if no callback is available
-        if (!latestMessageCallback) {
-          console.warn('No message callback available, message will not be processed');
-          return;
-        }
+        const data = JSON.parse(event.data);
         
         // Handle different message types
         switch (data.type) {
-          case 'pong':
-            // Minimized logging for heartbeats/pongs
-            console.log('Received pong from server');
-            break;
-            
-          case 'typing':
-            console.log('Received typing indicator');
-            break;
-            
           case 'message':
-            console.log('[SOCKET] Received chat message');
-            
-            // ULTRA-AGGRESSIVE FILTERING - Check if this is a player message
-            // If sent by this player, we've already displayed it in the UI
-            const isPlayerMessage = (
-              data.is_player_sender === true || 
-              data.sender_id === activeUserId || 
-              data.sender === activeUserId
-            );
-            
-            // If real-time player message, reject it immediately - the UI already has it
-            if (data.is_realtime !== false && isPlayerMessage) {
-              console.log('[SOCKET] Player-sent message detected, dropping to prevent duplicates');
-              return; // Don't process further - prevents ALL duplicates of outgoing messages
-            }
-            
-            // Generate a message ID if one isn't provided
-            const messageId = data.id ? 
-              (typeof data.id === 'string' ? parseInt(data.id) : data.id) :
-              Date.now() + Math.floor(Math.random() * 1000);
-            
-            // Create a unique message identifier that includes content
-            const contentFingerprint = `${data.sender || data.sender_id}-${data.message}-${data.sent_time}`;
-            
-            // Debug real-time messages
-            console.log(`[SOCKET] Processing real-time message: ID=${messageId}, Content="${data.message?.substring(0, 20)}${data.message?.length > 20 ? '...' : ''}"`);
-            
-            // Check if this message is already in our shared tracker
-            // This likely means it's an echo of a message we sent ourselves
-            let isEcho = false;
-            if (sharedMessageTracker.has(messageId.toString())) {
-              console.log(`[SOCKET] Message ID ${messageId} already in shared tracker, likely an echo`);
-              isEcho = true;
-            }
-            
-            // Also check for content-based echoes (same user sending same message)
-            if (contentFingerprint && sharedMessageTracker.has(contentFingerprint)) {
-              console.log(`[SOCKET] Content fingerprint match, likely an echo`);
-              isEcho = true;
-            }
-            
-            // Ensure the message has all required fields
+            // Create an enhanced message object with additional properties
             const enhancedMessage = {
               ...data,
-              id: messageId,
-              type: data.type || 'message',
-              message: data.message || '',
-              sender: data.sender_id || data.sender || '0',
-              sender_name: data.sender_name || 'Unknown',
-              sent_time: data.sent_time || new Date().toISOString(),
-              is_file: !!data.is_file,
-              file: data.file || null,
-              is_player_sender: !!data.is_player_sender,
-              is_admin_sender: !data.is_player_sender || !!data.is_admin_sender,
+              // Ensure we have a valid status if it's missing
               status: data.status || 'delivered',
-              // Add a flag to indicate this is a real-time message (not from history)
-              is_realtime: true,
-              // Add content fingerprint to help prevent duplicates
-              _contentFingerprint: contentFingerprint,
-              // Flag if this is likely an echo of our own message
-              _isEcho: isEcho
+              // Add extra info missing in the server response
+              is_player_sender: data.sender == userId || data.sent_by_player,
+              is_admin_sender: !data.is_player_sender,
+              // Add client-side timestamp for debugging
+              client_receive_time: new Date().toISOString()
             };
             
             // Always pass the message to the component and let it decide if it's a duplicate
@@ -289,6 +443,13 @@ export const initializeChatWebSocket = (
           case 'presence':
             console.log('Received presence update');
             break;
+            
+          case 'typing':
+            // Handle typing indicator messages
+            if (latestMessageCallback) {
+              latestMessageCallback(data);
+            }
+            break;
 
           default:
             console.log('Received unknown message type:', data.type);
@@ -299,13 +460,43 @@ export const initializeChatWebSocket = (
     };
 
     chatWs.onerror = (error) => {
+      clearTimeout(connectionTimeout);
       console.error('Chat WebSocket error:', error);
+      
       connectionStatus = 'disconnected';
       isWebSocketConnected = false;
       isConnecting = false;
+      
+      // If we have a callback, notify about the error
+      if (latestMessageCallback && error instanceof ErrorEvent && error.message) {
+        latestMessageCallback({
+          id: Date.now(),
+          type: 'message',
+          message: `Connection error: ${error.message}`,
+          sender: 0,
+          sender_name: 'System',
+          sent_time: new Date().toISOString(),
+          is_file: false,
+          file: null,
+          is_player_sender: false,
+          is_system_message: true,
+          status: 'delivered'
+        });
+      }
+      
+      // Increment reconnect attempts
+      reconnectAttempts++;
+      
+      // If we've reached max attempts, switch to mock mode
+      if (reconnectAttempts >= maxReconnectAttempts) {
+        console.log('Max reconnection attempts reached, switching to mock mode');
+        mockModeEnabled = true;
+        setupMockWebSocket(playerId, userId, userName, onMessageReceived);
+      }
     };
 
     chatWs.onclose = () => {
+      clearTimeout(connectionTimeout);
       console.log('Chat WebSocket connection closed');
       isWebSocketConnected = false;
       connectionStatus = 'disconnected';
@@ -313,7 +504,7 @@ export const initializeChatWebSocket = (
 
       // Only attempt to reconnect a limited number of times
       if (reconnectAttempts < maxReconnectAttempts) {
-        reconnectAttempts += 1;
+        reconnectAttempts++;
         const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
         console.log(`Scheduling reconnection attempt in ${backoffDelay}ms`);
         
@@ -323,17 +514,53 @@ export const initializeChatWebSocket = (
           }
         }, backoffDelay);
       } else {
-        console.log('Max reconnection attempts reached, manual reconnection required');
+        console.log('Max reconnection attempts reached, switching to mock mode');
+        mockModeEnabled = true;
+        setupMockWebSocket(playerId, userId, userName, onMessageReceived);
       }
     };
-
-  } catch (error) {
-    console.error('Error initializing WebSocket:', error);
-    connectionStatus = 'disconnected';
-    isWebSocketConnected = false;
-    isConnecting = false;
   }
 };
+
+// Set up a mock WebSocket for offline/fallback mode
+function setupMockWebSocket(
+  playerId: string,
+  userId: string,
+  userName: string,
+  onMessageReceived: (message: any) => void
+) {
+  console.log('Setting up mock WebSocket');
+  isUsingMockWebSocket = true;
+  isWebSocketConnected = true; // Pretend we're connected
+  connectionStatus = 'connected';
+  isConnecting = false;
+  
+  // If we haven't warned the user yet, send a special message
+  if (!mockModeReportedToUser && onMessageReceived) {
+    mockModeReportedToUser = true;
+    
+    // Send a system message to inform the user
+    setTimeout(() => {
+      try {
+        onMessageReceived({
+          id: Date.now(),
+          type: 'message',
+          message: "We're having trouble connecting to the chat server. Messages will be stored locally until connection is restored.",
+          sender: 0,
+          sender_name: 'System',
+          sent_time: new Date().toISOString(),
+          is_file: false,
+          file: null,
+          is_player_sender: false,
+          is_system_message: true,
+          status: 'delivered'
+        });
+      } catch (error) {
+        console.error('Error sending mock system message:', error);
+      }
+    }, 1000);
+  }
+}
 
 // Function to send heartbeats efficiently
 const sendHeartbeat = (userId: string, playerId: string) => {
@@ -368,16 +595,48 @@ const sendHeartbeat = (userId: string, playerId: string) => {
 
 // Send a chat message
 export const sendChatMessage = (message: any) => {
-  if (chatWs?.readyState === WebSocket.OPEN) {
+  if (isUsingMockWebSocket) {
+    console.log('Using mock WebSocket, storing message for later delivery');
+    
+    // Add to pending queue
+    addPendingMessage(message);
+    
+    // Create a fake "sent" message for the UI
+    if (latestMessageCallback) {
+      setTimeout(() => {
+        try {
+          if (latestMessageCallback) {
+            latestMessageCallback({
+              ...message,
+              status: 'delivered',
+              client_receive_time: new Date().toISOString()
+            });
+          }
+        } catch (error) {
+          console.error('Error updating message status:', error);
+        }
+      }, 500);
+    }
+    
+    return true;
+  } else if (chatWs?.readyState === WebSocket.OPEN) {
     try {
       chatWs.send(JSON.stringify(message));
       return true;
     } catch (error) {
       console.error('Error sending chat message:', error);
+      
+      // Add to pending queue on error
+      addPendingMessage(message);
+      
       return false;
     }
   } else {
     console.error('Chat WebSocket is not connected');
+    
+    // Add to pending queue when not connected
+    addPendingMessage(message);
+    
     return false;
   }
 };
@@ -398,11 +657,20 @@ const typingThrottleTime = 2000; // Only send typing indicator every 2 seconds
 
 export const sendTypingIndicator = (userId: string, playerId: string, recipientId?: string) => {
   const now = Date.now();
+  
+  // Throttle sending typing indicators
   if (now - lastTypingTime < typingThrottleTime) {
-    return false; // Skip if we've sent too recently
+    return;
   }
   
-  if (chatWs?.readyState === WebSocket.OPEN) {
+  lastTypingTime = now;
+  
+  // Skip in mock mode
+  if (isUsingMockWebSocket) {
+    return;
+  }
+  
+  if (chatWs && chatWs.readyState === WebSocket.OPEN) {
     try {
       chatWs.send(JSON.stringify({
         type: 'typing',
@@ -411,12 +679,8 @@ export const sendTypingIndicator = (userId: string, playerId: string, recipientI
         recipient_id: recipientId,
         timestamp: new Date().toISOString()
       }));
-      lastTypingTime = now;
-      return true;
     } catch (error) {
       console.error('Error sending typing indicator:', error);
-      return false;
     }
   }
-  return false;
 };
