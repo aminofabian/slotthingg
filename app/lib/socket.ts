@@ -251,17 +251,20 @@ export const initializeChatWebSocket = (
   sharedMessageTracker.userId = userId;
   sharedMessageTracker.userName = userName;
   
+  // Store the latest callback for reuse
+  latestMessageCallback = onMessageReceived;
+  activePlayerId = playerId;
+  activeUserId = userId;
+  
   // Use a direct connection without health check
-  connectWebSocketDirectly();
+  return connectWebSocketDirectly();
   
-  // Start heartbeat once connected
-  hasStartedHeartbeat = false;
-  
-  function connectWebSocketDirectly(suggestedUrl?: string) {
+  // Define the function properly outside of the calling scope
+  function connectWebSocketDirectly(suggestedUrl?: string): WebSocket | null {
     // Don't attempt to reconnect if we're already in mock mode
     if (isUsingMockWebSocket) {
       console.log('Using mock WebSocket, skipping direct connection attempt');
-      return;
+      return null;
     }
     
     try {
@@ -317,8 +320,6 @@ export const initializeChatWebSocket = (
               latestMessageCallback(message);
             }
           } 
-          // Additional message type handling
-          // ... existing code ...
           
           // Forward the message to the handler
           if (onMessageReceived) {
@@ -336,9 +337,6 @@ export const initializeChatWebSocket = (
         
         // Track metrics
         connectionMetrics.disconnects++;
-        
-        // Detect specific error types
-        // ... existing code for error detection ...
       };
 
       chatWs.onclose = (event) => {
@@ -374,88 +372,107 @@ export const initializeChatWebSocket = (
       return null;
     }
   }
-  
-  function reconnectWithBackoff() {
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-      reconnectTimer = null;
-    }
-    
-    if (reconnectAttempts < maxReconnectAttempts) {
-      // Calculate backoff delay using exponential strategy
-      const backoffTime = Math.min(
-        initialReconnectDelay * Math.pow(2, reconnectAttempts), 
-        maxReconnectDelay
-      );
-      
-      console.log(`Reconnecting in ${backoffTime}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
-      
-      reconnectTimer = setTimeout(() => {
-        reconnectAttempts++;
-        connectWebSocketDirectly();
-      }, backoffTime);
-    } else {
-      console.log('Maximum reconnection attempts reached, switching to offline mode');
-      mockModeEnabled = true;
-      setupMockWebSocket(playerId, userId, userName, onMessageReceived);
-    }
+};
+
+function reconnectWithBackoff() {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
   }
   
-  function startHeartbeat() {
-    if (heartbeatInterval) {
-      clearInterval(heartbeatInterval);
-      heartbeatInterval = null;
-    }
+  if (reconnectAttempts < maxReconnectAttempts) {
+    // Calculate backoff delay using exponential strategy
+    const backoffTime = Math.min(
+      initialReconnectDelay * Math.pow(2, reconnectAttempts), 
+      maxReconnectDelay
+    );
     
-    heartbeatInterval = setInterval(() => {
-      if (chatWs && chatWs.readyState === WebSocket.OPEN) {
-        const pingMessage = {
-          type: 'ping',
-          timestamp: Date.now(),
-          user_id: userId,
-          player_id: playerId
-        };
-        
+    console.log(`Reconnecting in ${backoffTime}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
+    
+    reconnectTimer = setTimeout(() => {
+      reconnectAttempts++;
+      
+      if (activePlayerId && activeUserId && activePlayerId === sharedMessageTracker.playerId) {
+        // Call the exported function directly to ensure we're using the correct function
+        initializeChatWebSocket(
+          activePlayerId, 
+          activeUserId, 
+          sharedMessageTracker.userName || 'User', 
+          latestMessageCallback || (() => {})
+        );
+      }
+    }, backoffTime);
+  } else {
+    console.log('Maximum reconnection attempts reached, switching to offline mode');
+    mockModeEnabled = true;
+    
+    if (activePlayerId && activeUserId && latestMessageCallback) {
+      setupMockWebSocket(
+        activePlayerId, 
+        activeUserId, 
+        sharedMessageTracker.userName || 'User', 
+        latestMessageCallback
+      );
+    }
+  }
+}
+
+function startHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval);
+    heartbeatInterval = null;
+  }
+  
+  heartbeatInterval = setInterval(() => {
+    if (chatWs && chatWs.readyState === WebSocket.OPEN) {
+      const pingMessage = {
+        type: 'ping',
+        timestamp: Date.now(),
+        user_id: activeUserId,
+        player_id: activePlayerId
+      };
+      
+      try {
         chatWs.send(JSON.stringify(pingMessage));
         connectionMetrics.messagesSent++;
-      } else {
-        // Connection issues detected
-        console.warn('Heartbeat failed - WebSocket not open');
-        if (heartbeatInterval) {
-          clearInterval(heartbeatInterval);
-          heartbeatInterval = null;
-        }
-        
-        if (isWebSocketConnected) {
-          isWebSocketConnected = false;
-          connectionStatus = 'disconnected';
-          reconnectWithBackoff();
-        }
+      } catch (error) {
+        console.error('Error sending heartbeat:', error);
       }
-    }, 15000); // Send heartbeat every 15 seconds
-  }
-  
-  function handlePongResponse(pongMessage: any) {
-    const now = Date.now();
-    const pingTime = pongMessage.timestamp;
-    const latency = now - pingTime;
-    
-    // Track latency metrics (keep last 10 measurements)
-    connectionMetrics.latency.push(latency);
-    if (connectionMetrics.latency.length > 10) {
-      connectionMetrics.latency.shift();
+    } else {
+      // Connection issues detected
+      console.warn('Heartbeat failed - WebSocket not open');
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+      
+      if (isWebSocketConnected) {
+        isWebSocketConnected = false;
+        connectionStatus = 'disconnected';
+        reconnectWithBackoff();
+      }
     }
-    
-    // Calculate average latency
-    const avgLatency = connectionMetrics.latency.reduce((sum, val) => sum + val, 0) / 
-                      Math.max(1, connectionMetrics.latency.length);
-                      
-    // Log connection quality
-    console.log(`WebSocket connection quality: ${avgLatency}ms average latency`);
+  }, 15000); // Send heartbeat every 15 seconds
+}
+
+function handlePongResponse(pongMessage: any) {
+  const now = Date.now();
+  const pingTime = pongMessage.timestamp;
+  const latency = now - pingTime;
+  
+  // Track latency metrics (keep last 10 measurements)
+  connectionMetrics.latency.push(latency);
+  if (connectionMetrics.latency.length > 10) {
+    connectionMetrics.latency.shift();
   }
   
-  return chatWs;
-};
+  // Calculate average latency
+  const avgLatency = connectionMetrics.latency.reduce((sum, val) => sum + val, 0) / 
+                    Math.max(1, connectionMetrics.latency.length);
+                    
+  // Log connection quality
+  console.log(`WebSocket connection quality: ${avgLatency}ms average latency`);
+}
 
 // Set up a mock WebSocket for offline/fallback mode
 function setupMockWebSocket(
