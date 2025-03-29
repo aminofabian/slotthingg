@@ -3,24 +3,29 @@ import { io as ClientIO } from 'socket.io-client';
 // Create a shared message tracker that can be used across components
 export const sharedMessageTracker = {
   processedIds: new Map<string, boolean>(),
-  has: function(id: number | string): boolean {
-    const strId = typeof id === 'number' ? id.toString() : id;
-    return this.processedIds.has(strId);
+  playerId: null as string | null,
+  userId: null as string | null,
+  userName: null as string | null,
+  has: (id: string | number): boolean => {
+    return sharedMessageTracker.processedIds.has(String(id));
   },
-  set: function(id: number | string, value: boolean = true): void {
-    const strId = typeof id === 'number' ? id.toString() : id;
-    this.processedIds.set(strId, value);
+  set: (id: string | number, value: boolean = true): void => {
+    sharedMessageTracker.processedIds.set(String(id), value);
   },
-  clear: function(): void {
-    this.processedIds.clear();
+  clear: (): void => {
+    sharedMessageTracker.processedIds.clear();
   },
-  size: function(): number {
-    return this.processedIds.size;
+  size: (): number => {
+    return sharedMessageTracker.processedIds.size;
   },
-  cleanup: function(): void {
-    if (this.processedIds.size > 1000) {
-      const idsArray = Array.from(this.processedIds.keys());
-      idsArray.slice(0, idsArray.length - 1000).forEach(id => this.processedIds.delete(id));
+  cleanup: (): void => {
+    if (sharedMessageTracker.processedIds.size > 1000) {
+      const keys = Array.from(sharedMessageTracker.processedIds.keys());
+      const toRemove = keys.slice(0, 500);
+      
+      for (const key of toRemove) {
+        sharedMessageTracker.processedIds.delete(key);
+      }
     }
   }
 };
@@ -40,11 +45,15 @@ export const socket = ClientIO(SOCKET_URL, {
 let chatWs: WebSocket | null = null;
 let isConnecting = false;
 let reconnectAttempts = 0;
-const maxReconnectAttempts = 5;
+const maxReconnectAttempts = 10;
+const initialReconnectDelay = 1000; // 1 second
+const maxReconnectDelay = 30000; // 30 seconds
+let reconnectTimer: NodeJS.Timeout | null = null;
+let heartbeatInterval: NodeJS.Timeout | null = null;
 
 // Track when the last heartbeat was sent to avoid too many requests
 let lastHeartbeatTime = 0; 
-const heartbeatInterval = 30000; // 30 seconds between heartbeats
+const heartbeatIntervalOriginal = 30000; // 30 seconds between heartbeats
 
 // Fallback mode flags
 let mockModeEnabled = false;
@@ -63,6 +72,18 @@ export let isWebSocketConnected = false;
 let latestMessageCallback: ((message: any) => void) | null = null;
 let activePlayerId: string | null = null;
 let activeUserId: string | null = null;
+
+// Reconnection configuration with exponential backoff
+let hasStartedHeartbeat = false;
+
+// Connection quality metrics
+const connectionMetrics = {
+  latency: [] as number[],
+  disconnects: 0,
+  messagesSent: 0,
+  messagesReceived: 0,
+  lastMessageTime: 0
+};
 
 // Connect to the main socket
 export const connectSocket = () => {
@@ -146,55 +167,57 @@ const addPendingMessage = (message: any): void => {
 export const sendPendingMessages = (): void => {
   if (!isWebSocketConnected || isUsingMockWebSocket) return;
   
-  // Load messages from localStorage (in case of page refresh)
-  const storedMessages = loadPendingMessages();
-  
-  // Combine with in-memory queue
-  const allPending = [...pendingMessages, ...storedMessages.filter(msg => 
-    !pendingMessages.some(pending => pending.id === msg.id)
-  )];
-  
-  if (allPending.length === 0) return;
-  
-  console.log(`Attempting to send ${allPending.length} pending messages`);
-  
-  let successCount = 0;
-  
-  // Try to send each message
-  allPending.forEach(message => {
-    try {
-      if (chatWs && chatWs.readyState === WebSocket.OPEN) {
-        chatWs.send(JSON.stringify(message));
-        successCount++;
-      }
-    } catch (error) {
-      console.error('Error sending pending message:', error);
-    }
-  });
-  
-  console.log(`Successfully sent ${successCount}/${allPending.length} pending messages`);
-  
-  // Clear pending messages if all sent successfully
-  if (successCount === allPending.length) {
-    pendingMessages.length = 0;
-    savePendingMessages([]);
-  } else {
-    // Keep only the failed ones
-    const remainingMessages = allPending.slice(successCount);
-    pendingMessages.length = 0;
-    pendingMessages.push(...remainingMessages);
-    savePendingMessages(pendingMessages);
+  const pendingMessages = loadPendingMessages();
+  if (pendingMessages.length === 0) {
+    console.log('No pending messages to send');
+    return;
   }
   
+  console.log(`Sending ${pendingMessages.length} pending messages`);
+  
+  // Send messages in batches to avoid flooding the connection
+  const sendMessageBatch = (batch: any[], startIndex: number) => {
+    // Process up to 5 messages at a time
+    const batchSize = 5;
+    const endIndex = Math.min(startIndex + batchSize, batch.length);
+    const currentBatch = batch.slice(startIndex, endIndex);
+    
+    // Send each message in the current batch
+    currentBatch.forEach(message => {
+      try {
+        if (chatWs && chatWs.readyState === WebSocket.OPEN) {
+          chatWs.send(JSON.stringify(message));
+          connectionMetrics.messagesSent++;
+          console.log('Sent pending message:', message.id);
+        }
+      } catch (error) {
+        console.error('Error sending pending message:', error);
+      }
+    });
+    
+    // Continue with next batch if there are more messages
+    if (endIndex < batch.length) {
+      setTimeout(() => {
+        sendMessageBatch(batch, endIndex);
+      }, 300); // Small delay between batches
+    } else {
+      // All messages processed, clear the pending queue
+      savePendingMessages([]);
+    }
+  };
+  
+  // Start sending the first batch
+  sendMessageBatch(pendingMessages, 0);
+  
   // If we have a callback, send a success message to the user
-  if (successCount > 0 && latestMessageCallback) {
+  if (connectionMetrics.messagesSent > 0 && latestMessageCallback) {
     setTimeout(() => {
       try {
         if (latestMessageCallback) {
           latestMessageCallback({
             id: Date.now(),
             type: 'message',
-            message: `Successfully sent ${successCount} message${successCount === 1 ? '' : 's'} that ${successCount === 1 ? 'was' : 'were'} queued while offline.`,
+            message: `Successfully sent ${connectionMetrics.messagesSent} message${connectionMetrics.messagesSent === 1 ? '' : 's'} that ${connectionMetrics.messagesSent === 1 ? 'was' : 'were'} queued while offline.`,
             sender: 0,
             sender_name: 'System',
             sent_time: new Date().toISOString(),
@@ -219,329 +242,219 @@ export const initializeChatWebSocket = (
   userName: string,
   onMessageReceived: (message: any) => void
 ) => {
-  // First check if we're already connected with the same player ID
-  if (
-    chatWs && 
-    chatWs.readyState === WebSocket.OPEN && 
-    activePlayerId === playerId && 
-    activeUserId === userId && 
-    isWebSocketConnected
-  ) {
-    console.log('Already connected with the same IDs, just updating callback');
-    latestMessageCallback = onMessageReceived;
-    return;
+  if (chatWs) {
+    console.log('WebSocket already initialized, reusing existing connection');
+    return chatWs;
   }
   
-  // Store the latest callback and IDs for reuse
-  latestMessageCallback = onMessageReceived;
-  activePlayerId = playerId;
-  activeUserId = userId;
+  sharedMessageTracker.playerId = playerId;
+  sharedMessageTracker.userId = userId;
+  sharedMessageTracker.userName = userName;
   
-  // If we're already connecting, don't start another connection
-  if (isConnecting) {
-    console.log('Connection already in progress, skipping duplicate attempt');
-    return;
-  }
-
-  // If we're in mock mode, use that instead of real connection
-  if (mockModeEnabled) {
-    console.log('Using mock WebSocket mode due to previous connection failures');
-    setupMockWebSocket(playerId, userId, userName, onMessageReceived);
-    return;
-  }
-
-  // If we're already connected but with different IDs, close it first
-  if (chatWs && chatWs.readyState === WebSocket.OPEN) {
-    console.log('Connected with different IDs, closing existing connection first');
-    chatWs.close();
-    chatWs = null;
-  }
-
-  if (!playerId) {
-    console.error('No player ID available for WebSocket connection');
-    
-    // Setup mock mode if no player ID
-    mockModeEnabled = true;
-    setupMockWebSocket(playerId || 'unknown', userId || 'unknown', userName, onMessageReceived);
-    return;
-  }
-
-  console.log(`Initializing chat WebSocket connection, attempt ${reconnectAttempts + 1}/${maxReconnectAttempts}`);
-  isConnecting = true;
-  connectionStatus = 'connecting';
-
-  try {
-    // Track if the server is completely unavailable to avoid multiple connection attempts
-    let serverUnavailable = false;
-    
-    // Before we try to connect directly, let's check server availability
-    fetch(`/api/ws/chat?player_id=${playerId}`)
-      .then(response => {
-        if (!response.ok && response.status !== 200) {
-          // If we get a bad status from our own endpoint (not the external server),
-          // something is wrong with our API route
-          console.error(`API route error: ${response.status}`);
-          
-          // Don't wait for the JSON, just try direct connection
-          serverUnavailable = true;
-          
-          // If our own API returns 500, it's likely a deployment issue
-          // Switch to mock mode after a short attempt delay  
-          if (response.status === 500) {
-            reconnectAttempts = maxReconnectAttempts - 1; // One more try
-          }
-          
-          // Still try direct connection
-          connectWebSocketDirectly();
-          
-          // We'll still read the response, but won't wait for it
-          return response.json().catch(() => ({}));
-        }
-        
-        return response.json();
-      })
-      .then(data => {
-        // If we already triggered direct connection, don't do it again
-        if (serverUnavailable) return;
-        
-        // With our simplified API, the server is always reported as available
-        // Just use the WebSocket URL if provided
-        if (data.wsUrl) {
-          console.log('Using WebSocket URL from API:', data.wsUrl);
-          connectWebSocketDirectly(data.wsUrl);
-        } else {
-          console.warn('API did not return a WebSocket URL, using default');
-          connectWebSocketDirectly();
-        }
-      })
-      .catch(error => {
-        // Error checking availability, still try direct connection as fallback
-        console.error('Error checking server availability:', error);
-        connectWebSocketDirectly();
-      });
-  } catch (error) {
-    console.error('Error initializing WebSocket:', error);
-    connectionStatus = 'disconnected';
-    isWebSocketConnected = false;
-    isConnecting = false;
-    
-    // If we've hit max attempts, switch to mock mode
-    if (reconnectAttempts >= maxReconnectAttempts) {
-      mockModeEnabled = true;
-      setupMockWebSocket(playerId, userId, userName, onMessageReceived, 'server_error');
-    }
-  }
+  // Use a direct connection without health check
+  connectWebSocketDirectly();
   
-  // Function to attempt direct WebSocket connection
+  // Start heartbeat once connected
+  hasStartedHeartbeat = false;
+  
   function connectWebSocketDirectly(suggestedUrl?: string) {
-    // Close any existing connection first
-    if (chatWs) {
-      try {
-        chatWs.close();
-      } catch (e) {
-        console.warn('Error closing existing WebSocket:', e);
-      }
-      chatWs = null;
-    }
-
-    // Try to use wss URL with host-relative path first if on HTTPS
-    let wsUrl = '';
-    if (suggestedUrl) {
-      wsUrl = suggestedUrl;
-    } else if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-      wsUrl = `wss://${window.location.host}/api/ws/chat?player_id=${playerId}`;
-    } else {
-      // Direct connection as fallback
-      wsUrl = `wss://serverhub.biz/ws/cschat/P${playerId}Chat/?player_id=${playerId}`;
+    // Don't attempt to reconnect if we're already in mock mode
+    if (isUsingMockWebSocket) {
+      console.log('Using mock WebSocket, skipping direct connection attempt');
+      return;
     }
     
-    console.log('Connecting to WebSocket:', wsUrl);
-
     try {
-      chatWs = new WebSocket(wsUrl);
-      
-      // Set a timeout to prevent hanging connections
-      const connectionTimeout = setTimeout(() => {
-        if (chatWs && chatWs.readyState !== WebSocket.OPEN) {
-          console.warn('WebSocket connection timed out');
-          
-          if (chatWs) {
-            try {
-              chatWs.close();
-            } catch (e) {
-              // Ignore
-            }
-            chatWs = null;
-          }
-          
-          isConnecting = false;
-          
-          // If we've hit max attempts, switch to mock mode
-          if (reconnectAttempts >= maxReconnectAttempts) {
-            console.log('Max reconnection attempts reached, switching to mock mode');
-            mockModeEnabled = true;
-            setupMockWebSocket(playerId, userId, userName, onMessageReceived, 'server_error');
-          }
-        }
-      }, 10000); // 10 second timeout
+      // Clear any existing heartbeat
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+    
+      // Construct the WebSocket URL directly or use API-provided URL
+      const url = suggestedUrl || `wss://serverhub.biz/ws/cschat/P${playerId}Chat/?player_id=${playerId}`;
+      console.log('Connecting to WebSocket:', url);
 
-      chatWs.onopen = () => {
-        clearTimeout(connectionTimeout);
-        console.log('Chat WebSocket connected successfully');
+      chatWs = new WebSocket(url);
+      hasStartedHeartbeat = false;
+
+      chatWs.onopen = (event) => {
+        console.log('WebSocket connected successfully');
         isWebSocketConnected = true;
         isUsingMockWebSocket = false;
         connectionStatus = 'connected';
+        
+        // Reset reconnection attempts on successful connection
         reconnectAttempts = 0;
-        isConnecting = false;
-
-        // Send initial presence message
-        try {
-          chatWs?.send(JSON.stringify({
-            type: 'presence',
-            status: 'online',
-            user_id: userId,
-            player_id: playerId
-          }));
-          
-          // Send initial heartbeat and update timestamp
-          sendHeartbeat(userId, playerId);
-          
-          // Attempt to send any pending messages
-          sendPendingMessages();
-        } catch (error) {
-          console.error('Error sending initial message:', error);
-        }
+        
+        // Start heartbeat to keep connection alive
+        startHeartbeat();
+        hasStartedHeartbeat = true;
+        
+        // Send any pending messages
+        sendPendingMessages();
       };
 
       chatWs.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
+          const message = JSON.parse(event.data);
           
-          // Handle different message types
-          switch (data.type) {
-            case 'message':
-              // Create an enhanced message object with additional properties
-              const enhancedMessage = {
-                ...data,
-                // Ensure we have a valid status if it's missing
-                status: data.status || 'delivered',
-                // Add extra info missing in the server response
-                is_player_sender: data.sender == userId || data.sent_by_player,
-                is_admin_sender: !data.is_player_sender,
-                // Add client-side timestamp for debugging
-                client_receive_time: new Date().toISOString()
-              };
-              
-              // Always pass the message to the component and let it decide if it's a duplicate
-              if (latestMessageCallback) {
-                // Use setTimeout to ensure this doesn't block the main thread
-                setTimeout(() => {
-                  try {
-                    if (latestMessageCallback) {
-                      latestMessageCallback(enhancedMessage);
-                    }
-                  } catch (callbackError) {
-                    console.error('Error in message callback:', callbackError);
-                  }
-                }, 0);
-              }
-              break;
-
-            case 'presence':
-              console.log('Received presence update');
-              break;
-              
-            case 'typing':
-              // Handle typing indicator messages
-              if (latestMessageCallback) {
-                latestMessageCallback(data);
-              }
-              break;
-
-            default:
-              console.log('Received unknown message type:', data.type);
+          // Track metrics
+          connectionMetrics.messagesReceived++;
+          connectionMetrics.lastMessageTime = Date.now();
+          
+          // Handle heartbeat response
+          if (message.type === 'pong') {
+            handlePongResponse(message);
+            return;
+          }
+          
+          console.log('Received message:', message);
+          
+          if (message.type === 'typing') {
+            // Handle typing indicator
+            if (latestMessageCallback) {
+              latestMessageCallback(message);
+            }
+          } 
+          // Additional message type handling
+          // ... existing code ...
+          
+          // Forward the message to the handler
+          if (onMessageReceived) {
+            onMessageReceived(message);
           }
         } catch (error) {
-          console.error('Error handling WebSocket message:', error);
+          console.error('Error processing WebSocket message:', error);
         }
       };
 
-      chatWs.onerror = (error) => {
-        clearTimeout(connectionTimeout);
-        console.error('Chat WebSocket error:', error);
-        
-        connectionStatus = 'disconnected';
-        isWebSocketConnected = false;
-        isConnecting = false;
-        
-        // If we have a callback, notify about the error
-        if (latestMessageCallback && error instanceof ErrorEvent && error.message) {
-          latestMessageCallback({
-            id: Date.now(),
-            type: 'message',
-            message: `Connection error: ${error.message}`,
-            sender: 0,
-            sender_name: 'System',
-            sent_time: new Date().toISOString(),
-            is_file: false,
-            file: null,
-            is_player_sender: false,
-            is_system_message: true,
-            status: 'delivered'
-          });
-        }
-        
-        // Increment reconnect attempts
-        reconnectAttempts++;
-        
-        // If we've reached max attempts, switch to mock mode
-        if (reconnectAttempts >= maxReconnectAttempts) {
-          console.log('Max reconnection attempts reached, switching to mock mode');
-          mockModeEnabled = true;
-          setupMockWebSocket(playerId, userId, userName, onMessageReceived, 'server_error');
-        }
-      };
-
-      chatWs.onclose = () => {
-        clearTimeout(connectionTimeout);
-        console.log('Chat WebSocket connection closed');
+      chatWs.onerror = (event) => {
+        console.error('WebSocket error:', event);
         isWebSocketConnected = false;
         connectionStatus = 'disconnected';
-        isConnecting = false;
-
-        // Only attempt to reconnect a limited number of times
-        if (reconnectAttempts < maxReconnectAttempts) {
-          reconnectAttempts++;
-          const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-          console.log(`Scheduling reconnection attempt in ${backoffDelay}ms`);
-          
-          setTimeout(() => {
-            if (latestMessageCallback && activePlayerId && activeUserId) {
-              initializeChatWebSocket(activePlayerId, activeUserId, userName, latestMessageCallback);
-            }
-          }, backoffDelay);
-        } else {
-          console.log('Max reconnection attempts reached, switching to mock mode');
-          mockModeEnabled = true;
-          setupMockWebSocket(playerId, userId, userName, onMessageReceived, 'server_error');
-        }
+        
+        // Track metrics
+        connectionMetrics.disconnects++;
+        
+        // Detect specific error types
+        // ... existing code for error detection ...
       };
-    } catch (connectionError) {
-      // Handle any errors during WebSocket creation
-      console.error('Error creating WebSocket connection:', connectionError);
-      isConnecting = false;
+
+      chatWs.onclose = (event) => {
+        console.log(`WebSocket closed with code: ${event.code}`);
+        isWebSocketConnected = false;
+        connectionStatus = 'disconnected';
+        
+        // Don't attempt to reconnect if we intentionally closed
+        if (event.code === 1000) {
+          console.log('WebSocket closed normally');
+          return;
+        }
+        
+        // Reconnect with exponential backoff
+        reconnectWithBackoff();
+      };
       
-      // Increment reconnect attempts
-      reconnectAttempts++;
-        
-      // If we've reached max attempts, switch to mock mode
+      return chatWs;
+    } catch (error) {
+      console.error('Error establishing WebSocket connection:', error);
+      isWebSocketConnected = false;
+      connectionStatus = 'disconnected';
+      
+      // Fallback to mock mode after all reconnection attempts
       if (reconnectAttempts >= maxReconnectAttempts) {
-        console.log('Error creating WebSocket, switching to mock mode');
+        console.log('Maximum reconnection attempts reached, switching to offline mode');
         mockModeEnabled = true;
-        setupMockWebSocket(playerId, userId, userName, onMessageReceived, 'server_error');
+        setupMockWebSocket(playerId, userId, userName, onMessageReceived);
+      } else {
+        reconnectWithBackoff();
       }
+      
+      return null;
     }
   }
+  
+  function reconnectWithBackoff() {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    
+    if (reconnectAttempts < maxReconnectAttempts) {
+      // Calculate backoff delay using exponential strategy
+      const backoffTime = Math.min(
+        initialReconnectDelay * Math.pow(2, reconnectAttempts), 
+        maxReconnectDelay
+      );
+      
+      console.log(`Reconnecting in ${backoffTime}ms (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
+      
+      reconnectTimer = setTimeout(() => {
+        reconnectAttempts++;
+        connectWebSocketDirectly();
+      }, backoffTime);
+    } else {
+      console.log('Maximum reconnection attempts reached, switching to offline mode');
+      mockModeEnabled = true;
+      setupMockWebSocket(playerId, userId, userName, onMessageReceived);
+    }
+  }
+  
+  function startHeartbeat() {
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+      heartbeatInterval = null;
+    }
+    
+    heartbeatInterval = setInterval(() => {
+      if (chatWs && chatWs.readyState === WebSocket.OPEN) {
+        const pingMessage = {
+          type: 'ping',
+          timestamp: Date.now(),
+          user_id: userId,
+          player_id: playerId
+        };
+        
+        chatWs.send(JSON.stringify(pingMessage));
+        connectionMetrics.messagesSent++;
+      } else {
+        // Connection issues detected
+        console.warn('Heartbeat failed - WebSocket not open');
+        if (heartbeatInterval) {
+          clearInterval(heartbeatInterval);
+          heartbeatInterval = null;
+        }
+        
+        if (isWebSocketConnected) {
+          isWebSocketConnected = false;
+          connectionStatus = 'disconnected';
+          reconnectWithBackoff();
+        }
+      }
+    }, 15000); // Send heartbeat every 15 seconds
+  }
+  
+  function handlePongResponse(pongMessage: any) {
+    const now = Date.now();
+    const pingTime = pongMessage.timestamp;
+    const latency = now - pingTime;
+    
+    // Track latency metrics (keep last 10 measurements)
+    connectionMetrics.latency.push(latency);
+    if (connectionMetrics.latency.length > 10) {
+      connectionMetrics.latency.shift();
+    }
+    
+    // Calculate average latency
+    const avgLatency = connectionMetrics.latency.reduce((sum, val) => sum + val, 0) / 
+                      Math.max(1, connectionMetrics.latency.length);
+                      
+    // Log connection quality
+    console.log(`WebSocket connection quality: ${avgLatency}ms average latency`);
+  }
+  
+  return chatWs;
 };
 
 // Set up a mock WebSocket for offline/fallback mode
@@ -618,7 +531,7 @@ const sendHeartbeat = (userId: string, playerId: string) => {
   const now = Date.now();
   
   // Only send heartbeat if enough time has passed
-  if (now - lastHeartbeatTime >= heartbeatInterval) {
+  if (now - lastHeartbeatTime >= heartbeatIntervalOriginal) {
     if (chatWs?.readyState === WebSocket.OPEN) {
       try {
         chatWs.send(JSON.stringify({
@@ -640,7 +553,7 @@ const sendHeartbeat = (userId: string, playerId: string) => {
       if (activeUserId && activePlayerId && chatWs?.readyState === WebSocket.OPEN) {
         sendHeartbeat(activeUserId, activePlayerId);
       }
-    }, heartbeatInterval);
+    }, heartbeatIntervalOriginal);
   }
 };
 

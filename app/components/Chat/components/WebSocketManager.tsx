@@ -1,13 +1,14 @@
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { 
   initializeChatWebSocket, 
-  isWebSocketConnected,
-  isUsingMockWebSocket,
+  isWebSocketConnected, 
+  checkServerAvailability, 
+  isUsingMockWebSocket, 
   resetMockMode,
-  sendPendingMessages 
+  sendPendingMessages
 } from '@/app/lib/socket';
-import { IoRefresh, IoWarning } from 'react-icons/io5';
+import { IoWarning, IoRefresh, IoInformationCircle } from 'react-icons/io5';
 
 interface WebSocketManagerProps {
   playerId: string;
@@ -24,231 +25,141 @@ const WebSocketManager = ({
   onMessageReceived,
   onConnectionStatusChange
 }: WebSocketManagerProps) => {
-  // Create a ref to track initialization
-  const wsInitialized = useRef(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [diagnosticInfo, setDiagnosticInfo] = useState<any>(null);
-  const [is502Error, setIs502Error] = useState(false);
-  const [is403Error, setIs403Error] = useState(false);
-  
-  // Track connection status changes
-  useEffect(() => {
-    // Report connection status to parent component
-    if (onConnectionStatusChange) {
-      let status: 'connected' | 'connecting' | 'disconnected' = 'disconnected';
-      
-      if (isWebSocketConnected) {
-        status = 'connected';
-        // Try to send any pending messages when we reconnect
-        sendPendingMessages();
-      } else if (wsInitialized.current) {
-        status = 'connecting';
-      }
-      
-      onConnectionStatusChange(status, isUsingMockWebSocket);
-    }
-  }, [isWebSocketConnected, isUsingMockWebSocket, onConnectionStatusChange]);
+  const [lastConnectionAttempt, setLastConnectionAttempt] = useState(0);
+  const [shouldShowRefreshButton, setShouldShowRefreshButton] = useState(false);
 
-  // First check if the server is available using our API
-  useEffect(() => {
-    // Only try to connect if we have the required data
-    if (!playerId || !userId) {
-      console.log('Missing player ID or user ID, skipping WebSocket initialization');
+  // Function to initialize the WebSocket connection
+  const initializeWebSocket = useCallback(() => {
+    if (!playerId) {
+      setConnectionError('Missing player ID. Please refresh the page.');
       return;
     }
-    
-    // First check if chat server is available via our API
-    const checkServerAvailability = async () => {
-      try {
-        const response = await fetch(`/api/ws/chat?player_id=${playerId}`);
-        
-        if (!response.ok) {
-          console.warn(`Server availability check returned ${response.status} ${response.statusText}`);
-          // Still initialize to trigger fallback mode
-          initializeWebSocket();
-          return;
-        }
-        
-        const data = await response.json();
-        console.log('Server availability check response:', data);
-        
-        // Store diagnostic info for debugging
-        if (data.diagnostics) {
-          setDiagnosticInfo(data.diagnostics);
-        }
-        
-        // With our simplified API, the server is always considered available
-        // We'll just use the wsUrl provided by the API
-        if (data.wsUrl) {
-          console.log('Using WebSocket URL from API:', data.wsUrl);
-          setConnectionError(null);
-          setIs403Error(false);
-          setIs502Error(false);
-          initializeWebSocket(data.wsUrl);
-        } else {
-          console.warn('API did not return a WebSocket URL');
-          // Initialize anyway to trigger fallback/offline mode
-          initializeWebSocket();
-        }
-      } catch (error) {
-        console.error('Error checking chat server availability:', error);
-        setConnectionError('Unable to connect to chat server. Please check your internet connection and try again later.');
-        // Still initialize to trigger fallback mode
-        initializeWebSocket();
-      }
-    };
-    
-    // Initialize WebSocket connection
-    const initializeWebSocket = (wsUrl?: string) => {
-      // Prevent multiple initialization attempts
-      if (wsInitialized.current) {
-        console.log('WebSocket already initialized, skipping');
-        return;
-      }
-      
-      // Mark as initialized immediately to prevent multiple connections
-      wsInitialized.current = true;
-      
-      // Create a unique identifier for this connection
-      const connectionId = `conn-${Date.now()}`;
-      console.log(`Creating WebSocket connection with ID: ${connectionId}`);
-      
-      console.log('Initializing chat WebSocket with:', { 
-        playerId, 
-        userId, 
-        userName
-      });
-      
-      // Create a direct message handler specifically for this connection
-      const handleIncomingMessage = (message: any) => {
-        // If this is a system message about connection issues, show it to the user
-        if (message.is_system_message) {
-          setConnectionError(message.message);
-        }
-        
-        // Enhance the message with better sender name if available
-        if (message.sender_name === "Unknown" && userName) {
-          if (message.is_player_sender) {
-            message.sender_name = userName;
-          }
-        }
-        
-        // Pass to the provided callback
-        onMessageReceived(message);
-      };
-      
-      // Initialize the connection with our handler
-      initializeChatWebSocket(playerId, userId, userName || 'User', handleIncomingMessage);
-    };
-    
-    // Check before initializing
-    checkServerAvailability();
-    
-    // Only check connection status periodically
-    const connectionStatusInterval = setInterval(() => {
-      if (!isWebSocketConnected && wsInitialized.current) {
-        console.log('WebSocket disconnected, updating status');
-        setRetryCount(prev => prev + 1);
-        
-        // If we've tried several times, show an error to the user
-        if (retryCount > 3 && !connectionError) {
-          setConnectionError('Unable to establish connection to chat server. Messages will be stored locally.');
-        }
-        
-        // Report status change
-        if (onConnectionStatusChange) {
-          onConnectionStatusChange('disconnected', isUsingMockWebSocket);
-        }
-      } else if (isWebSocketConnected) {
-        // Clear error when connected
-        setConnectionError(null);
-        setRetryCount(0);
-        setIs502Error(false);
-        setIs403Error(false);
-      }
-    }, 10000); // Check every 10 seconds
-    
-    // Clean up function
-    return () => {
-      console.log(`Cleaning up WebSocket connection`);
-      clearInterval(connectionStatusInterval);
-      wsInitialized.current = false;
-    };
-  }, [playerId, userId, userName, onMessageReceived, connectionError, retryCount, onConnectionStatusChange, is502Error, is403Error]);
 
-  // Manual reconnection function
-  const handleManualReconnect = () => {
-    if (wsInitialized.current) {
-      // Reset mock mode to try a real connection again
-      resetMockMode();
-      
-      // Clear the error
+    try {
+      // Directly initialize WebSocket connection without health check
+      console.log('Initializing WebSocket connection directly');
       setConnectionError(null);
-      setRetryCount(0);
-      setIs502Error(false);
-      setIs403Error(false);
       
-      // Reinitialize
-      wsInitialized.current = false;
-      if (playerId && userId) {
-        initializeChatWebSocket(playerId, userId, userName || 'User', onMessageReceived);
-      }
+      // This will handle reconnection internally
+      initializeChatWebSocket(playerId, userId, userName, onMessageReceived);
+      
+      // Record connection attempt time
+      setLastConnectionAttempt(Date.now());
+    } catch (error) {
+      console.error('Error initializing WebSocket:', error);
+      setConnectionError(`Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  };
+  }, [playerId, userId, userName, onMessageReceived]);
 
-  // Handle refreshing auth
-  const handleRefreshAuth = () => {
-    // The actual implementation would depend on your auth system
-    // This is a placeholder to trigger page refresh
-    window.location.reload();
-  };
+  // Initial connection setup
+  useEffect(() => {
+    console.log('Setting up WebSocket connection');
+    initializeWebSocket();
+    
+    // Update connection status
+    const statusInterval = setInterval(() => {
+      if (onConnectionStatusChange) {
+        onConnectionStatusChange(
+          isWebSocketConnected ? 'connected' : isUsingMockWebSocket ? 'disconnected' : 'connecting',
+          isUsingMockWebSocket
+        );
+      }
+      
+      // If we're in mock mode and it's been more than a minute since last try, show refresh
+      if (isUsingMockWebSocket && Date.now() - lastConnectionAttempt > 60000) {
+        setShouldShowRefreshButton(true);
+      }
+    }, 2000);
+    
+    return () => {
+      clearInterval(statusInterval);
+    };
+  }, [initializeWebSocket, onConnectionStatusChange, lastConnectionAttempt]);
 
-  // Show connection error message if there is one
-  if (connectionError && !isWebSocketConnected)
-    return (
-      <div className="p-3 bg-red-500/10 text-red-300 border border-red-500/30 rounded-lg mb-4 text-sm">
-        <div className="flex items-start gap-2">
-          <IoWarning className="w-5 h-5 text-red-400 flex-shrink-0 mt-1" />
-          <div className="flex-1">
-            <p>{connectionError}</p>
-            <div className="flex mt-3 gap-2 flex-wrap">
-              {retryCount > 3 && (
-                <button 
-                  onClick={handleManualReconnect}
-                  className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 rounded text-red-200 transition-colors flex items-center gap-1"
-                >
-                  <IoRefresh className="w-4 h-4" />
-                  <span>Try reconnecting</span>
-                </button>
-              )}
-              
-              {is403Error && (
-                <button 
-                  onClick={handleRefreshAuth}
-                  className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 rounded text-blue-200 transition-colors flex items-center gap-1"
-                >
-                  <IoRefresh className="w-4 h-4" />
-                  <span>Refresh Session</span>
-                </button>
-              )}
-            </div>
-            
-            {(is502Error || is403Error) && diagnosticInfo && (
-              <details className="mt-3 text-xs opacity-70">
-                <summary className="cursor-pointer hover:text-white">Diagnostic Info</summary>
-                <pre className="mt-1 p-2 bg-black/30 rounded overflow-x-auto max-w-full">
-                  {JSON.stringify(diagnosticInfo, null, 2)}
-                </pre>
-              </details>
-            )}
+  // Handle manual reconnection
+  const handleManualReconnect = useCallback(() => {
+    console.log('Manual reconnection initiated');
+    setRetryCount(prev => prev + 1);
+    setLastConnectionAttempt(Date.now());
+    setShouldShowRefreshButton(false);
+    
+    // Reset the mock mode flag to try a real connection again
+    resetMockMode();
+    
+    // Reinitialize the connection
+    initializeWebSocket();
+  }, [initializeWebSocket]);
+  
+  // Handle session refresh for auth errors
+  const handleRefreshAuth = useCallback(() => {
+    console.log('Auth refresh initiated');
+    
+    // Redirect to auth page or refresh token
+    try {
+      if (typeof window !== 'undefined') {
+        // Try to refresh the page to get a new session
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error refreshing auth:', error);
+    }
+  }, []);
+
+  // Show connection error if there is one
+  return (
+    <>
+      {connectionError && (
+        <div className="bg-red-500/20 p-3 m-3 rounded-lg border border-red-500/30 text-white">
+          <div className="flex items-center mb-2">
+            <IoWarning className="text-red-400 mr-2 w-5 h-5" />
+            <h3 className="font-semibold">Connection Error</h3>
           </div>
+          <p className="text-sm mb-3 text-white/80">{connectionError}</p>
+          
+          {shouldShowRefreshButton && (
+            <button 
+              onClick={handleManualReconnect}
+              className="bg-[#00ffff]/20 hover:bg-[#00ffff]/30 text-[#00ffff] py-1.5 px-3 rounded flex items-center justify-center w-full"
+            >
+              <IoRefresh className="mr-1.5" /> Try Reconnecting
+            </button>
+          )}
+          
+          {connectionError.includes('403') && (
+            <button 
+              onClick={handleRefreshAuth}
+              className="mt-2 bg-[#ff00ff]/20 hover:bg-[#ff00ff]/30 text-[#ff00ff] py-1.5 px-3 rounded flex items-center justify-center w-full"
+            >
+              <IoRefresh className="mr-1.5" /> Refresh Session
+            </button>
+          )}
         </div>
-      </div>
-    );
-
-  // This component doesn't render anything when connected
-  return null;
+      )}
+      
+      {isUsingMockWebSocket && !connectionError && (
+        <div className="bg-yellow-500/20 p-3 m-3 rounded-lg border border-yellow-500/30 text-white">
+          <div className="flex items-center mb-2">
+            <IoInformationCircle className="text-yellow-400 mr-2 w-5 h-5" />
+            <h3 className="font-semibold">Offline Mode</h3>
+          </div>
+          <p className="text-sm mb-3 text-white/80">
+            You are currently using the app in offline mode. Messages will be stored locally and sent when you reconnect.
+          </p>
+          
+          {shouldShowRefreshButton && (
+            <button 
+              onClick={handleManualReconnect}
+              className="bg-[#00ffff]/20 hover:bg-[#00ffff]/30 text-[#00ffff] py-1.5 px-3 rounded flex items-center justify-center w-full"
+            >
+              <IoRefresh className="mr-1.5" /> Try Reconnecting
+            </button>
+          )}
+        </div>
+      )}
+    </>
+  );
 };
 
 export default WebSocketManager; 
