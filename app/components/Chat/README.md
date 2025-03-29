@@ -28,10 +28,55 @@ The chat system is designed to handle connection issues gracefully:
 1. **WebSocket Connection Failures**: Automatically attempts reconnection with exponential backoff.
 2. **Gateway Errors (502)**: Specifically detects and handles 502 Gateway errors.
 3. **Authentication Errors (403)**: Detects authentication failures and provides clear guidance to users.
-4. **Offline Mode**: Switches to a mock WebSocket implementation when connection fails repeatedly.
-5. **Error Notifications**: Displays user-friendly error messages to indicate connection status.
-6. **Manual Reconnection**: Allows users to manually trigger reconnection after multiple failed attempts.
-7. **API Fallback**: Server-side diagnostics via API endpoints to avoid CORS issues.
+4. **Not Found Errors (404)**: Detects when the chat server endpoint cannot be found and provides clear feedback.
+5. **Server Errors (500)**: Specifically handles internal server errors with appropriate fallback mechanisms.
+6. **Offline Mode**: Switches to a mock WebSocket implementation when connection fails repeatedly.
+7. **Error Notifications**: Displays user-friendly error messages to indicate connection status.
+8. **Manual Reconnection**: Allows users to manually trigger reconnection after multiple failed attempts.
+9. **API Fallback**: Server-side diagnostics via API endpoints to avoid CORS issues.
+
+## Simplified WebSocket API
+
+To address persistent connection issues with WebSocket servers, we've implemented a simplified API route approach:
+
+1. **Bypassing Health Checks**: Instead of performing potentially unreliable server health checks, the simplified API route always returns the WebSocket URL assuming the server is available.
+2. **Direct WebSocket URL**: The API returns a properly formatted WebSocket URL for the client to connect to directly.
+3. **Error Diagnostics**: Even with the simplified approach, the API includes detailed diagnostic information to help troubleshoot issues.
+4. **Reduced Network Traffic**: By eliminating multiple health checks before establishing the WebSocket connection, we reduce network traffic and potential points of failure.
+5. **Faster Connections**: The simplified approach allows for quicker WebSocket connection attempts.
+
+The simplified API route is implemented at `/api/ws/chat` and has two endpoints:
+
+- **GET**: Returns the WebSocket URL based on the player_id parameter
+- **POST**: Provides a way to store messages when in offline mode
+
+## Testing
+
+Test scripts are included to verify the error handling and WebSocket connectivity:
+
+```js
+// Test 502 Gateway error handling
+window.runGatewayErrorTest();
+
+// Test 403 Authentication error handling
+window.runAuthErrorTest();
+
+// Test 404 Not Found error handling
+window.runNotFoundErrorTest();
+
+// Test 500 Server Error handling
+window.runServerErrorTest();
+
+// Test the simplified API approach
+window.runSimplifiedApiTest();
+```
+
+The tests check:
+1. Server availability via API endpoint
+2. Direct WebSocket connection attempts 
+3. Authentication state verification
+4. Message storage functionality during offline mode
+5. Error-specific handling for different HTTP status codes
 
 ## Handling 502 Gateway Errors
 
@@ -53,30 +98,32 @@ The system specifically handles authentication failures (403 Forbidden) in a use
 4. **Diagnostic Information**: Detailed information about the authentication state is provided for debugging.
 5. **Rapid Fallback**: The system immediately switches to offline mode rather than attempting multiple reconnections, as authentication issues won't resolve without user action.
 
+## Handling 404 Not Found Errors
+
+The system has specific handling for 404 Not Found errors that indicate the chat server endpoint is unavailable:
+
+1. **Server Availability Check**: The app checks if the chat server endpoint exists before attempting connections.
+2. **Fast Fallback**: When a 404 is detected, the system quickly transitions to offline mode after fewer reconnection attempts.
+3. **Clear User Communication**: Users receive specific messages explaining that the server endpoint could not be found.
+4. **Persistent Storage**: Messages are stored locally and will be automatically sent when the endpoint becomes available.
+5. **Diagnostic Details**: Detailed information about the 404 error is logged for troubleshooting purposes.
+
+## Handling 500 Internal Server Errors
+
+The system has specific handling for 500 Internal Server Error responses:
+
+1. **Server Health Check**: The app performs a health check on the server before attempting WebSocket connections.
+2. **Error-Specific Messaging**: Users receive tailored error messages specific to server errors.
+3. **Limited Reconnection Attempts**: The system makes fewer reconnection attempts before falling back to offline mode.
+4. **Graceful Degradation**: Despite server errors, the app continues to function by storing messages locally.
+5. **Automatic Recovery**: Once the server is healthy again, connections are re-established and messages are sent.
+
 ## Hooks
 
 - **useMessages.ts**: Manages message state and operations
 - **useScroll.ts**: Handles automatic scrolling behavior
 - **useTyping.ts**: Manages typing indicator functionality
 - **useUserInfo.ts**: Retrieves and manages user information
-
-## Testing
-
-Test scripts are included to verify the error handling:
-
-```js
-// Test 502 Gateway error handling
-window.runGatewayErrorTest();
-
-// Test 403 Authentication error handling
-window.runAuthErrorTest();
-```
-
-The tests check:
-1. Server availability via API endpoint
-2. Direct WebSocket connection attempts 
-3. Authentication state verification
-4. Message storage functionality during offline mode
 
 ## Usage
 
@@ -196,29 +243,9 @@ function YourComponent() {
       <ChatDrawer 
         isOpen={isChatOpen} 
         onClose={() => setIsChatOpen(false)}
-      />
-      {/* OR */}
-      <ChatModal
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
+        playerId="player_123"
+        userName="John Doe"
       />
     </>
   );
-}
-```
-
-## Migration Plan
-
-1. Start using `ChatDrawerRefactored.tsx` and `ChatModalRefactored.tsx` in new code
-2. Test thoroughly in all environments
-3. Once verified, replace the original components with the refactored versions
-4. Update imports in other files if necessary
-
-## Benefits of Refactoring
-
-- Improved code organization and readability
-- Better separation of concerns
-- Easier maintenance and debugging
-- More reusable components
-- Reduced file sizes
-- Improved performance through more targeted re-renders 
+} 

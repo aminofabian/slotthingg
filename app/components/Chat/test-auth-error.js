@@ -44,8 +44,8 @@ async function testAuthenticationErrorHandling() {
       // Check if we got a 403 response
       if (data.status === 403) {
         console.log('✅ Correctly detected 403 Forbidden error');
-      } else if (!data.available) {
-        console.log('⚠️ Server unavailable but not due to authentication (status: ' + data.status + ')');
+      } else if (!data.isAvailable) {
+        console.log('Server reported as unavailable:', data);
       } else {
         console.log('⚠️ Server available - no authentication error detected. Test may not be valid.');
       }

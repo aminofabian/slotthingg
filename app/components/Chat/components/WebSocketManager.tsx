@@ -65,7 +65,6 @@ const WebSocketManager = ({
         
         if (!response.ok) {
           console.warn(`Server availability check returned ${response.status} ${response.statusText}`);
-          setConnectionError(`Unable to check chat server: ${response.status} ${response.statusText}. Please try again later.`);
           // Still initialize to trigger fallback mode
           initializeWebSocket();
           return;
@@ -79,31 +78,16 @@ const WebSocketManager = ({
           setDiagnosticInfo(data.diagnostics);
         }
         
-        if (data.available) {
-          console.log('Chat server is available, initializing WebSocket');
+        // With our simplified API, the server is always considered available
+        // We'll just use the wsUrl provided by the API
+        if (data.wsUrl) {
+          console.log('Using WebSocket URL from API:', data.wsUrl);
           setConnectionError(null);
           setIs403Error(false);
           setIs502Error(false);
-          initializeWebSocket();
+          initializeWebSocket(data.wsUrl);
         } else {
-          // Check specifically for errors
-          if (data.status === 502) {
-            console.warn('Chat server returned 502 Bad Gateway');
-            setIs502Error(true);
-            setIs403Error(false);
-            setConnectionError('The chat server is experiencing a gateway error (502). Messages will be stored locally until the connection is restored.');
-          } else if (data.status === 403) {
-            console.warn('Chat server returned 403 Forbidden - Authentication issue');
-            setIs403Error(true);
-            setIs502Error(false);
-            setConnectionError('Authentication error (403 Forbidden). You may need to log in again or refresh your session token.');
-          } else {
-            console.warn('Chat server is unavailable:', data.error || 'Unknown error');
-            setIs403Error(false);
-            setIs502Error(false);
-            setConnectionError(`Chat server is currently unavailable. ${data.error || 'Please try again later.'}`);
-          }
-          
+          console.warn('API did not return a WebSocket URL');
           // Initialize anyway to trigger fallback/offline mode
           initializeWebSocket();
         }
@@ -116,7 +100,7 @@ const WebSocketManager = ({
     };
     
     // Initialize WebSocket connection
-    const initializeWebSocket = () => {
+    const initializeWebSocket = (wsUrl?: string) => {
       // Prevent multiple initialization attempts
       if (wsInitialized.current) {
         console.log('WebSocket already initialized, skipping');
@@ -172,11 +156,6 @@ const WebSocketManager = ({
           setConnectionError('Unable to establish connection to chat server. Messages will be stored locally.');
         }
         
-        // Check again if we've been trying for a while and there's no explicit error
-        if (retryCount > 5 && !is502Error && !is403Error) {
-          checkServerAvailability();
-        }
-        
         // Report status change
         if (onConnectionStatusChange) {
           onConnectionStatusChange('disconnected', isUsingMockWebSocket);
@@ -226,7 +205,7 @@ const WebSocketManager = ({
   };
 
   // Show connection error message if there is one
-  if (connectionError && !isWebSocketConnected) {
+  if (connectionError && !isWebSocketConnected)
     return (
       <div className="p-3 bg-red-500/10 text-red-300 border border-red-500/30 rounded-lg mb-4 text-sm">
         <div className="flex items-start gap-2">
@@ -267,7 +246,6 @@ const WebSocketManager = ({
         </div>
       </div>
     );
-  }
 
   // This component doesn't render anything when connected
   return null;
