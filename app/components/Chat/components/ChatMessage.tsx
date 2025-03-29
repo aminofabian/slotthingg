@@ -40,6 +40,19 @@ interface ChatMessageProps {
   isConsecutive: boolean;
 }
 
+const formatMessageText = (text: string): string => {
+  // First replace <br> tags with actual line breaks
+  text = text.replace(/<br\s*\/?>/gi, '\n');
+  
+  // Extract any bold text while escaping other HTML
+  text = text.replace(/<b>(.*?)<\/b>/gi, '*$1*');
+  
+  // Remove any remaining HTML tags
+  text = text.replace(/<[^>]*>/g, '');
+  
+  return text;
+};
+
 const ChatMessage = ({
   message,
   isPlayerMessage,
@@ -109,10 +122,20 @@ const ChatMessage = ({
           )
         ) : null}
         
-        {/* Message text */}
+        {/* Message text with proper formatting */}
         {message.message && (
           <p className="text-sm sm:text-base whitespace-pre-wrap break-words leading-relaxed">
-            {message.message}
+            {formatMessageText(message.message).split('\n').map((line, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <br />}
+                {line.split(/(\*[^*]+\*)/).map((part, j) => {
+                  if (part.startsWith('*') && part.endsWith('*')) {
+                    return <strong key={j}>{part.slice(1, -1)}</strong>;
+                  }
+                  return part;
+                })}
+              </React.Fragment>
+            ))}
           </p>
         )}
         
