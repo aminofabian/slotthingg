@@ -53,6 +53,12 @@ const formatMessageText = (text: string): string => {
   return text;
 };
 
+// Helper to check if message is a balance update
+const isBalanceUpdate = (message: string): boolean => {
+  return message.includes('Your account has been') && 
+         (message.includes('topped up') || message.includes('withdrawn'));
+};
+
 const ChatMessage = ({
   message,
   isPlayerMessage,
@@ -67,6 +73,27 @@ const ChatMessage = ({
     return format(new Date(timestamp), 'h:mm a');
   };
 
+  // If it's a balance update message, use a different layout
+  if (isBalanceUpdate(message.message)) {
+    return (
+      <div className="flex justify-center mb-4">
+        <div className="text-center">
+          {formatMessageText(message.message).split('\n').map((line, i) => (
+            <p key={i} className="text-white/70 italic text-sm">
+              {line.split(/(\*[^*]+\*)/).map((part, j) => {
+                if (part.startsWith('*') && part.endsWith('*')) {
+                  return <strong key={j} className="text-[#00ffff] not-italic">{part.slice(1, -1)}</strong>;
+                }
+                return part;
+              })}
+            </p>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Regular message layout
   return (
     <div className={`flex ${isPlayerMessage ? 'justify-end' : 'justify-start'} ${isConsecutive ? 'mb-1' : 'mb-4'}`}>
       <div 
@@ -124,13 +151,14 @@ const ChatMessage = ({
         
         {/* Message text with proper formatting */}
         {message.message && (
-          <p className="text-sm sm:text-base whitespace-pre-wrap break-words leading-relaxed">
+          <p className={`text-sm sm:text-base whitespace-pre-wrap break-words leading-relaxed
+            ${isBalanceUpdate(message.message) ? 'text-white/70 italic' : ''}`}>
             {formatMessageText(message.message).split('\n').map((line, i) => (
               <React.Fragment key={i}>
                 {i > 0 && <br />}
                 {line.split(/(\*[^*]+\*)/).map((part, j) => {
                   if (part.startsWith('*') && part.endsWith('*')) {
-                    return <strong key={j}>{part.slice(1, -1)}</strong>;
+                    return <strong key={j} className="text-[#00ffff]">{part.slice(1, -1)}</strong>;
                   }
                   return part;
                 })}
