@@ -16,7 +16,7 @@ interface ProfileData {
   dob: string;
   state: string;
   balance: string;
-  cashable_balance: string;
+  winning_balance: string;
   bonus_balance: string;
 }
 
@@ -70,7 +70,7 @@ export default function ProfilePage() {
 
   const profileStats = {
     balance: profileData ? `$${profileData.balance}` : '$0',
-    cashableBalance: profileData ? `$${profileData.cashable_balance}` : '$0',
+    winning_balance: profileData ? `$${profileData.winning_balance}` : '$0',
     bonusBalance: profileData ? `$${profileData.bonus_balance}` : '$0',
     xp: 500
   };

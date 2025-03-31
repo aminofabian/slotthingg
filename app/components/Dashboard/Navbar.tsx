@@ -48,6 +48,7 @@ const Navbar = () => {
     cashable_balance: string;
     bonus_balance: string;
     full_name: string;
+    winning_balance: string;
   } | null>(null);
   const openChat = useChatStore((state) => state.open);
 
@@ -104,7 +105,7 @@ const Navbar = () => {
       title: 'Stats',
       items: [
         { label: 'Main Balance', value: profileData ? `$${profileData.balance}` : '$0', icon: BiMoney, type: 'stat' },
-        { label: 'Cashable Balance', value: profileData ? `$${profileData.cashable_balance}` : '$0', icon: GiTakeMyMoney, type: 'stat' },
+        { label: 'Winnings', value: profileData ? `$${profileData.winning_balance}` : '$0', icon: GiTakeMyMoney, type: 'stat' },
         { label: 'Bonus Balance', value: profileData ? `$${profileData.bonus_balance}` : '$0', icon: BiMoney, type: 'stat' },
         { label: 'Safe Balance', value: '$0', icon: GiDiamonds, type: 'stat' },
       ]

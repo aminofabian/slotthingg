@@ -3,7 +3,7 @@ import { GiTakeMyMoney, GiDiamonds, GiStarsStack } from 'react-icons/gi';
 
 interface ProfileStats {
   balance: string;
-  cashableBalance: string;
+  winning_balance: string;
   bonusBalance: string;
   xp: number;
 }
@@ -11,7 +11,7 @@ interface ProfileStats {
 const StatsGrid = ({ stats }: { stats: ProfileStats }) => {
   const statItems = [
     { label: 'Total Balance', value: stats.balance, icon: BiMoney },
-    { label: 'Cashable', value: stats.cashableBalance, icon: GiTakeMyMoney },
+    { label: 'Winnings', value: stats.winning_balance, icon: GiTakeMyMoney },
     { label: 'Bonus', value: stats.bonusBalance, icon: GiDiamonds },
     { label: 'XP', value: stats.xp, icon: GiStarsStack },
   ];
