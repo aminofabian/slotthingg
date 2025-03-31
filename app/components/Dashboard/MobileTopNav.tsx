@@ -1,28 +1,64 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BiMoney, BiWallet } from 'react-icons/bi';
 import { GiDiamonds, GiStarsStack } from 'react-icons/gi';
 import { MotionDiv } from '@/app/types/motion';
 
-const stats = [
-  { 
-    label: 'Credits', 
-    value: '$20', 
-    icon: BiMoney,
-    symbol: '$',
-    color: 'emerald'
-  },
-  { 
-    label: 'Winnings', 
-    value: '$10', 
-    icon: BiWallet,
-    symbol: '$',
-    color: 'purple'
-  },
-];
+interface ProfileData {
+  balance: string;
+  winning_balance: string;
+}
 
 const MobileTopNav = () => {
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/auth/profile', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch profile data');
+        }
+
+        const data = await response.json();
+        setProfileData(data);
+      } catch (err) {
+        console.error('Error fetching profile data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, []);
+
+  const stats = [
+    { 
+      label: 'Credits', 
+      value: profileData ? `$${profileData.balance}` : '$0', 
+      icon: BiMoney,
+      symbol: '$',
+      color: 'emerald'
+    },
+    { 
+      label: 'Winnings', 
+      value: profileData ? `$${profileData.winning_balance}` : '$0', 
+      icon: BiWallet,
+      symbol: '$',
+      color: 'purple'
+    },
+  ];
+
   const getColorClasses = (color: string) => {
     switch (color) {
       case 'emerald':
@@ -77,7 +113,11 @@ const MobileTopNav = () => {
                             layout
                             className="text-xs font-bold truncate"
                           >
-                            {stat.value}
+                            {isLoading ? (
+                              <div className="h-5 w-16 bg-current/10 rounded animate-pulse" />
+                            ) : (
+                              stat.value
+                            )}
                           </MotionDiv>
                         </div>
 
