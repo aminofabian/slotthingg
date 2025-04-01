@@ -19,16 +19,92 @@ import {
   CircleMinus, 
   Gamepad
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: Game }) {
-  const { games, isRefreshing } = useGameStore();
+  const { games, isRefreshing, fetchGames } = useGameStore();
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+  const [isAddingGame, setIsAddingGame] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Find the game from the full games list
   useEffect(() => {
     const fullGameInfo = games.find(g => g.code === game.code);
     setSelectedGame(fullGameInfo || game);
   }, [game, games]);
+
+  // Determine if this game is already in user's games
+  const isUserGame = Boolean(game.game_user);
+
+  const handleAddGame = async () => {
+    if (!selectedGame) return;
+    
+    setIsAddingGame(true);
+    setError(null);
+
+    try {
+      // Get token from multiple sources
+      let token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+      
+      // If no token in cookies, try localStorage
+      if (!token) {
+        const localStorageToken = localStorage.getItem('accessToken');
+        if (localStorageToken) {
+          token = localStorageToken;
+        }
+      }
+
+      // Get whitelabel_admin_uuid from localStorage
+      const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
+      const user_id = localStorage.getItem('user_id');
+
+      if (!whitelabel_admin_uuid || !user_id || !token) {
+        console.error('Missing auth data:', { 
+          hasToken: !!token, 
+          hasUUID: !!whitelabel_admin_uuid, 
+          hasUserId: !!user_id 
+        });
+        throw new Error('Missing required authentication data. Please log in again.');
+      }
+
+      const response = await fetch('https://serverhub.biz/games/add-user-game/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          whitelabel_admin_uuid,
+          user_id,
+          game_id: selectedGame.id
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        
+        // If authentication error, redirect to login
+        if (response.status === 401 || response.status === 403) {
+          localStorage.clear();
+          document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+          return;
+        }
+        
+        throw new Error(errorData.message || 'Failed to add game');
+      }
+
+      // Refresh games list after successful addition
+      await fetchGames();
+      toast.success('Game added successfully!');
+      onClose();
+    } catch (err) {
+      console.error('Error adding game:', err);
+      setError(err instanceof Error ? err.message : 'Failed to add game');
+    } finally {
+      setIsAddingGame(false);
+    }
+  };
 
   if (!selectedGame) return null;
 
@@ -125,40 +201,74 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
                   </div>
                 </div>
 
+                {/* Error Message */}
+                {error && (
+                  <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <p className="text-red-400 text-sm">{error}</p>
+                  </div>
+                )}
+
                 {/* Action Buttons */}
                 <div className="space-y-4">
-                  {/* Recharge and Redeem Buttons */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <button 
-                      className="flex items-center justify-center gap-2 p-4
-                        bg-[#6f42c1] text-white rounded-xl text-lg font-medium
-                        hover:bg-[#6f42c1]/80 transition-all duration-300
-                        border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40"
-                    >
-                      <Plus className="w-5 h-5" />
-                      Recharge
-                    </button>
-                    <button
-                      className="flex items-center justify-center gap-2 p-4
-                        bg-[#fd7e14] text-white rounded-xl text-lg font-medium
-                        hover:bg-[#fd7e14]/80 transition-all duration-300
-                        border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40"
-                    >
-                      <CircleMinus className="w-5 h-5" />
-                      Redeem
-                    </button>
-                  </div>
+                  {isUserGame ? (
+                    <>
+                      {/* Recharge and Redeem Buttons for user games */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <button 
+                          className="flex items-center justify-center gap-2 p-4
+                            bg-[#6f42c1] text-white rounded-xl text-lg font-medium
+                            hover:bg-[#6f42c1]/80 transition-all duration-300
+                            border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40"
+                        >
+                          <Plus className="w-5 h-5" />
+                          Recharge
+                        </button>
+                        <button
+                          className="flex items-center justify-center gap-2 p-4
+                            bg-[#fd7e14] text-white rounded-xl text-lg font-medium
+                            hover:bg-[#fd7e14]/80 transition-all duration-300
+                            border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40"
+                        >
+                          <CircleMinus className="w-5 h-5" />
+                          Redeem
+                        </button>
+                      </div>
 
-                  {/* Play Now Button */}
-                  <button 
-                    className="w-full p-4 bg-gradient-to-r from-[#1a1f2d] to-[#2d3449]
-                      text-[#7ffdfd] rounded-xl text-xl font-bold border border-[#7ffdfd]/30
-                      hover:border-[#7ffdfd]/60 hover:from-[#1a1f2d]/90 hover:to-[#2d3449]/90
-                      transition-all duration-300 flex items-center justify-center gap-3"
-                  >
-                    <Gamepad2 className="w-6 h-6" />
-                    Play Now
-                  </button>
+                      {/* Play Now Button */}
+                      <button 
+                        className="w-full p-4 bg-gradient-to-r from-[#1a1f2d] to-[#2d3449]
+                          text-[#7ffdfd] rounded-xl text-xl font-bold border border-[#7ffdfd]/30
+                          hover:border-[#7ffdfd]/60 hover:from-[#1a1f2d]/90 hover:to-[#2d3449]/90
+                          transition-all duration-300 flex items-center justify-center gap-3"
+                      >
+                        <Gamepad2 className="w-6 h-6" />
+                        Play Now
+                      </button>
+                    </>
+                  ) : (
+                    /* Add Game Button for non-user games */
+                    <button 
+                      onClick={handleAddGame}
+                      disabled={isAddingGame}
+                      className="w-full p-4 bg-gradient-to-r from-[#1a1f2d] to-[#2d3449]
+                        text-[#7ffdfd] rounded-xl text-xl font-bold border border-[#7ffdfd]/30
+                        hover:border-[#7ffdfd]/60 hover:from-[#1a1f2d]/90 hover:to-[#2d3449]/90
+                        transition-all duration-300 flex items-center justify-center gap-3
+                        disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isAddingGame ? (
+                        <>
+                          <div className="w-6 h-6 border-2 border-[#7ffdfd] border-t-transparent rounded-full animate-spin" />
+                          <span>Adding Game...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-6 h-6" />
+                          <span>Add Game</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </Dialog.Panel>
             </Transition.Child>
