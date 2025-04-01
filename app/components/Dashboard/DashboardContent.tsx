@@ -339,20 +339,16 @@ export default function DashboardContent() {
   const handleOpenGameSelection = async () => {
     console.log('Opening game selection modal...');
     console.log('Current games state:', {
-      gamesCount: games.length,
-      userGamesCount: userGames.length,
+      totalGames: games.length,
+      userGameCodes: userGames.map(g => g.code),
+      allGameCodes: games.map(g => g.code),
+      availableGames: games.filter(game => !userGames.some(userGame => userGame.code === game.code)).length,
       isLoading,
       error
     });
     
     try {
       await fetchGames();
-      console.log('Games fetched successfully, new state:', {
-        gamesCount: games.length,
-        userGamesCount: userGames.length,
-        isLoading,
-        error
-      });
     } catch (error) {
       console.error('Error fetching games:', error);
     }
@@ -409,7 +405,7 @@ export default function DashboardContent() {
       <GameSelectionModal 
         isOpen={isGameSelectionOpen}
         onClose={() => setIsGameSelectionOpen(false)}
-        games={games}
+        games={games.filter(game => !userGames.some(userGame => userGame.code === game.code))}
         onSelectGame={handleGameSelect}
       />
 
