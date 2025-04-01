@@ -21,20 +21,131 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+function UserGameModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: Game }) {
+  return (
+    <Transition appear show={isOpen} as={Fragment}>
+      <Dialog as="div" className="relative z-50" onClose={onClose}>
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-black/80" />
+        </Transition.Child>
+
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl 
+                bg-[#1a1f2d] p-6 shadow-xl transition-all">
+                <div className="space-y-6">
+                  {/* Header with Game Info */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-12 h-12 rounded-lg overflow-hidden">
+                        <Image
+                          src={`/Game Logos/games/${game.code === 'gameroom' ? 'GAMEROOM' : game.code.toUpperCase()}.png`}
+                          alt={game.title}
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-white">{game.title}</h3>
+                        <p className="text-[#00ffff] text-sm">Balance: $0</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={onClose}
+                      className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                    >
+                      <CloseIcon className="w-5 h-5 text-white/60" />
+                    </button>
+                  </div>
+
+                  {/* Credentials Section */}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[#00ffff] text-sm">Username:</label>
+                      <div className="p-3 bg-black/20 rounded-lg border border-white/10">
+                        <p className="text-white">user_{game.code.toLowerCase()}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[#00ffff] text-sm">Password:</label>
+                      <div className="p-3 bg-black/20 rounded-lg border border-white/10 flex justify-between items-center">
+                        <p className="text-white">********</p>
+                        <button className="text-[#00ffff] hover:text-white transition-colors">
+                          <RotateCw className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <button 
+                        className="flex items-center justify-center gap-2 p-3
+                          bg-[#6f42c1] text-white rounded-xl text-base font-medium
+                          hover:bg-[#6f42c1]/80 transition-all duration-300"
+                      >
+                        <Plus className="w-5 h-5" />
+                        Recharge
+                      </button>
+                      <button
+                        className="flex items-center justify-center gap-2 p-3
+                          bg-[#fd7e14] text-white rounded-xl text-base font-medium
+                          hover:bg-[#fd7e14]/80 transition-all duration-300"
+                      >
+                        <CircleMinus className="w-5 h-5" />
+                        Redeem
+                      </button>
+                    </div>
+
+                    <button 
+                      className="w-full p-3 bg-[#00ffff] hover:bg-[#00ffff]/90
+                        text-[#1a1f2d] rounded-xl text-lg font-bold
+                        transition-all duration-300 flex items-center justify-center gap-2"
+                    >
+                      <Gamepad2 className="w-5 h-5" />
+                      Play Now
+                    </button>
+                  </div>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </div>
+      </Dialog>
+    </Transition>
+  );
+}
+
 function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: Game }) {
   const { games, isRefreshing, fetchGames } = useGameStore();
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isAddingGame, setIsAddingGame] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Find the game from the full games list
   useEffect(() => {
     const fullGameInfo = games.find(g => g.code === game.code);
     setSelectedGame(fullGameInfo || game);
   }, [game, games]);
 
-  // Determine if this game is already in user's games
-  const isUserGame = Boolean(game.game_user);
+  if (!selectedGame) return null;
 
   const handleAddGame = async () => {
     if (!selectedGame) return;
@@ -106,8 +217,6 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
     }
   };
 
-  if (!selectedGame) return null;
-
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -120,7 +229,7 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black/90 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-black/80" />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -134,141 +243,55 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl 
-                bg-gradient-to-br from-gray-900 via-black to-gray-900 p-6 shadow-xl 
-                transition-all border border-[#7ffdfd]/20">
-                {/* Game Info Header */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="relative w-16 h-16 rounded-lg overflow-hidden">
-                    <Image
-                      src={`/Game Logos/games/${selectedGame.code.toUpperCase()}.png`}
-                      alt={selectedGame.title}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-white mb-1">{selectedGame.title}</h3>
-                    <div className="space-y-1">
-                      {/* Game Status */}
-                      <div className="flex items-center gap-2">
-                        <p className="text-[#7ffdfd] text-sm">
-                          Status: {selectedGame.game_status ? 'Active' : 'Inactive'}
-                        </p>
-                        {isRefreshing && (
-                          <div className="animate-spin w-4 h-4 border-2 border-[#7ffdfd] border-t-transparent rounded-full" />
-                        )}
+              <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl 
+                bg-[#1a1f2d] p-6 shadow-xl transition-all">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="relative w-12 h-12 rounded-lg overflow-hidden">
+                        <Image
+                          src={`/Game Logos/games/${selectedGame.code === 'gameroom' ? 'GAMEROOM' : selectedGame.code.toUpperCase()}.png`}
+                          alt={selectedGame.title}
+                          fill
+                          className="object-contain"
+                        />
                       </div>
-                      {/* Game User if available */}
-                      {selectedGame.game_user && (
-                        <p className="text-[#7ffdfd] text-sm">User: {selectedGame.game_user}</p>
-                      )}
+                      <h3 className="text-lg font-bold text-white">{selectedGame.title}</h3>
                     </div>
-                  </div>
-                  <button 
-                    onClick={onClose}
-                    className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-                  >
-                    <CloseIcon className="w-5 h-5 text-white/60" />
-                  </button>
-                </div>
-
-                {/* Game Details Section */}
-                <div className="mb-6 space-y-3 bg-black/20 p-4 rounded-xl border border-[#7ffdfd]/10">
-                  {/* Game Code */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#7ffdfd]/60 text-sm">Game Code:</span>
-                    <span className="text-white font-medium">{selectedGame.code}</span>
-                  </div>
-                  {/* Owner */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#7ffdfd]/60 text-sm">Owner:</span>
-                    <span className="text-white font-medium">{selectedGame.owner}</span>
-                  </div>
-                  {/* Allocation Date */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#7ffdfd]/60 text-sm">Allocated:</span>
-                    <span className="text-white font-medium">
-                      {new Date(selectedGame.allocated_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                  {/* Game Bonus */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#7ffdfd]/60 text-sm">Game Bonus:</span>
-                    <span className="text-white font-medium">
-                      {selectedGame.use_game_bonus ? 'Enabled' : 'Disabled'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Error Message */}
-                {error && (
-                  <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                    <p className="text-red-400 text-sm">{error}</p>
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="space-y-4">
-                  {isUserGame ? (
-                    <>
-                      {/* Recharge and Redeem Buttons for user games */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <button 
-                          className="flex items-center justify-center gap-2 p-4
-                            bg-[#6f42c1] text-white rounded-xl text-lg font-medium
-                            hover:bg-[#6f42c1]/80 transition-all duration-300
-                            border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40"
-                        >
-                          <Plus className="w-5 h-5" />
-                          Recharge
-                        </button>
-                        <button
-                          className="flex items-center justify-center gap-2 p-4
-                            bg-[#fd7e14] text-white rounded-xl text-lg font-medium
-                            hover:bg-[#fd7e14]/80 transition-all duration-300
-                            border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40"
-                        >
-                          <CircleMinus className="w-5 h-5" />
-                          Redeem
-                        </button>
-                      </div>
-
-                      {/* Play Now Button */}
-                      <button 
-                        className="w-full p-4 bg-gradient-to-r from-[#1a1f2d] to-[#2d3449]
-                          text-[#7ffdfd] rounded-xl text-xl font-bold border border-[#7ffdfd]/30
-                          hover:border-[#7ffdfd]/60 hover:from-[#1a1f2d]/90 hover:to-[#2d3449]/90
-                          transition-all duration-300 flex items-center justify-center gap-3"
-                      >
-                        <Gamepad2 className="w-6 h-6" />
-                        Play Now
-                      </button>
-                    </>
-                  ) : (
-                    /* Add Game Button for non-user games */
                     <button 
-                      onClick={handleAddGame}
-                      disabled={isAddingGame}
-                      className="w-full p-4 bg-gradient-to-r from-[#1a1f2d] to-[#2d3449]
-                        text-[#7ffdfd] rounded-xl text-xl font-bold border border-[#7ffdfd]/30
-                        hover:border-[#7ffdfd]/60 hover:from-[#1a1f2d]/90 hover:to-[#2d3449]/90
-                        transition-all duration-300 flex items-center justify-center gap-3
-                        disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={onClose}
+                      className="p-2 rounded-lg hover:bg-white/10 transition-colors"
                     >
-                      {isAddingGame ? (
-                        <>
-                          <div className="w-6 h-6 border-2 border-[#7ffdfd] border-t-transparent rounded-full animate-spin" />
-                          <span>Adding Game...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="w-6 h-6" />
-                          <span>Add Game</span>
-                        </>
-                      )}
+                      <CloseIcon className="w-5 h-5 text-white/60" />
                     </button>
+                  </div>
+
+                  {error && (
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                      <p className="text-red-400 text-sm">{error}</p>
+                    </div>
                   )}
+
+                  <button 
+                    onClick={handleAddGame}
+                    disabled={isAddingGame}
+                    className="w-full p-3 bg-[#00ffff] hover:bg-[#00ffff]/90
+                      text-[#1a1f2d] rounded-xl text-lg font-bold
+                      transition-all duration-300 flex items-center justify-center gap-2
+                      disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isAddingGame ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-[#1a1f2d] border-t-transparent rounded-full animate-spin" />
+                        <span>Adding Game...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-5 h-5" />
+                        <span>Add Game</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </Dialog.Panel>
             </Transition.Child>
@@ -284,6 +307,7 @@ export default function DashboardContent() {
   const [isGameSelectionOpen, setIsGameSelectionOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  const [isFromUserGames, setIsFromUserGames] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const initialFetchRef = useRef(false);
   const [imagesLoaded, setImagesLoaded] = useState(0);
@@ -316,9 +340,10 @@ export default function DashboardContent() {
     }
   }, []); // Empty dependency array
 
-  const handleGameSelect = async (game: Game) => {
-    console.log('Selected game:', game);
+  const handleGameSelect = async (game: Game, fromUserGames: boolean = false) => {
+    console.log('Selected game:', game, 'from user games:', fromUserGames);
     setSelectedGame(game);
+    setIsFromUserGames(fromUserGames);
     setIsActionModalOpen(true);
     setIsGameSelectionOpen(false);
     
@@ -406,16 +431,24 @@ export default function DashboardContent() {
         isOpen={isGameSelectionOpen}
         onClose={() => setIsGameSelectionOpen(false)}
         games={games.filter(game => !userGames.some(userGame => userGame.code === game.code))}
-        onSelectGame={handleGameSelect}
+        onSelectGame={(game) => handleGameSelect(game, false)}
       />
 
-      {/* Game Action Modal */}
+      {/* Use different modals based on where the game is from */}
       {selectedGame && (
-        <GameActionModal
-          isOpen={isActionModalOpen}
-          onClose={() => setIsActionModalOpen(false)}
-          game={selectedGame}
-        />
+        isFromUserGames ? (
+          <UserGameModal
+            isOpen={isActionModalOpen}
+            onClose={() => setIsActionModalOpen(false)}
+            game={selectedGame}
+          />
+        ) : (
+          <GameActionModal
+            isOpen={isActionModalOpen}
+            onClose={() => setIsActionModalOpen(false)}
+            game={selectedGame}
+          />
+        )
       )}
 
       {/* Loading Progress Indicator */}
@@ -490,7 +523,7 @@ export default function DashboardContent() {
               {userGames.map((game) => (
                 <button
                   key={game.id}
-                  onClick={() => handleGameSelect(game)}
+                  onClick={() => handleGameSelect(game, true)}
                   className="group relative bg-[#1E1E30]
                     rounded-3xl overflow-hidden
                     transition-all duration-300
