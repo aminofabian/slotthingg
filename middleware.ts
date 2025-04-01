@@ -21,16 +21,26 @@ export function middleware(request: NextRequest) {
   // If user is not logged in and trying to access protected routes
   if (!token && isProtectedRoute(pathname)) {
     const loginUrl = new URL('/login', request.url);
-    // Only add redirect param if not already on an auth page
-    if (!isAuthRoute(pathname)) {
+    // Only add redirect param if not already on an auth page and not already having a redirect param
+    if (!isAuthRoute(pathname) && !request.nextUrl.searchParams.has('redirect')) {
       loginUrl.searchParams.set('redirect', pathname);
     }
+    
+    // Preserve any existing query parameters
+    request.nextUrl.searchParams.forEach((value, key) => {
+      if (key !== 'redirect') {
+        loginUrl.searchParams.set(key, value);
+      }
+    });
+
     return NextResponse.redirect(loginUrl);
   }
 
   // If user is logged in and trying to access auth pages
   if (token && isAuthRoute(pathname)) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    // If there's a redirect parameter, use it, otherwise go to dashboard
+    const redirectTo = request.nextUrl.searchParams.get('redirect') || '/dashboard';
+    return NextResponse.redirect(new URL(redirectTo, request.url));
   }
 
   return NextResponse.next();
