@@ -510,7 +510,7 @@ export default function DashboardContent() {
                   <div className="relative w-full h-full p-6 transition-transform duration-300
                     group-hover:scale-105">
                     <Image
-                      src={`/Game Logos/games/${game.code.toUpperCase()}.png`}
+                      src={`/Game Logos/games/${game.code === 'gameroom' ? 'GAMEROOM' : game.code.toUpperCase()}.png`}
                       alt={game.title}
                       fill
                       quality={85}
