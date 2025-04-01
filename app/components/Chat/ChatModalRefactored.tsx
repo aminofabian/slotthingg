@@ -112,6 +112,37 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
     }
   }, [isOpen, loadUserInfo, fetchChatHistory]);
 
+  // Handle browser history for chat state
+  useEffect(() => {
+    if (isOpen) {
+      // Add chat state to history when opening
+      window.history.pushState({ chat: 'open' }, '');
+      
+      // Handle back button press
+      const handlePopState = (event: PopStateEvent) => {
+        if (event.state?.chat !== 'open') {
+          onClose();
+        }
+      };
+      
+      window.addEventListener('popstate', handlePopState);
+      
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [isOpen, onClose]);
+
+  // Handle closing with history
+  const handleClose = () => {
+    // Go back if we added a history entry
+    if (window.history.state?.chat === 'open') {
+      window.history.back();
+    } else {
+      onClose();
+    }
+  };
+
   // Handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -362,7 +393,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="fixed inset-0 z-40 bg-black/50"
-              onClick={onClose}
+              onClick={handleClose}
             />
             
             {/* Modal */}
@@ -380,7 +411,7 @@ const ChatModal = ({ isOpen, onClose }: ChatModalProps) => {
                 <ChatHeader
                   isWebSocketConnected={isWebSocketConnected}
                   isUsingMockWebSocket={false}
-                  onClose={onClose}
+                  onClose={handleClose}
                   onRefresh={() => {
                     console.log('Manual refresh requested');
                     localStorage.setItem('last_manual_refresh', Date.now().toString());
