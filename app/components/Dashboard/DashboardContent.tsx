@@ -129,65 +129,38 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
 
                 {/* Action Buttons */}
                 <div className="space-y-4">
-                  {/* Game URLs if available */}
+                  {/* Recharge and Redeem Buttons */}
                   <div className="grid grid-cols-2 gap-4">
-                    {selectedGame.download_url && (
-                      <a 
-                        href={selectedGame.download_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 p-4
-                          bg-[#6f42c1] text-white rounded-xl text-lg font-medium
-                          hover:bg-[#6f42c1]/80 transition-all duration-300
-                          border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40"
-                      >
-                        <Plus className="w-6 h-6" />
-                        Download
-                      </a>
-                    )}
-                    {selectedGame.dashboard_url && (
-                      <a
-                        href={selectedGame.dashboard_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 p-4
-                          bg-[#fd7e14] text-white rounded-xl text-lg font-medium
-                          hover:bg-[#fd7e14]/80 transition-all duration-300
-                          border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40"
-                      >
-                        <CircleMinus className="w-6 h-6" />
-                        Dashboard
-                      </a>
-                    )}
+                    <button 
+                      className="flex items-center justify-center gap-2 p-4
+                        bg-[#6f42c1] text-white rounded-xl text-lg font-medium
+                        hover:bg-[#6f42c1]/80 transition-all duration-300
+                        border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Recharge
+                    </button>
+                    <button
+                      className="flex items-center justify-center gap-2 p-4
+                        bg-[#fd7e14] text-white rounded-xl text-lg font-medium
+                        hover:bg-[#fd7e14]/80 transition-all duration-300
+                        border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40"
+                    >
+                      <CircleMinus className="w-5 h-5" />
+                      Redeem
+                    </button>
                   </div>
 
-                  {/* Play Button */}
-                  {selectedGame.url ? (
-                    <a
-                      href={selectedGame.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full p-4 bg-gradient-to-r from-[#7ffdfd]/20 to-[#7ffdfd]/10
-                        text-[#7ffdfd] rounded-xl text-xl font-bold border border-[#7ffdfd]/30
-                        hover:border-[#7ffdfd]/60 hover:from-[#7ffdfd]/30 hover:to-[#7ffdfd]/20
-                        transition-all duration-300 flex items-center justify-center gap-3"
-                    >
-                      <Gamepad2 className="w-6 h-6" />
-                      Play Now
-                    </a>
-                  ) : (
-                    <button 
-                      disabled={!selectedGame.game_status}
-                      className="w-full p-4 bg-gradient-to-r from-[#7ffdfd]/20 to-[#7ffdfd]/10
-                        text-[#7ffdfd] rounded-xl text-xl font-bold border border-[#7ffdfd]/30
-                        hover:border-[#7ffdfd]/60 hover:from-[#7ffdfd]/30 hover:to-[#7ffdfd]/20
-                        transition-all duration-300 flex items-center justify-center gap-3
-                        disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Gamepad2 className="w-6 h-6" />
-                      {selectedGame.coming_soon ? 'Coming Soon' : 'Play Now'}
-                    </button>
-                  )}
+                  {/* Play Now Button */}
+                  <button 
+                    className="w-full p-4 bg-gradient-to-r from-[#1a1f2d] to-[#2d3449]
+                      text-[#7ffdfd] rounded-xl text-xl font-bold border border-[#7ffdfd]/30
+                      hover:border-[#7ffdfd]/60 hover:from-[#1a1f2d]/90 hover:to-[#2d3449]/90
+                      transition-all duration-300 flex items-center justify-center gap-3"
+                  >
+                    <Gamepad2 className="w-6 h-6" />
+                    Play Now
+                  </button>
                 </div>
               </Dialog.Panel>
             </Transition.Child>
