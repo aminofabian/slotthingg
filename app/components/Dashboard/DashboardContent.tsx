@@ -23,8 +23,17 @@ import {
 const initialGames = getDefaultGames();
 
 function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: Game }) {
-  const { isRefreshing } = useGameStore();
-  
+  const { games, isRefreshing } = useGameStore();
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null);
+
+  // Find the game from the full games list
+  useEffect(() => {
+    const fullGameInfo = games.find(g => g.code === game.code);
+    setSelectedGame(fullGameInfo || game);
+  }, [game, games]);
+
+  if (!selectedGame) return null;
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -58,25 +67,27 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
                 <div className="flex items-center gap-4 mb-6">
                   <div className="relative w-16 h-16 rounded-lg overflow-hidden">
                     <Image
-                      src={game.image}
-                      alt={game.name}
+                      src={`/Game Logos/games/${selectedGame.code.toUpperCase()}.png`}
+                      alt={selectedGame.title}
                       fill
                       className="object-cover"
                     />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold text-white mb-1">{game.name}</h3>
+                    <h3 className="text-xl font-bold text-white mb-1">{selectedGame.title}</h3>
                     <div className="space-y-1">
-                      {/* Balance with refresh indicator */}
+                      {/* Game Status */}
                       <div className="flex items-center gap-2">
-                        <p className="text-[#7ffdfd] text-sm">Balance: ${game.balance}</p>
+                        <p className="text-[#7ffdfd] text-sm">
+                          Status: {selectedGame.game_status ? 'Active' : 'Inactive'}
+                        </p>
                         {isRefreshing && (
                           <div className="animate-spin w-4 h-4 border-2 border-[#7ffdfd] border-t-transparent rounded-full" />
                         )}
                       </div>
-                      {/* Safe Balance if available */}
-                      {game.safe !== undefined && (
-                        <p className="text-[#7ffdfd] text-sm">Safe Balance: ${game.safe}</p>
+                      {/* Game User if available */}
+                      {selectedGame.game_user && (
+                        <p className="text-[#7ffdfd] text-sm">User: {selectedGame.game_user}</p>
                       )}
                     </div>
                   </div>
@@ -88,72 +99,95 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
                   </button>
                 </div>
 
-                {/* Credentials Section */}
+                {/* Game Details Section */}
                 <div className="mb-6 space-y-3 bg-black/20 p-4 rounded-xl border border-[#7ffdfd]/10">
-                  {/* Username */}
+                  {/* Game Code */}
                   <div className="flex items-center justify-between">
-                    <span className="text-[#7ffdfd]/60 text-sm">Username:</span>
-                    <span className="text-white font-medium">{game.username}</span>
+                    <span className="text-[#7ffdfd]/60 text-sm">Game Code:</span>
+                    <span className="text-white font-medium">{selectedGame.code}</span>
                   </div>
-                  {/* Password with Reset Button */}
+                  {/* Owner */}
                   <div className="flex items-center justify-between">
-                    <span className="text-[#7ffdfd]/60 text-sm">Password:</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-medium">{game.password}</span>
-                      <button 
-                        className="p-1.5 rounded-lg hover:bg-[#7ffdfd]/10 transition-colors
-                          text-[#7ffdfd]/60 hover:text-[#7ffdfd]"
-                        disabled={isRefreshing}
-                      >
-                        <RotateCw className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <span className="text-[#7ffdfd]/60 text-sm">Owner:</span>
+                    <span className="text-white font-medium">{selectedGame.owner}</span>
+                  </div>
+                  {/* Allocation Date */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#7ffdfd]/60 text-sm">Allocated:</span>
+                    <span className="text-white font-medium">
+                      {new Date(selectedGame.allocated_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {/* Game Bonus */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#7ffdfd]/60 text-sm">Game Bonus:</span>
+                    <span className="text-white font-medium">
+                      {selectedGame.use_game_bonus ? 'Enabled' : 'Disabled'}
+                    </span>
                   </div>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="space-y-4">
-                  {/* Recharge/Redeem Buttons */}
+                  {/* Game URLs if available */}
                   <div className="grid grid-cols-2 gap-4">
-                    <button 
-                      disabled={isRefreshing}
-                      className="flex items-center justify-center gap-2 p-4
-                        bg-[#6f42c1] text-white rounded-xl text-lg font-medium
-                        hover:bg-[#6f42c1]/80 transition-all duration-300
-                        border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40
-                        disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Plus className="w-6 h-6" />
-                      Recharge
-                    </button>
-                    <button 
-                      disabled={isRefreshing}
-                      className="flex items-center justify-center gap-2 p-4
-                        bg-[#fd7e14] text-white rounded-xl text-lg font-medium
-                        hover:bg-[#fd7e14]/80 transition-all duration-300
-                        border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40
-                        disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <CircleMinus className="w-6 h-6" />
-                      Redeem
-                    </button>
+                    {selectedGame.download_url && (
+                      <a 
+                        href={selectedGame.download_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 p-4
+                          bg-[#6f42c1] text-white rounded-xl text-lg font-medium
+                          hover:bg-[#6f42c1]/80 transition-all duration-300
+                          border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40"
+                      >
+                        <Plus className="w-6 h-6" />
+                        Download
+                      </a>
+                    )}
+                    {selectedGame.dashboard_url && (
+                      <a
+                        href={selectedGame.dashboard_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 p-4
+                          bg-[#fd7e14] text-white rounded-xl text-lg font-medium
+                          hover:bg-[#fd7e14]/80 transition-all duration-300
+                          border border-[#7ffdfd]/20 hover:border-[#7ffdfd]/40"
+                      >
+                        <CircleMinus className="w-6 h-6" />
+                        Dashboard
+                      </a>
+                    )}
                   </div>
 
-                  {/* Utility Buttons */}
-                
-
                   {/* Play Button */}
-                  <button 
-                    disabled={isRefreshing}
-                    className="w-full p-4 bg-gradient-to-r from-[#7ffdfd]/20 to-[#7ffdfd]/10
-                      text-[#7ffdfd] rounded-xl text-xl font-bold border border-[#7ffdfd]/30
-                      hover:border-[#7ffdfd]/60 hover:from-[#7ffdfd]/30 hover:to-[#7ffdfd]/20
-                      transition-all duration-300 flex items-center justify-center gap-3
-                      disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Gamepad2 className="w-6 h-6" />
-                    Play Now
-                  </button>
+                  {selectedGame.url ? (
+                    <a
+                      href={selectedGame.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full p-4 bg-gradient-to-r from-[#7ffdfd]/20 to-[#7ffdfd]/10
+                        text-[#7ffdfd] rounded-xl text-xl font-bold border border-[#7ffdfd]/30
+                        hover:border-[#7ffdfd]/60 hover:from-[#7ffdfd]/30 hover:to-[#7ffdfd]/20
+                        transition-all duration-300 flex items-center justify-center gap-3"
+                    >
+                      <Gamepad2 className="w-6 h-6" />
+                      Play Now
+                    </a>
+                  ) : (
+                    <button 
+                      disabled={!selectedGame.game_status}
+                      className="w-full p-4 bg-gradient-to-r from-[#7ffdfd]/20 to-[#7ffdfd]/10
+                        text-[#7ffdfd] rounded-xl text-xl font-bold border border-[#7ffdfd]/30
+                        hover:border-[#7ffdfd]/60 hover:from-[#7ffdfd]/30 hover:to-[#7ffdfd]/20
+                        transition-all duration-300 flex items-center justify-center gap-3
+                        disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Gamepad2 className="w-6 h-6" />
+                      {selectedGame.coming_soon ? 'Coming Soon' : 'Play Now'}
+                    </button>
+                  )}
                 </div>
               </Dialog.Panel>
             </Transition.Child>
@@ -165,19 +199,32 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
 }
 
 export default function DashboardContent() {
-  const { games, fetchGames, isLoading, error } = useGameStore();
+  const { games, userGames, fetchGames, isLoading, error } = useGameStore();
   const [isGameSelectionOpen, setIsGameSelectionOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const initialFetchRef = useRef(false);
   const [imagesLoaded, setImagesLoaded] = useState(0);
-  const totalImages = games.length;
+  const totalImages = userGames.length;
 
   // Track image loading progress
   const handleImageLoad = useCallback(() => {
     setImagesLoaded(prev => prev + 1);
   }, []);
+
+  // Debug logging for state changes
+  useEffect(() => {
+    console.log('Current state:', {
+      games: games.length,
+      userGames: userGames.length,
+      isLoading,
+      error,
+      isRefreshing,
+      imagesLoaded,
+      totalImages
+    });
+  }, [games, userGames, isLoading, error, isRefreshing, imagesLoaded, totalImages]);
 
   // Fetch games only on first mount
   useEffect(() => {
@@ -200,7 +247,7 @@ export default function DashboardContent() {
       try {
         await fetchGames();
         // Update the selected game with fresh data
-        const updatedGame = games.find(g => g.id === game.id) || game;
+        const updatedGame = userGames.find(g => g.id === game.id) || game;
         setSelectedGame(updatedGame);
       } finally {
         setIsRefreshing(false);
@@ -214,7 +261,7 @@ export default function DashboardContent() {
   };
 
   // Show loading state only on initial load with loading skeleton
-  if (isLoading && games === initialGames) {
+  if (isLoading && userGames.length === 0) {
     return (
       <div className="min-h-screen w-full mx-auto pb-24 md:pb-6">
         <div className="w-full">
@@ -276,7 +323,7 @@ export default function DashboardContent() {
       )}
 
       {/* Loading Progress Indicator */}
-      {isInitialLoading && (
+      {isInitialLoading && userGames.length > 0 && (
         <div className="fixed inset-x-0 top-0 z-50">
           <div className="bg-[#7ffdfd]/10 h-1">
             <div 
@@ -295,7 +342,7 @@ export default function DashboardContent() {
       <div className="w-full">
         <div className="max-w-none mx-auto">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-white">Games</h2>
+            <h2 className="text-2xl font-bold text-white">My Games</h2>
             <button 
               onClick={() => setIsGameSelectionOpen(true)}
               className="relative group overflow-hidden
@@ -332,7 +379,7 @@ export default function DashboardContent() {
             </button>
           </div>
 
-          {games.length === 0 ? (
+          {userGames.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-white/60 mb-4">No games available</p>
               <button 
@@ -344,7 +391,7 @@ export default function DashboardContent() {
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-              {games.map((game) => (
+              {userGames.map((game) => (
                 <button
                   key={game.id}
                   onClick={() => handleGameSelect(game)}
@@ -367,16 +414,16 @@ export default function DashboardContent() {
                   <div className="relative w-full h-full p-6 transition-transform duration-300
                     group-hover:scale-105">
                     <Image
-                      src={game.image}
-                      alt={game.name}
+                      src={`/Game Logos/games/${game.code.toUpperCase()}.png`}
+                      alt={game.title}
                       fill
                       quality={85}
                       className="object-contain drop-shadow-xl transition-all duration-300
                         group-hover:brightness-110
                         group-active:scale-95"
                       sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1536px) 16.67vw, 12.5vw"
-                      priority={game.id <= '6'}
-                      loading={game.id <= '6' ? 'eager' : 'lazy'}
+                      priority={game.id <= 6}
+                      loading={game.id <= 6 ? 'eager' : 'lazy'}
                       onLoad={handleImageLoad}
                       onError={handleImageLoad}
                     />
@@ -391,7 +438,7 @@ export default function DashboardContent() {
                         transform translate-y-4 group-hover:translate-y-0
                         transition-transform duration-300
                         drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
-                        {game.name}
+                        {game.title}
                       </p>
                       <div className="mt-2 flex justify-center
                         transform translate-y-4 group-hover:translate-y-0
@@ -400,7 +447,7 @@ export default function DashboardContent() {
                           bg-[#7ffdfd] 
                           text-[#1E1E30] text-sm font-medium
                           hover:bg-white transition-colors">
-                          Play Now
+                          {game.game_status ? 'Play Now' : 'Coming Soon'}
                         </div>
                       </div>
                     </div>
@@ -411,8 +458,6 @@ export default function DashboardContent() {
           )}
         </div>
       </div>
-
-      {/* Footer */}
     </div>
   );
 }
