@@ -9,7 +9,7 @@ import GameSelectionModal from './GameSelectionModal';
 import { useState, Fragment, useEffect, useRef, useCallback } from 'react';
 import Footer from '../Footer/Footer';
 import { Dialog, Transition } from '@headlessui/react';
-import useGameStore, { getDefaultGames } from '@/lib/store/useGameStore';
+import useGameStore from '@/lib/store/useGameStore';
 import type { Game } from '@/lib/store/useGameStore';
 import { 
   Gamepad2, 
@@ -19,8 +19,6 @@ import {
   CircleMinus, 
   Gamepad
 } from 'lucide-react';
-
-const initialGames = getDefaultGames();
 
 function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: Game }) {
   const { games, isRefreshing } = useGameStore();
@@ -228,8 +226,27 @@ export default function DashboardContent() {
     }
   };
 
-  const handleOpenGameSelection = () => {
-    console.log('Opening game selection modal. Current games:', games);
+  const handleOpenGameSelection = async () => {
+    console.log('Opening game selection modal...');
+    console.log('Current games state:', {
+      gamesCount: games.length,
+      userGamesCount: userGames.length,
+      isLoading,
+      error
+    });
+    
+    try {
+      await fetchGames();
+      console.log('Games fetched successfully, new state:', {
+        gamesCount: games.length,
+        userGamesCount: userGames.length,
+        isLoading,
+        error
+      });
+    } catch (error) {
+      console.error('Error fetching games:', error);
+    }
+    
     setIsGameSelectionOpen(true);
   };
 
