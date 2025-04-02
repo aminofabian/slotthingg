@@ -159,14 +159,47 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
   const initialFocusRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const fullGameInfo = games.find(g => g.code === game.code);
-    setSelectedGame(fullGameInfo || game);
+    // Log all available games and their codes
+    console.log('Available games:', games.map(g => ({ id: g.id, code: g.code, title: g.title })));
+    console.log('Selected game:', { id: game.id, code: game.code, title: game.title });
+
+    // Try to find the game by ID first, then by code
+    const gameById = games.find(g => g.id === game.id);
+    if (gameById) {
+      console.log('Found game by ID:', gameById);
+      setSelectedGame(gameById);
+      return;
+    }
+
+    // If not found by ID, try to find by normalizing the code
+    const normalizedCode = game.code.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const gameByCode = games.find(g => {
+      const currentCode = g.code.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return currentCode === normalizedCode;
+    });
+
+    if (gameByCode) {
+      console.log('Found game by normalized code:', gameByCode);
+      setSelectedGame(gameByCode);
+      return;
+    }
+
+    // If still not found, use the original game
+    console.log('Using original game as fallback');
+    setSelectedGame(game);
   }, [game, games]);
 
   if (!selectedGame) return null;
 
   const handleAddGame = async () => {
     if (!selectedGame) return;
+    
+    // Log the game being added
+    console.log('Adding game:', {
+      id: selectedGame.id,
+      code: selectedGame.code,
+      title: selectedGame.title
+    });
     
     setIsAddingGame(true);
     setError(null);
