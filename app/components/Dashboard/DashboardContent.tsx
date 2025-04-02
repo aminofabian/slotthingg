@@ -22,9 +22,16 @@ import {
 import { toast } from 'react-hot-toast';
 
 function UserGameModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: Game }) {
+  const initialFocusRef = useRef<HTMLButtonElement>(null);
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog 
+        as="div" 
+        className="relative z-50" 
+        onClose={onClose}
+        initialFocus={initialFocusRef}
+      >
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -49,7 +56,7 @@ function UserGameModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl 
-                bg-[#1a1f2d] p-6 shadow-xl transition-all">
+                bg-[#1a1f2d] p-6 shadow-xl transition-all focus:outline-none">
                 <div className="space-y-6">
                   {/* Header with Game Info */}
                   <div className="flex items-center justify-between">
@@ -63,13 +70,16 @@ function UserGameModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
                         />
                       </div>
                       <div>
-                        <h3 className="text-lg font-bold text-white">{game.title}</h3>
+                        <Dialog.Title className="text-lg font-bold text-white">
+                          {game.title}
+                        </Dialog.Title>
                         <p className="text-[#00ffff] text-sm">Balance: $0</p>
                       </div>
                     </div>
                     <button 
                       onClick={onClose}
-                      className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                      className="p-2 rounded-lg hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff]"
+                      aria-label="Close dialog"
                     >
                       <CloseIcon className="w-5 h-5 text-white/60" />
                     </button>
@@ -87,7 +97,10 @@ function UserGameModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
                       <label className="text-[#00ffff] text-sm">Password:</label>
                       <div className="p-3 bg-black/20 rounded-lg border border-white/10 flex justify-between items-center">
                         <p className="text-white">********</p>
-                        <button className="text-[#00ffff] hover:text-white transition-colors">
+                        <button 
+                          className="text-[#00ffff] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff] rounded-lg p-1"
+                          aria-label="Reset password"
+                        >
                           <RotateCw className="w-4 h-4" />
                         </button>
                       </div>
@@ -100,7 +113,8 @@ function UserGameModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
                       <button 
                         className="flex items-center justify-center gap-2 p-3
                           bg-[#6f42c1] text-white rounded-xl text-base font-medium
-                          hover:bg-[#6f42c1]/80 transition-all duration-300"
+                          hover:bg-[#6f42c1]/80 transition-all duration-300
+                          focus:outline-none focus:ring-2 focus:ring-[#6f42c1]"
                       >
                         <Plus className="w-5 h-5" />
                         Recharge
@@ -108,7 +122,8 @@ function UserGameModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
                       <button
                         className="flex items-center justify-center gap-2 p-3
                           bg-[#fd7e14] text-white rounded-xl text-base font-medium
-                          hover:bg-[#fd7e14]/80 transition-all duration-300"
+                          hover:bg-[#fd7e14]/80 transition-all duration-300
+                          focus:outline-none focus:ring-2 focus:ring-[#fd7e14]"
                       >
                         <CircleMinus className="w-5 h-5" />
                         Redeem
@@ -116,9 +131,11 @@ function UserGameModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
                     </div>
 
                     <button 
+                      ref={initialFocusRef}
                       className="w-full p-3 bg-[#00ffff] hover:bg-[#00ffff]/90
                         text-[#1a1f2d] rounded-xl text-lg font-bold
-                        transition-all duration-300 flex items-center justify-center gap-2"
+                        transition-all duration-300 flex items-center justify-center gap-2
+                        focus:outline-none focus:ring-2 focus:ring-[#00ffff] focus:ring-offset-2 focus:ring-offset-[#1a1f2d]"
                     >
                       <Gamepad2 className="w-5 h-5" />
                       Play Now
@@ -139,6 +156,7 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [isAddingGame, setIsAddingGame] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const initialFocusRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const fullGameInfo = games.find(g => g.code === game.code);
@@ -219,7 +237,12 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog 
+        as="div" 
+        className="relative z-50" 
+        onClose={onClose}
+        initialFocus={initialFocusRef}
+      >
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -244,7 +267,7 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl 
-                bg-[#1a1f2d] p-6 shadow-xl transition-all">
+                bg-[#1a1f2d] p-6 shadow-xl transition-all focus:outline-none">
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -256,29 +279,34 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
                           className="object-contain"
                         />
                       </div>
-                      <h3 className="text-lg font-bold text-white">{selectedGame.title}</h3>
+                      <Dialog.Title className="text-lg font-bold text-white">
+                        {selectedGame.title}
+                      </Dialog.Title>
                     </div>
                     <button 
                       onClick={onClose}
-                      className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+                      className="p-2 rounded-lg hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff]"
+                      aria-label="Close dialog"
                     >
                       <CloseIcon className="w-5 h-5 text-white/60" />
                     </button>
                   </div>
 
                   {error && (
-                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20" role="alert">
                       <p className="text-red-400 text-sm">{error}</p>
                     </div>
                   )}
 
                   <button 
+                    ref={initialFocusRef}
                     onClick={handleAddGame}
                     disabled={isAddingGame}
                     className="w-full p-3 bg-[#00ffff] hover:bg-[#00ffff]/90
                       text-[#1a1f2d] rounded-xl text-lg font-bold
                       transition-all duration-300 flex items-center justify-center gap-2
-                      disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled:opacity-50 disabled:cursor-not-allowed
+                      focus:outline-none focus:ring-2 focus:ring-[#00ffff] focus:ring-offset-2 focus:ring-offset-[#1a1f2d]"
                   >
                     {isAddingGame ? (
                       <>
