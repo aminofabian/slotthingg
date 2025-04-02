@@ -3,19 +3,27 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 const games = [
-  { name: 'Fire Kirin', image: '/Game Logos/games/FIRE-KIRIN.png' },
-  { name: 'Game Vault', image: '/Game Logos/games/GAME-VAULT.jpg' },
-  { name: 'Game Room', image: '/Game Logos/games/GAMEROOM.jpg' },
-  { name: 'Golden Dragon', image: '/Game Logos/games/GOLDEN-DRAGON.png' },
-  { name: 'Juwa', image: '/Game Logos/games/JUWA.png' },
+  { name: 'Cash Frenzy', image: '/Game Logos/games/CASH_FRENZY.png' },
+  { name: 'Cash Machine', image: '/Game Logos/games/CASH_MACHINE.png' },
+  { name: 'Cash Money', image: '/Game Logos/games/CASH_MONEY.webp' },
+  { name: 'E Game', image: '/Game Logos/games/E_GAME.png' },
+  { name: 'Fire Kirin', image: '/Game Logos/games/FIRE_KIRIN.png' },
+  { name: 'Game Room', image: '/Game Logos/games/GAME_ROOM.png' },
+  { name: 'Game Vault', image: '/Game Logos/games/GAME_VAULT.png' },
+  { name: 'Golden Dragon', image: '/Game Logos/games/GOLDEN_DRAGON.png' },
+  { name: 'Juwa', image: '/Game Logos/games/Juwa.png' },
+  { name: 'King of Pop', image: '/Game Logos/games/KING_OF_POP.png' },
   { name: 'Machine', image: '/Game Logos/games/MACHINE.jpg' },
-  { name: 'Mafia', image: '/Game Logos/games/MAFIA.png' },
-  { name: 'Milky Way', image: '/Game Logos/games/MILKY-WAY.png' },
-  { name: 'Orion Star', image: '/Game Logos/games/ORION-STAR.png' },
-  { name: 'Panda Master', image: '/Game Logos/games/PANDA-MASTER (1).png' },
-  { name: 'Ultra Panda', image: '/Game Logos/games/ULTRA-PANDA.png' },
-  { name: 'V Blink', image: '/Game Logos/games/V-BLINK.png' },
-  { name: 'Vega Sweeps', image: '/Game Logos/games/VEGA-SWEEPS.jpg' }
+  { name: 'Mafia', image: '/Game Logos/games/Mafia.png' },
+  { name: 'Michael Jackson', image: '/Game Logos/games/Michael-Jackson.png' },
+  { name: 'Milky Way', image: '/Game Logos/games/MILKYWAY.png' },
+  { name: 'Mr All In One', image: '/Game Logos/games/MR_ALL_IN_ONE.png' },
+  { name: 'Orion Stars', image: '/Game Logos/games/ORION_STARS.png' },
+  { name: 'Panda Master', image: '/Game Logos/games/PANDA_MASTER.png' },
+  { name: 'River Sweeps', image: '/Game Logos/games/RIVERSWEEPS.png' },
+  { name: 'Ultra Panda', image: '/Game Logos/games/ULTRA_PANDA.png' },
+  { name: 'V Blink', image: '/Game Logos/games/VBLINK.png' },
+  { name: 'Vega Sweeps', image: '/Game Logos/games/VEGA_SWEEPS.jpg' }
 ];
 
 const GamesList = () => {
