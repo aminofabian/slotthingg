@@ -78,7 +78,7 @@ export default function GameSelectionModal({
                     >
                       <div className="relative aspect-square">
                         <Image
-                          src={`/Game Logos/games/${game.code.toUpperCase()}.png`}
+                          src={`/Game Logos/games/${game.code === 'gameroom' ? 'GAME_ROOM' : game.code.toUpperCase()}.png`}
                           alt={game.title}
                           fill
                           className="object-cover object-center transform group-hover:scale-110 transition-transform duration-300"

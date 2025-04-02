@@ -56,7 +56,7 @@ function UserGameModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
                     <div className="flex items-center gap-3">
                       <div className="relative w-12 h-12 rounded-lg overflow-hidden">
                         <Image
-                          src={`/Game Logos/games/${game.code === 'gameroom' ? 'GAMEROOM' : game.code.toUpperCase()}.png`}
+                          src={`/Game Logos/games/${game.code === 'gameroom' ? 'GAME_ROOM' : game.code.toUpperCase()}.png`}
                           alt={game.title}
                           fill
                           className="object-contain"
@@ -250,7 +250,7 @@ function GameActionModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
                     <div className="flex items-center gap-3">
                       <div className="relative w-12 h-12 rounded-lg overflow-hidden">
                         <Image
-                          src={`/Game Logos/games/${selectedGame.code === 'gameroom' ? 'GAMEROOM' : selectedGame.code.toUpperCase()}.png`}
+                          src={`/Game Logos/games/${selectedGame.code === 'gameroom' ? 'GAME_ROOM' : selectedGame.code.toUpperCase()}.png`}
                           alt={selectedGame.title}
                           fill
                           className="object-contain"
@@ -543,7 +543,7 @@ export default function DashboardContent() {
                   <div className="relative w-full h-full p-6 transition-transform duration-300
                     group-hover:scale-105">
                     <Image
-                      src={`/Game Logos/games/${game.code === 'gameroom' ? 'GAMEROOM' : game.code.toUpperCase()}.png`}
+                      src={`/Game Logos/games/${game.code === 'gameroom' ? 'GAME_ROOM' : game.code.toUpperCase()}.png`}
                       alt={game.title}
                       fill
                       quality={85}
