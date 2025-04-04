@@ -368,15 +368,25 @@ function RechargeModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl 
-                bg-[#1a1f2d] p-6 shadow-xl transition-all focus:outline-none">
+                bg-gradient-to-br from-[#1a1f2d] to-[#262f42]
+                p-6 shadow-xl transition-all focus:outline-none
+                border border-white/5 backdrop-blur-sm">
                 <div className="space-y-6">
+                  {/* Decorative elements */}
+                  <div className="absolute -top-12 -right-12 w-24 h-24 rounded-full bg-[#6f42c1]/20 blur-xl"></div>
+                  <div className="absolute -bottom-8 -left-8 w-16 h-16 rounded-full bg-[#6f42c1]/10 blur-lg"></div>
+                  
                   {/* Header */}
                   <div className="flex items-center justify-between">
                     <Dialog.Title className="text-xl font-bold text-white flex items-center gap-2">
-                      <div className="w-8 h-8 bg-[#6f42c1] rounded-lg flex items-center justify-center">
+                      <div className="w-10 h-10 bg-gradient-to-r from-[#6f42c1] to-[#8a63d2] rounded-lg flex items-center justify-center
+                        shadow-lg shadow-[#6f42c1]/20 transform -rotate-3">
                         <Plus className="w-5 h-5 text-white" />
                       </div>
-                      Recharge {game.title}
+                      <div className="flex flex-col">
+                        <span className="text-lg tracking-wide">Recharge</span>
+                        <span className="text-xs text-[#8a63d2]/80 font-normal">Add funds to {game.title}</span>
+                      </div>
                     </Dialog.Title>
                     <button 
                       onClick={onClose}
@@ -388,18 +398,17 @@ function RechargeModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
                   </div>
 
                   {error && (
-                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20" role="alert">
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 animate-pulse" role="alert">
                       <p className="text-red-400 text-sm">{error}</p>
                     </div>
                   )}
 
-                  <form onSubmit={handleRecharge} className="space-y-6">
+                  <form onSubmit={handleRecharge} className="space-y-6 relative">
                     <div className="space-y-2">
                       <label htmlFor="recharge-amount" className="text-[#00ffff] text-sm block">
                         Amount to Recharge:
                       </label>
-                      <div className="relative">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-white">$</span>
+                      <div className="relative group">
                         <input
                           ref={initialFocusRef}
                           id="recharge-amount"
@@ -409,22 +418,36 @@ function RechargeModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
                           placeholder="Enter amount"
                           value={amount}
                           onChange={(e) => setAmount(e.target.value)}
-                          className="w-full p-3 pl-8 bg-black/20 text-white placeholder-white/40
+                          className="w-full p-3 pl-10 bg-black/30 text-white placeholder-white/40
                             rounded-lg border border-white/10 focus:border-[#6f42c1]
-                            focus:outline-none focus:ring-2 focus:ring-[#6f42c1]"
+                            focus:outline-none focus:ring-2 focus:ring-[#6f42c1] transition-all duration-300
+                            group-hover:border-white/20"
                           required
                         />
+                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#6f42c1]/70">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
                       </div>
+                      
+                      {amount && parseFloat(amount) > 0 && (
+                        <div className="mt-2 py-2 px-3 bg-[#6f42c1]/10 rounded-lg border border-[#6f42c1]/20 flex items-center justify-between">
+                          <span className="text-sm text-white">Total amount:</span>
+                          <span className="font-semibold text-[#6f42c1]">${parseFloat(amount).toFixed(2)}</span>
+                        </div>
+                      )}
                     </div>
 
                     <button 
                       type="submit"
                       disabled={isSubmitting || !amount || parseFloat(amount) <= 0}
-                      className="w-full p-3 bg-[#6f42c1] hover:bg-[#6f42c1]/90
+                      className="w-full p-3 bg-gradient-to-r from-[#6f42c1] to-[#8a63d2] hover:from-[#6f42c1]/90 hover:to-[#8a63d2]/90
                         text-white rounded-xl text-lg font-bold
                         transition-all duration-300 flex items-center justify-center gap-2
                         focus:outline-none focus:ring-2 focus:ring-[#6f42c1] focus:ring-offset-2 focus:ring-offset-[#1a1f2d]
-                        disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled:opacity-50 disabled:cursor-not-allowed
+                        shadow-lg shadow-[#6f42c1]/20 hover:shadow-[#6f42c1]/30 transform hover:-translate-y-1"
                     >
                       {isSubmitting ? (
                         <>
@@ -639,15 +662,25 @@ function RedeemModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () =
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl 
-                bg-[#1a1f2d] p-6 shadow-xl transition-all focus:outline-none">
+                bg-gradient-to-br from-[#1a1f2d] to-[#262f42]
+                p-6 shadow-xl transition-all focus:outline-none
+                border border-white/5 backdrop-blur-sm">
                 <div className="space-y-6">
+                  {/* Decorative elements */}
+                  <div className="absolute -top-12 -right-12 w-24 h-24 rounded-full bg-[#fd7e14]/20 blur-xl"></div>
+                  <div className="absolute -bottom-8 -left-8 w-16 h-16 rounded-full bg-[#fd7e14]/10 blur-lg"></div>
+                  
                   {/* Header */}
                   <div className="flex items-center justify-between">
                     <Dialog.Title className="text-xl font-bold text-white flex items-center gap-2">
-                      <div className="w-8 h-8 bg-[#fd7e14] rounded-lg flex items-center justify-center">
+                      <div className="w-10 h-10 bg-gradient-to-r from-[#fd7e14] to-[#ff9a56] rounded-lg flex items-center justify-center
+                        shadow-lg shadow-[#fd7e14]/20 transform -rotate-3">
                         <CircleMinus className="w-5 h-5 text-white" />
                       </div>
-                      Redeem from {game.title}
+                      <div className="flex flex-col">
+                        <span className="text-lg tracking-wide">Redeem</span>
+                        <span className="text-xs text-[#ff9a56]/80 font-normal">Withdraw from {game.title}</span>
+                      </div>
                     </Dialog.Title>
                     <button 
                       onClick={onClose}
@@ -659,18 +692,17 @@ function RedeemModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () =
                   </div>
 
                   {error && (
-                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20" role="alert">
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 animate-pulse" role="alert">
                       <p className="text-red-400 text-sm">{error}</p>
                     </div>
                   )}
 
-                  <form onSubmit={handleRedeem} className="space-y-6">
+                  <form onSubmit={handleRedeem} className="space-y-6 relative">
                     <div className="space-y-2">
                       <label htmlFor="redeem-amount" className="text-[#00ffff] text-sm block">
                         Amount to Redeem:
                       </label>
-                      <div className="relative">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-white">$</span>
+                      <div className="relative group">
                         <input
                           ref={initialFocusRef}
                           id="redeem-amount"
@@ -680,22 +712,36 @@ function RedeemModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () =
                           placeholder="Enter amount"
                           value={amount}
                           onChange={(e) => setAmount(e.target.value)}
-                          className="w-full p-3 pl-8 bg-black/20 text-white placeholder-white/40
+                          className="w-full p-3 pl-10 bg-black/30 text-white placeholder-white/40
                             rounded-lg border border-white/10 focus:border-[#fd7e14]
-                            focus:outline-none focus:ring-2 focus:ring-[#fd7e14]"
+                            focus:outline-none focus:ring-2 focus:ring-[#fd7e14] transition-all duration-300
+                            group-hover:border-white/20"
                           required
                         />
+                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#fd7e14]/70">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
                       </div>
+                      
+                      {amount && parseFloat(amount) > 0 && (
+                        <div className="mt-2 py-2 px-3 bg-[#fd7e14]/10 rounded-lg border border-[#fd7e14]/20 flex items-center justify-between">
+                          <span className="text-sm text-white">Total to withdraw:</span>
+                          <span className="font-semibold text-[#fd7e14]">${parseFloat(amount).toFixed(2)}</span>
+                        </div>
+                      )}
                     </div>
 
                     <button 
                       type="submit"
                       disabled={isSubmitting || !amount || parseFloat(amount) <= 0}
-                      className="w-full p-3 bg-[#fd7e14] hover:bg-[#fd7e14]/90
+                      className="w-full p-3 bg-gradient-to-r from-[#fd7e14] to-[#ff9a56] hover:from-[#fd7e14]/90 hover:to-[#ff9a56]/90
                         text-white rounded-xl text-lg font-bold
                         transition-all duration-300 flex items-center justify-center gap-2
                         focus:outline-none focus:ring-2 focus:ring-[#fd7e14] focus:ring-offset-2 focus:ring-offset-[#1a1f2d]
-                        disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled:opacity-50 disabled:cursor-not-allowed
+                        shadow-lg shadow-[#fd7e14]/20 hover:shadow-[#fd7e14]/30 transform hover:-translate-y-1"
                     >
                       {isSubmitting ? (
                         <>
@@ -939,24 +985,18 @@ function PasswordChangeModal({ isOpen, onClose, game }: { isOpen: boolean; onClo
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl 
-                bg-gradient-to-br from-[#1a1f2d] to-[#262f42]
-                p-6 shadow-xl transition-all focus:outline-none
-                border border-white/5 backdrop-blur-sm">
+                bg-[#1a1f2d] p-6 shadow-xl transition-all focus:outline-none
+                border border-[#00bbff]/10">
                 <div className="space-y-6">
-                  {/* Decorative elements */}
-                  <div className="absolute -top-12 -right-12 w-24 h-24 rounded-full bg-[#00bbff]/20 blur-xl"></div>
-                  <div className="absolute -bottom-8 -left-8 w-16 h-16 rounded-full bg-[#00bbff]/10 blur-lg"></div>
-                  
                   {/* Header */}
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-3">
                     <Dialog.Title className="text-xl font-bold text-white flex items-center gap-2">
-                      <div className="w-10 h-10 bg-gradient-to-r from-[#00bbff] to-[#00ffff] rounded-lg flex items-center justify-center
-                        shadow-lg shadow-[#00bbff]/20 transform -rotate-3">
+                      <div className="w-8 h-8 bg-[#00bbff] rounded-lg flex items-center justify-center">
                         <RotateCw className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex flex-col">
                         <span className="text-lg tracking-wide">Change Password</span>
-                        <span className="text-xs text-[#00bbff]/80 font-normal">For {game.title}</span>
+                        <span className="text-xs text-white/70 font-normal">{game.title}</span>
                       </div>
                     </Dialog.Title>
                     <button 
@@ -969,26 +1009,28 @@ function PasswordChangeModal({ isOpen, onClose, game }: { isOpen: boolean; onClo
                   </div>
 
                   {error && (
-                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 animate-pulse" role="alert">
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20" role="alert">
                       <p className="text-red-400 text-sm">{error}</p>
                     </div>
                   )}
 
-                  <form onSubmit={handlePasswordChange} className="space-y-6 relative">
+                  <form onSubmit={handlePasswordChange} className="space-y-5">
                     <div className="space-y-2">
-                      <label htmlFor="new-password" className="text-[#00ffff] text-sm block flex items-center justify-between">
-                        <span>New Password:</span>
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="new-password" className="text-[#00ffff] text-sm">
+                          New Password
+                        </label>
                         {passwordStrength && (
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            passwordStrength === 'weak' ? 'bg-red-500/20 text-red-400' :
-                            passwordStrength === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                            'bg-green-500/20 text-green-400'
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            passwordStrength === 'weak' ? 'bg-red-500/10 text-red-400' :
+                            passwordStrength === 'medium' ? 'bg-yellow-500/10 text-yellow-400' :
+                            'bg-green-500/10 text-green-400'
                           }`}>
-                            {passwordStrength.charAt(0).toUpperCase() + passwordStrength.slice(1)} Password
+                            {passwordStrength.charAt(0).toUpperCase() + passwordStrength.slice(1)}
                           </span>
                         )}
-                      </label>
-                      <div className="relative group">
+                      </div>
+                      <div className="relative">
                         <input
                           ref={initialFocusRef}
                           id="new-password"
@@ -996,15 +1038,14 @@ function PasswordChangeModal({ isOpen, onClose, game }: { isOpen: boolean; onClo
                           placeholder="Enter new password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="w-full p-3 pl-10 pr-10 bg-black/30 text-white placeholder-white/40
+                          className="w-full p-3 pl-10 pr-10 bg-black/20 text-white placeholder-white/40
                             rounded-lg border border-white/10 focus:border-[#00bbff]
-                            focus:outline-none focus:ring-2 focus:ring-[#00bbff] transition-all duration-300
-                            group-hover:border-white/20"
+                            focus:outline-none focus:ring-1 focus:ring-[#00bbff] transition-colors"
                           required
                           minLength={6}
                         />
-                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#00bbff]/70">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#00bbff]">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
                             <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                           </svg>
                         </div>
@@ -1016,12 +1057,12 @@ function PasswordChangeModal({ isOpen, onClose, game }: { isOpen: boolean; onClo
                           aria-label={showPassword ? "Hide password" : "Show password"}
                         >
                           {showPassword ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
                               <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
                               <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
                             </svg>
                           ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
                               <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                               <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                             </svg>
@@ -1030,42 +1071,36 @@ function PasswordChangeModal({ isOpen, onClose, game }: { isOpen: boolean; onClo
                       </div>
                       
                       {/* Password strength indicator */}
-                      <div className="h-1 w-full bg-gray-200/10 rounded-full overflow-hidden">
+                      <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                         <div 
-                          className={`h-full ${getStrengthColor()} transition-all duration-500 ease-out ${getStrengthWidth()}`}
+                          className={`h-full ${getStrengthColor()} transition-all duration-300 ${getStrengthWidth()}`}
                         ></div>
                       </div>
                       
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <p className="text-white/60 text-xs">
-                          For a strong password:
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          <span className={`text-xs px-1.5 py-0.5 rounded ${newPassword.length >= 8 ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/40'}`}>
-                            8+ chars
-                          </span>
-                          <span className={`text-xs px-1.5 py-0.5 rounded ${/[A-Z]/.test(newPassword) ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/40'}`}>
-                            Uppercase
-                          </span>
-                          <span className={`text-xs px-1.5 py-0.5 rounded ${/[a-z]/.test(newPassword) ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/40'}`}>
-                            Lowercase
-                          </span>
-                          <span className={`text-xs px-1.5 py-0.5 rounded ${/[0-9]/.test(newPassword) ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/40'}`}>
-                            Number
-                          </span>
-                        </div>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        <span className={`text-xs px-2 py-0.5 rounded-md ${newPassword.length >= 8 ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-white/5 text-white/40 border border-white/5'}`}>
+                          8+ chars
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-md ${/[A-Z]/.test(newPassword) ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-white/5 text-white/40 border border-white/5'}`}>
+                          Uppercase
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-md ${/[a-z]/.test(newPassword) ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-white/5 text-white/40 border border-white/5'}`}>
+                          Lowercase
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-md ${/[0-9]/.test(newPassword) ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-white/5 text-white/40 border border-white/5'}`}>
+                          Number
+                        </span>
                       </div>
                     </div>
 
                     <button 
                       type="submit"
                       disabled={isSubmitting || !newPassword || newPassword.length < 6}
-                      className="w-full p-3 bg-gradient-to-r from-[#00bbff] to-[#00ffff] hover:from-[#00bbff]/90 hover:to-[#00ffff]/90
-                        text-white rounded-xl text-lg font-bold
-                        transition-all duration-300 flex items-center justify-center gap-2
+                      className="w-full p-3 bg-[#00bbff] hover:bg-[#00bbff]/90
+                        text-white rounded-lg text-base font-medium
+                        transition-all duration-200 flex items-center justify-center gap-2
                         focus:outline-none focus:ring-2 focus:ring-[#00bbff] focus:ring-offset-2 focus:ring-offset-[#1a1f2d]
-                        disabled:opacity-50 disabled:cursor-not-allowed
-                        shadow-lg shadow-[#00bbff]/20 hover:shadow-[#00bbff]/30 transform hover:-translate-y-1"
+                        disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isSubmitting ? (
                         <>
