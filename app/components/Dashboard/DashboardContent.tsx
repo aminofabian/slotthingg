@@ -441,27 +441,158 @@ function RechargeModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
 }
 
 function RedeemModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: Game }) {
+  const { games } = useGameStore();
   const [amount, setAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const initialFocusRef = useRef<HTMLInputElement>(null);
+  const [gameTitle, setGameTitle] = useState<string>('');
+  const [resolvedGameId, setResolvedGameId] = useState<string>('');
+  
+  // Resolve game information when the modal opens
+  useEffect(() => {
+    if (isOpen && game) {
+      console.log('Games from store (Redeem):', games.map(g => ({
+        id: g.id,
+        code: g.code,
+        title: g.title
+      })));
+      
+      console.log('Trying to match game for redeem:', {
+        id: game.id,
+        code: game.code,
+        title: game.title
+      });
+      
+      // Try to find the game by code in the games list
+      const matchedGame = games.find(g => g.code === game.code);
+      
+      if (matchedGame) {
+        console.log('Found matching game in game list for redeem:', matchedGame);
+        setGameTitle(matchedGame.title);
+        setResolvedGameId(matchedGame.id.toString());
+      } else {
+        console.log('No exact match found for redeem, trying case insensitive match');
+        // Try case insensitive match
+        const caseInsensitiveMatch = games.find(g => 
+          g.code.toLowerCase() === game.code.toLowerCase()
+        );
+        
+        if (caseInsensitiveMatch) {
+          console.log('Found case insensitive match for redeem:', caseInsensitiveMatch);
+          setGameTitle(caseInsensitiveMatch.title);
+          setResolvedGameId(caseInsensitiveMatch.id.toString());
+        } else {
+          console.warn('No matching game found in game list for redeem code:', game.code);
+          // Fallback to the provided game
+          setGameTitle(game.title || 'Unknown Game');
+          setResolvedGameId(game.id.toString());
+        }
+      }
+    }
+  }, [isOpen, game, games]);
+  
+  // Use a ref to keep a stable reference to the current title
+  const gameTitleRef = useRef(game.title);
+  useEffect(() => {
+    gameTitleRef.current = game.title;
+  }, [game.title]);
 
   const handleRedeem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || parseFloat(amount) <= 0) return;
 
     setIsSubmitting(true);
+    setError(null);
+    
     try {
-      // Here you would implement the actual redeem logic
-      console.log(`Redeeming ${amount} from game ${game.title}`);
+      // Use the resolved game information
+      const gameIdToUse = resolvedGameId || game.id.toString();
+      const currentTitle = gameTitle || gameTitleRef.current || 'Unknown Game';
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('Redeeming from game with resolved info:', {
+        originalId: game.id,
+        resolvedId: gameIdToUse,
+        originalTitle: game.title,
+        resolvedTitle: currentTitle,
+        originalCode: game.code
+      });
       
-      toast.success(`Successfully redeemed $${amount}`);
+      let token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+      
+      if (!token) {
+        const localStorageToken = localStorage.getItem('accessToken');
+        if (localStorageToken) {
+          token = localStorageToken;
+        }
+      }
+      
+      const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
+      const user_id = localStorage.getItem('user_id');
+      
+      if (!whitelabel_admin_uuid || !token) {
+        console.error('Missing auth data for redeem:', { 
+          hasToken: !!token, 
+          hasUUID: !!whitelabel_admin_uuid, 
+          hasUserId: !!user_id 
+        });
+        throw new Error('Authentication data missing. Please log in again.');
+      }
+      
+      const payload = {
+        amount: amount,
+        whitelabel_admin_uuid: whitelabel_admin_uuid,
+        game_id: gameIdToUse
+      };
+      
+      // More detailed payload logging
+      console.log('Sending redeem request with payload:', {
+        ...payload,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.substring(0, 10)}...`, // Log partial token for security
+        },
+        gameInfo: {
+          id: gameIdToUse,
+          title: currentTitle,
+          code: game.code
+        }
+      });
+      
+      const response = await fetch('https://serverhub.biz/games/redeem/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.clear();
+          document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+          return;
+        }
+        
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to redeem. Please try again.');
+      }
+      
+      const result = await response.json();
+      console.log('Redeem successful:', result);
+      
+      // Use message from the API response if available, otherwise use our fallback message
+      const successMessage = result.message || `Successfully redeemed $${amount} from ${currentTitle}`;
+      
+      toast.success(successMessage);
+      setAmount('');
       onClose();
-    } catch (error) {
-      toast.error('Failed to redeem. Please try again.');
-      console.error('Redeem error:', error);
+    } catch (err) {
+      console.error('Redeem error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to redeem. Please try again.');
+      toast.error(err instanceof Error ? err.message : 'Failed to redeem. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -517,6 +648,12 @@ function RedeemModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () =
                       <CloseIcon className="w-5 h-5 text-white/60" />
                     </button>
                   </div>
+
+                  {error && (
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20" role="alert">
+                      <p className="text-red-400 text-sm">{error}</p>
+                    </div>
+                  )}
 
                   <form onSubmit={handleRedeem} className="space-y-6">
                     <div className="space-y-2">
