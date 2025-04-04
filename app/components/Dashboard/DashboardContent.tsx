@@ -23,6 +23,8 @@ import { toast } from 'react-hot-toast';
 
 function UserGameModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: Game }) {
   const initialFocusRef = useRef<HTMLButtonElement>(null);
+  const [isRechargeModalOpen, setIsRechargeModalOpen] = useState(false);
+  const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -115,6 +117,7 @@ function UserGameModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
                           bg-[#6f42c1] text-white rounded-xl text-base font-medium
                           hover:bg-[#6f42c1]/80 transition-all duration-300
                           focus:outline-none focus:ring-2 focus:ring-[#6f42c1]"
+                        onClick={() => setIsRechargeModalOpen(true)}
                       >
                         <Plus className="w-5 h-5" />
                         Recharge
@@ -124,6 +127,7 @@ function UserGameModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
                           bg-[#fd7e14] text-white rounded-xl text-base font-medium
                           hover:bg-[#fd7e14]/80 transition-all duration-300
                           focus:outline-none focus:ring-2 focus:ring-[#fd7e14]"
+                        onClick={() => setIsRedeemModalOpen(true)}
                       >
                         <CircleMinus className="w-5 h-5" />
                         Redeem
@@ -141,6 +145,288 @@ function UserGameModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
                       Play Now
                     </button>
                   </div>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </div>
+      </Dialog>
+      
+      {/* Recharge Modal */}
+      <RechargeModal 
+        isOpen={isRechargeModalOpen} 
+        onClose={() => setIsRechargeModalOpen(false)} 
+        game={game} 
+      />
+      
+      {/* Redeem Modal */}
+      <RedeemModal 
+        isOpen={isRedeemModalOpen} 
+        onClose={() => setIsRedeemModalOpen(false)} 
+        game={game} 
+      />
+    </Transition>
+  );
+}
+
+function RechargeModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: Game }) {
+  const [amount, setAmount] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const initialFocusRef = useRef<HTMLInputElement>(null);
+
+  const handleRecharge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!amount || parseFloat(amount) <= 0) return;
+
+    setIsSubmitting(true);
+    try {
+      // Here you would implement the actual recharge logic
+      console.log(`Recharging ${amount} for game ${game.title}`);
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast.success(`Successfully recharged $${amount}`);
+      onClose();
+    } catch (error) {
+      toast.error('Failed to recharge. Please try again.');
+      console.error('Recharge error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Transition appear show={isOpen} as={Fragment}>
+      <Dialog 
+        as="div" 
+        className="relative z-50" 
+        onClose={onClose}
+        initialFocus={initialFocusRef}
+      >
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-black/80" />
+        </Transition.Child>
+
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl 
+                bg-[#1a1f2d] p-6 shadow-xl transition-all focus:outline-none">
+                <div className="space-y-6">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <Dialog.Title className="text-xl font-bold text-white flex items-center gap-2">
+                      <div className="w-8 h-8 bg-[#6f42c1] rounded-lg flex items-center justify-center">
+                        <Plus className="w-5 h-5 text-white" />
+                      </div>
+                      Recharge {game.title}
+                    </Dialog.Title>
+                    <button 
+                      onClick={onClose}
+                      className="p-2 rounded-lg hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff]"
+                      aria-label="Close dialog"
+                    >
+                      <CloseIcon className="w-5 h-5 text-white/60" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleRecharge} className="space-y-6">
+                    <div className="space-y-2">
+                      <label htmlFor="recharge-amount" className="text-[#00ffff] text-sm block">
+                        Amount to Recharge:
+                      </label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-white">$</span>
+                        <input
+                          ref={initialFocusRef}
+                          id="recharge-amount"
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          placeholder="Enter amount"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                          className="w-full p-3 pl-8 bg-black/20 text-white placeholder-white/40
+                            rounded-lg border border-white/10 focus:border-[#6f42c1]
+                            focus:outline-none focus:ring-2 focus:ring-[#6f42c1]"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <button 
+                      type="submit"
+                      disabled={isSubmitting || !amount || parseFloat(amount) <= 0}
+                      className="w-full p-3 bg-[#6f42c1] hover:bg-[#6f42c1]/90
+                        text-white rounded-xl text-lg font-bold
+                        transition-all duration-300 flex items-center justify-center gap-2
+                        focus:outline-none focus:ring-2 focus:ring-[#6f42c1] focus:ring-offset-2 focus:ring-offset-[#1a1f2d]
+                        disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Processing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-5 h-5" />
+                          <span>Confirm Recharge</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </div>
+      </Dialog>
+    </Transition>
+  );
+}
+
+function RedeemModal({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: Game }) {
+  const [amount, setAmount] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const initialFocusRef = useRef<HTMLInputElement>(null);
+
+  const handleRedeem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!amount || parseFloat(amount) <= 0) return;
+
+    setIsSubmitting(true);
+    try {
+      // Here you would implement the actual redeem logic
+      console.log(`Redeeming ${amount} from game ${game.title}`);
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast.success(`Successfully redeemed $${amount}`);
+      onClose();
+    } catch (error) {
+      toast.error('Failed to redeem. Please try again.');
+      console.error('Redeem error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Transition appear show={isOpen} as={Fragment}>
+      <Dialog 
+        as="div" 
+        className="relative z-50" 
+        onClose={onClose}
+        initialFocus={initialFocusRef}
+      >
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-black/80" />
+        </Transition.Child>
+
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl 
+                bg-[#1a1f2d] p-6 shadow-xl transition-all focus:outline-none">
+                <div className="space-y-6">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <Dialog.Title className="text-xl font-bold text-white flex items-center gap-2">
+                      <div className="w-8 h-8 bg-[#fd7e14] rounded-lg flex items-center justify-center">
+                        <CircleMinus className="w-5 h-5 text-white" />
+                      </div>
+                      Redeem from {game.title}
+                    </Dialog.Title>
+                    <button 
+                      onClick={onClose}
+                      className="p-2 rounded-lg hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff]"
+                      aria-label="Close dialog"
+                    >
+                      <CloseIcon className="w-5 h-5 text-white/60" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleRedeem} className="space-y-6">
+                    <div className="space-y-2">
+                      <label htmlFor="redeem-amount" className="text-[#00ffff] text-sm block">
+                        Amount to Redeem:
+                      </label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-white">$</span>
+                        <input
+                          ref={initialFocusRef}
+                          id="redeem-amount"
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          placeholder="Enter amount"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                          className="w-full p-3 pl-8 bg-black/20 text-white placeholder-white/40
+                            rounded-lg border border-white/10 focus:border-[#fd7e14]
+                            focus:outline-none focus:ring-2 focus:ring-[#fd7e14]"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <button 
+                      type="submit"
+                      disabled={isSubmitting || !amount || parseFloat(amount) <= 0}
+                      className="w-full p-3 bg-[#fd7e14] hover:bg-[#fd7e14]/90
+                        text-white rounded-xl text-lg font-bold
+                        transition-all duration-300 flex items-center justify-center gap-2
+                        focus:outline-none focus:ring-2 focus:ring-[#fd7e14] focus:ring-offset-2 focus:ring-offset-[#1a1f2d]
+                        disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Processing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CircleMinus className="w-5 h-5" />
+                          <span>Confirm Redeem</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
                 </div>
               </Dialog.Panel>
             </Transition.Child>
