@@ -76,7 +76,6 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
       <CashoutModal 
         isOpen={isCashoutModalOpen}
         onClose={() => setIsCashoutModalOpen(false)}
-        currentBalance={0}
       />
 
       <nav className="container fixed top-0 right-0 left-0 bg-black/40 backdrop-blur-lg border-b border-[#00ffff]/10 z-40">

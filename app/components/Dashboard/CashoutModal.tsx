@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FaBitcoin, FaMoneyBillWave } from 'react-icons/fa';
 import { SiLitecoin } from 'react-icons/si';
@@ -11,7 +11,7 @@ import { MotionDiv } from '@/app/types/motion';
 interface CashoutModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentBalance: number;
+  currentBalance?: number; // Make this optional since we'll fetch it
 }
 
 const paymentMethods = [
@@ -44,13 +44,49 @@ const paymentMethods = [
   },
 ];
 
-export default function CashoutModal({ isOpen, onClose, currentBalance }: CashoutModalProps) {
+export default function CashoutModal({ isOpen, onClose, currentBalance: initialBalance }: CashoutModalProps) {
   const [step, setStep] = useState<'method' | 'details' | 'confirm'>('method');
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
   const [amount, setAmount] = useState<number | ''>('');
   const [publicKey, setPublicKey] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [balance, setBalance] = useState<number>(initialBalance || 0);
+  const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(true);
+
+  // Fetch balance when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const fetchBalance = async () => {
+      try {
+        const response = await fetch('/api/auth/profile', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch balance');
+        }
+
+        const data = await response.json();
+        setBalance(Number(data.balance) || 0);
+      } catch (err) {
+        console.error('Error fetching balance:', err);
+        // If we have an initial balance, use that as fallback
+        if (initialBalance) {
+          setBalance(initialBalance);
+        }
+      } finally {
+        setIsLoadingBalance(false);
+      }
+    };
+
+    fetchBalance();
+  }, [isOpen, initialBalance]);
 
   // Get the selected payment method object
   const selectedPaymentMethod = paymentMethods.find(method => method.id === selectedMethod);
@@ -204,7 +240,14 @@ export default function CashoutModal({ isOpen, onClose, currentBalance }: Cashou
                   </div>
                 </div>
                 <div className="text-2xl font-bold text-white mt-1">
-                  ${currentBalance.toFixed(2)}
+                  {isLoadingBalance ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 border-2 border-[#00ffff]/30 border-t-[#00ffff] rounded-full animate-spin"></div>
+                      <span className="text-white/50">Loading...</span>
+                    </div>
+                  ) : (
+                    `$${balance.toFixed(2)}`
+                  )}
                 </div>
               </div>
 
