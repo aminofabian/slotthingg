@@ -20,35 +20,62 @@ const slides = [
   {
     id: 1,
     image: '/14.jpg',
-    title: ['EPIC', 'SLOTS'],
-    subtitle: 'LEVEL UP YOUR GAME',
-    description: '🎮 Join thousands of players in the ultimate gaming experience',
-    icon: FaGamepad,
-    gradient: 'from-[#00ffff]/30 via-[#4d4dff]/30 to-[#0000ff]/30',
-    cta: '▶ PLAY NOW',
-    glowColor: '#00ffff'
+    title: 'Stay Untamed',
+    subtitle: 'Sign Up & Get',
+    amount: 'UP TO $20,000.00',
+    description: 'in Casino or Sports',
+    gradient: 'from-[#00ff00]/20 via-[#00ff80]/20 to-[#0080ff]/20',
+    cta: 'Join Now',
+    crownImage: '/1.jpg',
+    logoImage: '/11.jpeg'
   },
   {
     id: 2,
-    image: '/111.png',
-    title: ['DAILY', 'LOOT'],
-    subtitle: 'CLAIM YOUR REWARDS',
-    description: '💎 Epic rewards and treasures await brave players',
-    icon: GiTakeMyMoney,
-    gradient: 'from-[#ffd700]/30 via-[#ffa500]/30 to-[#ff8c00]/30',
-    cta: '🎁 CLAIM NOW',
-    glowColor: '#ffd700'
+    image: '/15.jpg',
+    title: 'Epic Rewards',
+    subtitle: 'Daily Bonuses',
+    amount: 'WIN UP TO $50,000',
+    description: 'Exclusive VIP Benefits',
+    gradient: 'from-[#FFD700]/20 via-[#FFA500]/20 to-[#FF8C00]/20',
+    cta: 'Claim Now',
+    crownImage: '/11.png',
+    logoImage: '/12.png'
   },
   {
     id: 3,
-    image: '/12.jpg',
-    title: ['NEW', 'QUESTS'],
-    subtitle: 'UNLOCK ACHIEVEMENTS',
-    description: '⚔️ Embark on new adventures with exclusive games',
-    icon: GiStarsStack,
-    gradient: 'from-[#ff00ff]/30 via-[#ff1493]/30 to-[#ff69b4]/30',
-    cta: '🎲 EXPLORE',
-    glowColor: '#ff00ff'
+    image: '/16.jpg',
+    title: 'Premium Games',
+    subtitle: 'New Release',
+    amount: '500% BONUS',
+    description: 'On Your First Deposit',
+    gradient: 'from-[#FF1493]/20 via-[#FF69B4]/20 to-[#FFB6C1]/20',
+    cta: 'Play Now',
+    crownImage: '/13.png',
+    logoImage: '/111.png'
+  },
+  {
+    id: 4,
+    image: '/17.jpeg',
+    title: 'VIP Access',
+    subtitle: 'Exclusive Member',
+    amount: 'UNLIMITED REWARDS',
+    description: 'Join Our Elite Club',
+    gradient: 'from-[#4B0082]/20 via-[#8A2BE2]/20 to-[#9400D3]/20',
+    cta: 'Join VIP',
+    crownImage: '/11.webp',
+    logoImage: '/12.jpg'
+  },
+  {
+    id: 5,
+    image: '/18.jpg',
+    title: 'Tournament Time',
+    subtitle: 'Compete Now',
+    amount: '$100,000 PRIZE POOL',
+    description: 'Weekly Championships',
+    gradient: 'from-[#008000]/20 via-[#32CD32]/20 to-[#00FF00]/20',
+    cta: 'Enter Now',
+    crownImage: '/1.jpg',
+    logoImage: '/11.png'
   }
 ];
 
@@ -83,7 +110,7 @@ export default function DashboardSlider() {
             [&_.swiper-pagination]:!bottom-4 sm:[&_.swiper-pagination]:!bottom-8
             [&_.swiper-pagination-bullet-active]:!bg-white
             [&_.swiper-pagination-bullet-active]:!scale-100
-            shadow-none"
+            shadow-none overflow-hidden bg-[#1a1a1a]"
         >
           {/* Custom Navigation Buttons */}
           <button className="custom-swiper-prev absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10
@@ -103,78 +130,87 @@ export default function DashboardSlider() {
             <SwiperSlide key={slide.id} className="relative">
               <div className="relative w-full h-full">
                 {/* Background Image with Enhanced Effects */}
-                <div 
-                  className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                  style={{ 
-                    backgroundImage: `url(${slide.image})`,
-                    filter: 'brightness(0.5)',
-                  }}
-                />
+                <div className="absolute right-0 top-0 bottom-0 w-[55%] overflow-hidden">
+                  <div 
+                    className="absolute inset-0 transition-transform duration-700"
+                    style={{ 
+                      backgroundImage: `url(${slide.image})`,
+                      backgroundPosition: 'center',
+                      backgroundSize: 'contain',
+                      backgroundRepeat: 'no-repeat',
+                      filter: 'brightness(0.85)',
+                    }}
+                  />
+                </div>
                 
-                {/* Simple Gradient Overlay */}
-                <div className="absolute inset-0 bg-black/20" />
+                {/* Dark Gradient for Left Side */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#1a1a1a] via-[#1a1a1a]/95 to-[#1a1a1a]/20" />
                 
-                {/* Content Container with Strategic Positioning */}
-                <div className="absolute inset-0 flex items-end sm:items-center justify-start p-4 sm:p-8 md:p-12 lg:p-16">
+                {/* Accent Gradient */}
+                <div className={`absolute inset-0 bg-gradient-to-r from-[#00ff80]/10 to-transparent opacity-60`} />
+                
+                {/* Content Container */}
+                <div className="absolute inset-0 flex items-center justify-between">
+                  {/* Left Side Content */}
                   <MotionDiv 
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.7, ease: "easeOut" }}
-                    className={`${righteous.className} relative hidden sm:flex sm:flex-col items-start max-w-[600px] py-4`}
+                    className="relative flex flex-col items-start w-[45%] z-10 px-4 sm:px-6 md:px-8 lg:px-12"
                   >
-                    {/* Enhanced Icon with Pulse Effect */}
-                    <div className="mb-2 sm:mb-4 transform group-hover:scale-125 transition-transform duration-700">
-                      <div className="relative">
-                        <slide.icon className="w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 text-white
-                          animate-float" />
-                      </div>
+                    {/* Crown Icon */}
+                    <div className="mb-2 sm:mb-3 md:mb-4 transform hover:scale-110 transition-transform duration-300">
+                      <img 
+                        src={slide.crownImage} 
+                        alt="Crown" 
+                        className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 object-contain drop-shadow-[0_0_8px_rgba(0,255,128,0.5)]" 
+                      />
                     </div>
                     
-                    {/* Enhanced Subtitle */}
-                    <div className="text-[10px] sm:text-xs md:text-sm lg:text-base tracking-[0.3em] text-white mb-1 sm:mb-2
-                      font-bold">
-                      {slide.subtitle}
-                    </div>
+                    {/* Main Title */}
+                    <h2 className={`${righteous.className} text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold 
+                      text-white mb-1 sm:mb-2 md:mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]
+                      tracking-wide leading-tight`}>
+                      {slide.title}
+                    </h2>
                     
-                    {/* Enhanced Split Title with Animation */}
-                    <div className="mb-2 sm:mb-3">
-                      {slide.title.map((part, index) => (
-                        <h2 key={index} className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-black 
-                          text-white tracking-wide sm:tracking-wider leading-tight
-                          group-hover:tracking-widest transition-all duration-700">
-                          {part}
-                        </h2>
-                      ))}
-                    </div>
-                    
-                    {/* Enhanced Decorative Line */}
-                    <div className="w-16 sm:w-24 md:w-32 h-0.5 sm:h-1 bg-gradient-to-r from-white via-white to-transparent 
-                      mb-2 sm:mb-4 group-hover:w-40 transition-all duration-700" />
-                    
-                    {/* Enhanced Description with Solid Background */}
-                    <div className="relative bg-black/70 rounded-lg sm:rounded-xl p-2 sm:p-3 md:p-4 
-                      transform group-hover:translate-x-4 transition-all duration-700
-                      border border-white/30 max-w-lg">
-                      <p className="text-xs sm:text-sm md:text-base lg:text-lg text-white text-left font-medium">
+                    {/* Subtitle and Amount */}
+                    <div className="space-y-0.5 sm:space-y-1 md:space-y-2">
+                      <p className="text-white/90 text-xs sm:text-sm md:text-base lg:text-lg font-medium tracking-wide">
+                        {slide.subtitle}
+                      </p>
+                      <p className="text-[#00ff80] text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold
+                        drop-shadow-[0_0_10px_rgba(0,255,128,0.3)] tracking-tight leading-tight">
+                        {slide.amount}
+                      </p>
+                      <p className="text-white/80 text-xs sm:text-sm md:text-base lg:text-lg font-medium tracking-wide">
                         {slide.description}
                       </p>
                     </div>
 
-                    {/* Enhanced CTA Button */}
-                    <button className="mt-3 sm:mt-4 md:mt-6 px-4 sm:px-6 md:px-8 py-1.5 sm:py-2 md:py-3 
-                      bg-black/80 text-white rounded-lg sm:rounded-xl
-                      border-2 border-white/40 hover:border-white 
-                      transition-all duration-500 text-xs sm:text-sm md:text-base lg:text-lg font-bold
-                      transform hover:translate-x-4 hover:bg-black group-hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]
-                      relative overflow-hidden">
-                      <span className="relative z-10">{slide.cta}</span>
+                    {/* CTA Button */}
+                    <button className="mt-3 sm:mt-4 md:mt-6 px-6 sm:px-8 md:px-10 py-1.5 sm:py-2 md:py-3
+                      bg-[#00ff80] text-black rounded-full
+                      font-bold text-xs sm:text-sm md:text-base lg:text-lg
+                      hover:bg-white transition-all duration-300
+                      hover:transform hover:scale-105
+                      shadow-[0_0_20px_rgba(0,255,128,0.3)]">
+                      {slide.cta}
                     </button>
                   </MotionDiv>
-                </div>
 
-                {/* Subtle Bottom Gradient */}
-                <div className="absolute bottom-0 left-0 right-0 h-1/2 
-                  bg-gradient-to-t from-black/70 to-transparent pointer-events-none" />
+                  {/* Right Side Logos */}
+                  <div className="hidden lg:flex flex-col items-end space-y-4 pr-4 sm:pr-6 md:pr-8 z-10">
+                    <img 
+                      src={slide.logoImage} 
+                      alt="Logo" 
+                      className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 object-contain rounded-xl
+                        shadow-[0_0_20px_rgba(255,255,255,0.2)]
+                        hover:transform hover:scale-110 transition-transform duration-300
+                        bg-white/10 p-2" 
+                    />
+                  </div>
+                </div>
               </div>
             </SwiperSlide>
           ))}
