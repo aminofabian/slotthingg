@@ -223,6 +223,12 @@ export async function generateWhitelabelUUID(project_url: string): Promise<strin
 }
 
 export const handleSessionExpiration = () => {
+  // Check if we're within the token validity window
+  const loginTimestamp = localStorage.getItem('login_timestamp');
+  if (loginTimestamp && Date.now() - parseInt(loginTimestamp) < 7 * 24 * 60 * 60 * 1000) {
+    return; // Skip if token should still be valid
+  }
+
   // Clear all authentication data
   localStorage.clear();
   document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
@@ -253,6 +259,23 @@ export const setupAuthInterceptor = () => {
         
         // Skip for auth-related endpoints to avoid loops
         if (!url.includes('/api/auth/')) {
+          // Try to refresh the token first
+          try {
+            const refreshResponse = await fetch('/api/auth/refresh', {
+              method: 'POST',
+              credentials: 'include'
+            });
+            
+            if (refreshResponse.ok) {
+              // Update login timestamp on successful refresh
+              localStorage.setItem('login_timestamp', Date.now().toString());
+              // Retry the original request
+              return await originalFetch.apply(this, args);
+            }
+          } catch (error) {
+            console.error('Token refresh failed:', error);
+          }
+          
           handleSessionExpiration();
         }
       }

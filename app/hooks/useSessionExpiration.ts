@@ -17,93 +17,80 @@ export function useSessionExpiration() {
       return;
     }
 
-    // Check token immediately on protected routes
+    let isTokenRefreshing = false;
+    let tokenCheckInterval: NodeJS.Timeout;
+
+    // Check token every 5 minutes instead of immediately
     const checkToken = async () => {
+      // Prevent multiple simultaneous refresh attempts
+      if (isTokenRefreshing) return;
+      
       try {
-        // First try to get a new token
+        isTokenRefreshing = true;
+        
+        // First check if we have a recent login timestamp
+        const loginTimestamp = localStorage.getItem('login_timestamp');
+        if (loginTimestamp) {
+          const lastLogin = parseInt(loginTimestamp);
+          const now = Date.now();
+          // If last login was less than 6 days ago, skip refresh
+          if (now - lastLogin < 6 * 24 * 60 * 60 * 1000) {
+            return;
+          }
+        }
+
+        // Try to refresh the token
         const response = await fetch('/api/auth/refresh', {
           method: 'POST',
           credentials: 'include'
         });
         
-        // Only clear auth and redirect if refresh explicitly fails
-        if (!response.ok) {
-          // Don't clear auth data immediately, store the current path first
-          const currentPath = window.location.pathname;
-          
-          // Clear auth data
-          localStorage.clear();
-          document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-          
-          // Show message and redirect
-          toast.error('Your session has expired. Please log in again.');
-          
-          // Use router.push instead of window.location for smoother navigation
-          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
-          return;
+        if (response.ok) {
+          // Update login timestamp on successful refresh
+          localStorage.setItem('login_timestamp', Date.now().toString());
+        } else {
+          // Only clear auth and redirect if refresh explicitly fails
+          // AND we're past the token expiration window
+          const loginTimestamp = localStorage.getItem('login_timestamp');
+          if (!loginTimestamp || Date.now() - parseInt(loginTimestamp) > 7 * 24 * 60 * 60 * 1000) {
+            const currentPath = window.location.pathname;
+            localStorage.clear();
+            document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            toast.error('Your session has expired. Please log in again.');
+            window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+          }
         }
       } catch (error) {
-        // Only redirect on actual auth errors, not network errors
+        console.error('Token refresh error:', error);
+        // Only redirect on actual auth errors after token expiration
         if (error instanceof Error && error.message.includes('auth')) {
-          const currentPath = window.location.pathname;
-          localStorage.clear();
-          document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-          toast.error('Your session has expired. Please log in again.');
-          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+          const loginTimestamp = localStorage.getItem('login_timestamp');
+          if (!loginTimestamp || Date.now() - parseInt(loginTimestamp) > 7 * 24 * 60 * 60 * 1000) {
+            const currentPath = window.location.pathname;
+            localStorage.clear();
+            document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+            toast.error('Your session has expired. Please log in again.');
+            window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+          }
         }
-        return;
+      } finally {
+        isTokenRefreshing = false;
       }
     };
 
-    // Only run token check once when component mounts
+    // Only initialize token check after component mounts
     if (!isInitialized) {
       isInitialized = true;
-      checkToken();
+      // Initial check after 5 minutes
+      const initialCheck = setTimeout(checkToken, 5 * 60 * 1000);
+      // Then check every 30 minutes
+      tokenCheckInterval = setInterval(checkToken, 30 * 60 * 1000);
+
+      return () => {
+        clearTimeout(initialCheck);
+        clearInterval(tokenCheckInterval);
+        isInitialized = false;
+      };
     }
-
-    // Intercept fetch requests
-    const originalFetch = window.fetch;
-    window.fetch = async (...args) => {
-      try {
-        const response = await originalFetch(...args);
-        const url = args[0]?.toString() || '';
-
-        // Only handle auth errors for non-auth endpoints
-        if ((response.status === 401 || response.status === 403) && 
-            !url.includes('/api/auth/') && 
-            !isAuthRoute(pathname)) {
-          
-          // Try to refresh the token first
-          try {
-            const refreshResponse = await fetch('/api/auth/refresh', {
-              method: 'POST',
-              credentials: 'include'
-            });
-            
-            if (refreshResponse.ok) {
-              // If refresh successful, retry the original request
-              return await originalFetch(...args);
-            }
-          } catch (refreshError) {
-            console.error('Token refresh failed:', refreshError);
-          }
-          
-          // Only if refresh fails, clear auth and redirect
-          const currentPath = window.location.pathname;
-          localStorage.clear();
-          document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-          toast.error('Your session has expired. Please log in again.');
-          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
-        }
-        return response;
-      } catch (error) {
-        throw error;
-      }
-    };
-
-    return () => {
-      window.fetch = originalFetch;
-      isInitialized = false;
-    };
   }, [pathname]);
 } 

@@ -113,7 +113,6 @@ const Login = () => {
       
       // Add a small delay to ensure the toast is visible and localStorage is updated
       setTimeout(() => {
-        // Use window.location.href for a full page reload
         window.location.href = redirectPath;
         console.log('Redirecting with page reload to:', redirectPath);
       }, 100);
