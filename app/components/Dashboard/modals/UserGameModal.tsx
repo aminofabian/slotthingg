@@ -7,7 +7,9 @@ import {
   X as CloseIcon, 
   RotateCw, 
   CircleMinus, 
-  Gamepad
+  Gamepad,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import type { Game } from '@/lib/store/useGameStore';
 import useGameStore from '@/lib/store/useGameStore';
@@ -31,6 +33,13 @@ export default function UserGameModal({ isOpen, onClose, game }: UserGameModalPr
   const [balance, setBalance] = useState<number | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [resolvedGameId, setResolvedGameId] = useState<string>('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [userCredentials, setUserCredentials] = useState<{ username: string | null; password: string | null; status: string }>({
+    username: null,
+    password: null,
+    status: 'pending'
+  });
+  const [isLoadingCredentials, setIsLoadingCredentials] = useState(false);
 
   // Resolve game ID and fetch balance when modal opens
   useEffect(() => {
@@ -54,6 +63,137 @@ export default function UserGameModal({ isOpen, onClose, game }: UserGameModalPr
       }
     }
   }, [isOpen, game, games]);
+
+  const fetchUserCredentials = async () => {
+    if (!resolvedGameId) return;
+    
+    setIsLoadingCredentials(true);
+    try {
+      let token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+      
+      if (!token) {
+        const localStorageToken = localStorage.getItem('accessToken');
+        if (localStorageToken) {
+          token = localStorageToken;
+        }
+      }
+      
+      const whitelabel_admin_uuid = localStorage.getItem('whitelabel_admin_uuid');
+      
+      if (!whitelabel_admin_uuid || !token) {
+        throw new Error('Authentication data missing. Please log in again.');
+      }
+
+      // To debug Postman vs Browser differences, add info about the browser
+      console.log('🌐 Browser Info:', {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        vendor: navigator.vendor
+      });
+
+      const gameIdVariations = [
+        resolvedGameId,                // Original resolved ID
+        String(parseInt(resolvedGameId)), // Integer without leading zeros
+        game.id.toString()             // Direct game.id
+      ];
+
+      console.log('🧩 Game details:', {
+        title: game.title,
+        code: game.code,
+        id: game.id,
+        resolvedGameId
+      });
+
+      // Try multiple variations of the game ID to see which one works
+      let foundCredentials = false;
+      let lastResponse = null;
+      
+      console.log('🔍 Attempting with multiple numeric game ID formats...');
+      
+      for (const gameIdValue of gameIdVariations) {
+        // Skip non-numeric values to prevent Django ValueError
+        if (isNaN(Number(gameIdValue))) {
+          console.log(`⚠️ Skipping non-numeric game_id: "${gameIdValue}"`);
+          continue;
+        }
+        
+        if (foundCredentials) break;
+        
+        // Create a FormData object exactly like Postman would
+        const formData = new FormData();
+        formData.append('whitelabel_admin_uuid', whitelabel_admin_uuid);
+        formData.append('game_id', gameIdValue);
+        
+        // Log what we're trying
+        console.log(`🔍 Trying with game_id: "${gameIdValue}"`);
+        
+        // Make the request with EXACTLY the same setup as Postman
+        const response = await fetch('https://serverhub.biz/games/user-game-data/', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+        
+        const result = await response.json();
+        lastResponse = result;
+        
+        console.log(`📊 Response for game_id "${gameIdValue}":`, result);
+        
+        if (result.status === 'success' || result.username || result.password) {
+          console.log(`✅ Success with game_id: "${gameIdValue}"`);
+          foundCredentials = true;
+          setUserCredentials({
+            username: result.username || `user_${game.code.toLowerCase()}`,
+            password: result.password,
+            status: 'success'
+          });
+        }
+      }
+      
+      // If none of the variations worked, handle the case gracefully
+      if (!foundCredentials) {
+        console.log('⚠️ None of the game ID variations worked');
+        
+        if (lastResponse && lastResponse.message === "Game not found.") {
+          console.log('ℹ️ No credentials found for this game - this is NORMAL for first-time users');
+          
+          // Provide a friendly default for new users
+          setUserCredentials({
+            username: `user_${game.code.toLowerCase()}`,
+            password: null, 
+            status: 'new'
+          });
+        } else {
+          console.error('❌ Unexpected API error:', lastResponse?.message);
+          
+          // Any other error - provide default
+          setUserCredentials({
+            username: `user_${game.code.toLowerCase()}`,
+            password: null, 
+            status: 'error'
+          });
+        }
+      }
+    } catch (err) {
+      console.error('❌ Error fetching user credentials:', err);
+      setUserCredentials({
+        username: `user_${game.code.toLowerCase()}`,
+        password: null,
+        status: 'error'
+      });
+    } finally {
+      setIsLoadingCredentials(false);
+    }
+  };
+
+  // Fetch credentials whenever resolvedGameId changes
+  useEffect(() => {
+    if (isOpen) {
+      fetchUserCredentials();
+    }
+  }, [resolvedGameId, isOpen]);
 
   // Fetch balance whenever resolvedGameId changes
   useEffect(() => {
@@ -205,20 +345,47 @@ export default function UserGameModal({ isOpen, onClose, game }: UserGameModalPr
                     <div className="space-y-2">
                       <label className="text-[#00ffff] text-sm">Username:</label>
                       <div className="p-3 bg-black/20 rounded-lg border border-white/10">
-                        <p className="text-white">user_{game.code.toLowerCase()}</p>
+                        {isLoadingCredentials ? (
+                          <div className="flex items-center justify-center">
+                            <svg className="animate-spin h-5 w-5 text-[#00ffff]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          </div>
+                        ) : (
+                          <p className="text-white">{userCredentials.username || `user_${game.code.toLowerCase()}`}</p>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-2">
                       <label className="text-[#00ffff] text-sm">Password:</label>
                       <div className="p-3 bg-black/20 rounded-lg border border-white/10 flex justify-between items-center">
-                        <p className="text-white">********</p>
-                        <button 
-                          className="text-[#00ffff] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff] rounded-lg p-1"
-                          aria-label="Reset password"
-                          onClick={() => setIsPasswordChangeModalOpen(true)}
-                        >
-                          <RotateCw className="w-4 h-4" />
-                        </button>
+                        {isLoadingCredentials ? (
+                          <div className="flex items-center justify-center">
+                            <svg className="animate-spin h-5 w-5 text-[#00ffff]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          </div>
+                        ) : (
+                          <p className="text-white">{showPassword ? userCredentials.password : '********'}</p>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <button 
+                            className="text-[#00ffff] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff] rounded-lg p-1"
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                          <button 
+                            className="text-[#00ffff] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff] rounded-lg p-1"
+                            aria-label="Reset password"
+                            onClick={() => setIsPasswordChangeModalOpen(true)}
+                          >
+                            <RotateCw className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
