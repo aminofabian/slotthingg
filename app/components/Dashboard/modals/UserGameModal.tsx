@@ -9,7 +9,8 @@ import {
   CircleMinus, 
   Gamepad,
   Eye,
-  EyeOff
+  EyeOff,
+  Copy
 } from 'lucide-react';
 import type { Game } from '@/lib/store/useGameStore';
 import useGameStore from '@/lib/store/useGameStore';
@@ -34,6 +35,7 @@ export default function UserGameModal({ isOpen, onClose, game }: UserGameModalPr
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [resolvedGameId, setResolvedGameId] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
   const [userCredentials, setUserCredentials] = useState<{ username: string | null; password: string | null; status: string }>({
     username: null,
     password: null,
@@ -385,6 +387,31 @@ export default function UserGameModal({ isOpen, onClose, game }: UserGameModalPr
                                   {showPassword 
                                     ? "Hide password 🕵️" 
                                     : "Show password 👀"}
+                                </div>
+                                <div className="w-2 h-2 bg-black/90 border-r border-b border-[#00ffff]/30 absolute top-full left-1/2 -mt-1 transform -translate-x-1/2 rotate-45"></div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="group relative">
+                            <button 
+                              className={`text-[#00ffff] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff] rounded-lg p-1 ${copySuccess ? 'bg-green-500/20' : ''}`}
+                              aria-label="Copy password"
+                              onClick={() => {
+                                if (userCredentials.password) {
+                                  navigator.clipboard.writeText(userCredentials.password);
+                                  setCopySuccess(true);
+                                  setTimeout(() => setCopySuccess(false), 2000);
+                                }
+                              }}
+                              disabled={!userCredentials.password}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                            <div className="absolute z-50 bottom-full left-1/2 mb-2 -translate-x-1/2 hidden group-hover:block">
+                              <div className="relative max-w-[160px]">
+                                <div className="bg-black/90 text-[#00ffff] text-xs rounded-lg py-1.5 px-2 shadow-lg border border-[#00ffff]/30">
+                                  {copySuccess ? "Copied! ✓" : "Copy password 📋"}
                                 </div>
                                 <div className="w-2 h-2 bg-black/90 border-r border-b border-[#00ffff]/30 absolute top-full left-1/2 -mt-1 transform -translate-x-1/2 rotate-45"></div>
                               </div>
