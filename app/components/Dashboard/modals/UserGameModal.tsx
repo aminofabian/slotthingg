@@ -372,10 +372,12 @@ export default function UserGameModal({ isOpen, onClose, game }: UserGameModalPr
                         ) : (
                           <p className="text-white">{showPassword ? userCredentials.password : '********'}</p>
                         )}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3 ml-2">
                           <div className="group relative">
                             <button 
-                              className="text-[#00ffff] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff] rounded-lg p-1"
+                              className="text-[#00ffff] hover:text-white bg-black/30 hover:bg-[#00ffff]/10 
+                                transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#00ffff] 
+                                rounded-lg p-2 w-8 h-8 flex items-center justify-center"
                               aria-label={showPassword ? "Hide password" : "Show password"}
                               onClick={() => setShowPassword(!showPassword)}
                             >
@@ -395,7 +397,11 @@ export default function UserGameModal({ isOpen, onClose, game }: UserGameModalPr
                           
                           <div className="group relative">
                             <button 
-                              className={`text-[#00ffff] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff] rounded-lg p-1 ${copySuccess ? 'bg-green-500/20' : ''}`}
+                              className={`text-[#00ffff] hover:text-white bg-black/30 hover:bg-[#00ffff]/10 
+                                transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#00ffff] 
+                                rounded-lg p-2 w-8 h-8 flex items-center justify-center
+                                ${copySuccess ? 'bg-green-500/30 text-green-400 hover:bg-green-500/40 hover:text-green-300' : 
+                                              !userCredentials.password ? 'opacity-50 cursor-not-allowed' : ''}`}
                               aria-label="Copy password"
                               onClick={() => {
                                 if (userCredentials.password) {
@@ -420,7 +426,9 @@ export default function UserGameModal({ isOpen, onClose, game }: UserGameModalPr
                           
                           <div className="group relative">
                             <button 
-                              className="text-[#00ffff] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff] rounded-lg p-1"
+                              className="text-[#00ffff] hover:text-white bg-black/30 hover:bg-[#00ffff]/10 
+                                transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#00ffff] 
+                                rounded-lg p-2 w-8 h-8 flex items-center justify-center"
                               aria-label="Reset password"
                               onClick={() => setIsPasswordChangeModalOpen(true)}
                             >
