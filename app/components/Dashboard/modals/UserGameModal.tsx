@@ -371,20 +371,43 @@ export default function UserGameModal({ isOpen, onClose, game }: UserGameModalPr
                           <p className="text-white">{showPassword ? userCredentials.password : '********'}</p>
                         )}
                         <div className="flex items-center gap-2">
-                          <button 
-                            className="text-[#00ffff] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff] rounded-lg p-1"
-                            aria-label={showPassword ? "Hide password" : "Show password"}
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                          <button 
-                            className="text-[#00ffff] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff] rounded-lg p-1"
-                            aria-label="Reset password"
-                            onClick={() => setIsPasswordChangeModalOpen(true)}
-                          >
-                            <RotateCw className="w-4 h-4" />
-                          </button>
+                          <div className="group relative">
+                            <button 
+                              className="text-[#00ffff] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff] rounded-lg p-1"
+                              aria-label={showPassword ? "Hide password" : "Show password"}
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                            <div className="absolute z-50 bottom-full left-0 mb-2 -translate-x-1/3 hidden group-hover:block">
+                              <div className="relative max-w-[160px]">
+                                <div className="bg-black/90 text-[#00ffff] text-xs rounded-lg py-1.5 px-2 shadow-lg border border-[#00ffff]/30">
+                                  {showPassword 
+                                    ? "Hide password 🕵️" 
+                                    : "Show password 👀"}
+                                </div>
+                                <div className="w-2 h-2 bg-black/90 border-r border-b border-[#00ffff]/30 absolute top-full left-1/2 -mt-1 transform -translate-x-1/2 rotate-45"></div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="group relative">
+                            <button 
+                              className="text-[#00ffff] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#00ffff] rounded-lg p-1"
+                              aria-label="Reset password"
+                              onClick={() => setIsPasswordChangeModalOpen(true)}
+                            >
+                              <RotateCw className="w-4 h-4" />
+                            </button>
+                            <div className="absolute z-50 bottom-full right-0 mb-2 translate-x-1/3 hidden group-hover:block">
+                              <div className="relative max-w-[160px]">
+                                <div className="bg-black/90 text-[#00ffff] text-xs rounded-lg py-1.5 px-2 shadow-lg border border-[#00ffff]/30">
+                                  Change password ✨
+                                </div>
+                                <div className="w-2 h-2 bg-black/90 border-r border-b border-[#00ffff]/30 absolute top-full left-1/2 -mt-1 transform -translate-x-1/2 rotate-45"></div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
