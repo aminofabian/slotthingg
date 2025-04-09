@@ -222,15 +222,31 @@ export async function generateWhitelabelUUID(project_url: string): Promise<strin
   }
 }
 
+// Constants for token expiration windows
+const TOKEN_REFRESH_WINDOW = 6 * 24 * 60 * 60 * 1000; // 6 days
+const TOKEN_EXPIRATION_WINDOW = 7 * 24 * 60 * 60 * 1000; // 7 days
+
 export const handleSessionExpiration = () => {
   // Check if we're within the token validity window
   const loginTimestamp = localStorage.getItem('login_timestamp');
-  if (loginTimestamp && Date.now() - parseInt(loginTimestamp) < 7 * 24 * 60 * 60 * 1000) {
+  if (loginTimestamp && Date.now() - parseInt(loginTimestamp) < TOKEN_EXPIRATION_WINDOW) {
     return; // Skip if token should still be valid
   }
 
+  // Preserve user data except auth tokens
+  const userData = {
+    theme: localStorage.getItem('theme'),
+    language: localStorage.getItem('language')
+    // Add any other non-auth user preferences you want to keep
+  };
+  
   // Clear all authentication data
   localStorage.clear();
+  
+  // Restore user preferences
+  if (userData.theme) localStorage.setItem('theme', userData.theme);
+  if (userData.language) localStorage.setItem('language', userData.language);
+  
   document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
   
   // Get current path for redirect after login
@@ -263,7 +279,11 @@ export const setupAuthInterceptor = () => {
           try {
             const refreshResponse = await fetch('/api/auth/refresh', {
               method: 'POST',
-              credentials: 'include'
+              credentials: 'include',
+              headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+              }
             });
             
             if (refreshResponse.ok) {
@@ -272,8 +292,29 @@ export const setupAuthInterceptor = () => {
               // Retry the original request
               return await originalFetch.apply(this, args);
             }
+            
+            // Check if it's a temporary error before logging out
+            try {
+              const errorData = await refreshResponse.json();
+              if (errorData.temporary) {
+                console.warn('Temporary auth server issue, not logging out user');
+                return response; // Return the original response
+              }
+            } catch (parseError) {
+              console.error('Error parsing refresh response:', parseError);
+            }
           } catch (error) {
             console.error('Token refresh failed:', error);
+            
+            // Check if it's a network error
+            if (error instanceof TypeError && 
+               (error.message.includes('network') || 
+                error.message.includes('fetch') || 
+                error.message.includes('timeout') ||
+                error.message.includes('abort'))) {
+              console.warn('Network error during token refresh, not logging out user');
+              return response; // Return the original response
+            }
           }
           
           handleSessionExpiration();

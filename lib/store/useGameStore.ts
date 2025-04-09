@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 
+// Constants for token expiration windows - match with useSessionExpiration.ts
+const TOKEN_EXPIRATION_WINDOW = 7 * 24 * 60 * 60 * 1000; // 7 days
+
 function getToken() {
   // Try to get token from localStorage first
   let token = localStorage.getItem('accessToken');
@@ -108,15 +111,86 @@ const useGameStore = create<GameStore>((set, get) => ({
           games: [],
           userGames: []
         });
-        // If token is invalid, remove it from both storage locations
+        
+        // If token is invalid (401/403), try refreshing first instead of immediately logging out
         if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('token');
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('jwt_token');
-          localStorage.removeItem('authToken');
-          document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-          window.location.href = '/login'; // Redirect to login page
+          try {
+            // Check if we're within token validity window - if yes, try refresh
+            const loginTimestamp = localStorage.getItem('login_timestamp');
+            if (loginTimestamp && Date.now() - parseInt(loginTimestamp) < TOKEN_EXPIRATION_WINDOW) {
+              console.log('Attempting token refresh before logout');
+              const refreshResponse = await fetch('/api/auth/refresh', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                  'Cache-Control': 'no-cache, no-store, must-revalidate',
+                  'Pragma': 'no-cache',
+                }
+              });
+              
+              if (refreshResponse.ok) {
+                console.log('Token refresh successful, updating timestamp');
+                localStorage.setItem('login_timestamp', Date.now().toString());
+                // Retry fetching games
+                get().fetchGames();
+                return;
+              }
+              
+              // Check if it's a temporary error
+              try {
+                const refreshData = await refreshResponse.json();
+                if (refreshData.temporary) {
+                  console.warn('Temporary auth server issue, not logging out user');
+                  return;
+                }
+              } catch (parseError) {
+                console.error('Error parsing refresh response:', parseError);
+              }
+            }
+            
+            // If we get here, we need to log out - preserve user preferences
+            const userData = {
+              theme: localStorage.getItem('theme'),
+              language: localStorage.getItem('language')
+              // Add any other non-auth user preferences you want to keep
+            };
+            
+            // Clear auth data
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('token');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('login_timestamp');
+            localStorage.removeItem('user_id');
+            localStorage.removeItem('username');
+            
+            // Restore user preferences
+            if (userData.theme) localStorage.setItem('theme', userData.theme);
+            if (userData.language) localStorage.setItem('language', userData.language);
+            
+            document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            window.location.href = '/login'; // Redirect to login page
+          } catch (refreshError) {
+            console.error('Error during token refresh attempt:', refreshError);
+            // Only logout on non-network errors
+            if (!(refreshError instanceof TypeError && 
+                 (refreshError.message.includes('network') || 
+                  refreshError.message.includes('fetch') || 
+                  refreshError.message.includes('timeout') ||
+                  refreshError.message.includes('abort')))) {
+              // Logout with preference saving
+              const userData = {
+                theme: localStorage.getItem('theme'),
+                language: localStorage.getItem('language')
+              };
+              localStorage.clear();
+              if (userData.theme) localStorage.setItem('theme', userData.theme);
+              if (userData.language) localStorage.setItem('language', userData.language);
+              document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+              window.location.href = '/login';
+            }
+          }
         }
         return;
       }
