@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 // Constants for token expiration windows - match with useSessionExpiration.ts
-const TOKEN_EXPIRATION_WINDOW = 7 * 24 * 60 * 60 * 1000; // 7 days
+const TOKEN_EXPIRATION_WINDOW = 30 * 24 * 60 * 60 * 1000; // 30 days (extended from 7 days)
 
 function getToken() {
   // Try to get token from localStorage first

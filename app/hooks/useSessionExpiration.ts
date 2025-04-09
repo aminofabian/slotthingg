@@ -6,8 +6,8 @@ import { toast } from 'react-hot-toast';
 import { isAuthRoute, isProtectedRoute } from '@/lib/routes';
 
 // Constants for token expiration windows
-const TOKEN_REFRESH_WINDOW = 6 * 24 * 60 * 60 * 1000; // 6 days
-const TOKEN_EXPIRATION_WINDOW = 7 * 24 * 60 * 60 * 1000; // 7 days
+const TOKEN_REFRESH_WINDOW = 28 * 24 * 60 * 60 * 1000; // 28 days (extended from 6 days)
+const TOKEN_EXPIRATION_WINDOW = 30 * 24 * 60 * 60 * 1000; // 30 days (extended from 7 days)
 
 export function useSessionExpiration() {
   const pathname = usePathname();
