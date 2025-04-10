@@ -1,6 +1,6 @@
 'use client';
-import React from 'react';
-import { IoClose, IoRefresh, IoChevronBack } from 'react-icons/io5';
+import React, { useState } from 'react';
+import { IoClose, IoRefresh, IoChevronBack, IoGridOutline } from 'react-icons/io5';
 
 // Define the interface for header props
 export interface ChatHeaderProps {
@@ -18,6 +18,8 @@ const ChatHeader = ({
   onRefresh,
   isMobileView = false
 }: ChatHeaderProps) => {
+  const [isHovering, setIsHovering] = useState(false);
+  
   return (
     <div className="flex items-center justify-between p-4 border-b border-[#00ffff]/10 bg-gradient-to-r from-black/50 to-black/40 backdrop-blur-md shadow-sm">
       <div className="flex items-center space-x-3">
@@ -33,6 +35,18 @@ const ChatHeader = ({
           )}
         </button>
         <h2 className="text-lg font-medium tracking-wide text-[#00ffff]">Live Support</h2>
+        <a 
+          href="/dashboard" 
+          className="group relative ml-2 px-3 py-1 rounded-md overflow-hidden bg-black/30 hover:bg-black/50 border border-[#00ffff]/20 transition-all duration-200"
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => setIsHovering(false)}
+        >
+          <div className="flex items-center space-x-2">
+            <IoGridOutline className="w-4 h-4 text-[#00ffff]/90" />
+            <span className="text-xs font-medium text-white/90">Dashboard</span>
+          </div>
+          <span className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#00ffff]/50 to-transparent transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></span>
+        </a>
         <div className="flex items-center gap-2">
           <div 
             className={`w-2 h-2 rounded-full ${isWebSocketConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} 

@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { AnimatePresence, LazyMotion, domMax, m } from 'framer-motion';
-import { IoRefresh } from 'react-icons/io5';
+import { IoRefresh, IoHomeOutline } from 'react-icons/io5';
 import { ChatHeader, ChatInput, TypingIndicator, ChatMessageData } from './components';
 import ChatMessagesContainer from './components/ChatMessagesContainer';
 import WebSocketManager from './components/WebSocketManager';
@@ -498,6 +498,15 @@ const ChatDrawer = ({ isOpen, onClose }: ChatDrawerProps) => {
                 availableAdmins={[{ id: selectedAdmin, name: 'Support' }]}
                 isMobileView={isMobileView}
               />
+              
+              {/* Return to Dashboard Button */}
+              <button
+                onClick={handleClose}
+                className="flex items-center justify-center w-full py-3 mt-1 bg-gradient-to-r from-[#00ffff]/20 to-purple-600/20 hover:from-[#00ffff]/30 hover:to-purple-600/30 text-white font-medium space-x-2 transition-all duration-300 hover:shadow-glow"
+              >
+                <IoHomeOutline className="text-[#00ffff] w-5 h-5" />
+                <span>Return to Dashboard</span>
+              </button>
               
               {/* File input (hidden) */}
               <input
