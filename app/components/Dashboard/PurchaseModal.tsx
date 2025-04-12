@@ -584,7 +584,15 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
 
             {/* Footer */}
             <div className="p-4 sm:p-6 border-t border-white/10 flex gap-2 sm:gap-3">
-              {step === 'amount' ? (
+              {paymentUrl ? (
+                <button
+                  onClick={handleClose}
+                  className="flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl border border-white/10 
+                    text-white hover:bg-white/5 transition-colors text-sm sm:text-base"
+                >
+                  Close
+                </button>
+              ) : step === 'amount' ? (
                 <>
                   <button
                     onClick={handleBack}
@@ -593,6 +601,25 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                   >
                     Back
                   </button>
+                  {isAuthenticated && (
+                    <button
+                      onClick={handlePayment}
+                      disabled={!isAmountValid || isProcessing}
+                      className={`flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl flex items-center justify-center
+                        ${isAmountValid && !isProcessing
+                          ? 'bg-[#00ffff]/10 text-[#00ffff] hover:bg-[#00ffff]/20'
+                          : 'bg-white/5 text-white/40 cursor-not-allowed'
+                        }
+                        border border-[#00ffff]/30
+                        transition-all duration-200 text-sm sm:text-base`}
+                    >
+                      {isProcessing ? (
+                        <span className="inline-block w-4 h-4 sm:w-5 sm:h-5 border-2 border-[#00ffff]/30 border-t-[#00ffff] rounded-full animate-spin"></span>
+                      ) : (
+                        'Process Payment'
+                      )}
+                    </button>
+                  )}
                 </>
               ) : (
                 <button
