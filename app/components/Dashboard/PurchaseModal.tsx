@@ -593,25 +593,6 @@ const PurchaseModal = ({ isOpen, onClose }: PurchaseModalProps) => {
                   >
                     Back
                   </button>
-                  {isAuthenticated && (
-                    <button
-                      onClick={handlePayment}
-                      disabled={!isAmountValid || isProcessing}
-                      className={`flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl flex items-center justify-center
-                        ${isAmountValid && !isProcessing
-                          ? 'bg-[#00ffff]/10 text-[#00ffff] hover:bg-[#00ffff]/20'
-                          : 'bg-white/5 text-white/40 cursor-not-allowed'
-                        }
-                        border border-[#00ffff]/30
-                        transition-all duration-200 text-sm sm:text-base`}
-                    >
-                      {isProcessing ? (
-                        <span className="inline-block w-4 h-4 sm:w-5 sm:h-5 border-2 border-[#00ffff]/30 border-t-[#00ffff] rounded-full animate-spin"></span>
-                      ) : (
-                        'Process Payment'
-                      )}
-                    </button>
-                  )}
                 </>
               ) : (
                 <button
